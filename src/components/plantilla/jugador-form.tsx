@@ -31,6 +31,12 @@ interface JugadorExistente extends JugadorFormValues {
   fotoSignedUrl: string | null;
 }
 
+const PIERNA_DOMINANTE_LABEL: Record<string, string> = {
+  izquierda: "Izquierda",
+  derecha: "Derecha",
+  ambidiestro: "Ambidiestro",
+};
+
 function FieldError({ message }: { message?: string }) {
   if (!message) return null;
   return <p className="text-sm text-destructive">{message}</p>;
@@ -170,7 +176,11 @@ export function JugadorForm({
                 render={({ field }) => (
                   <Select value={field.value} onValueChange={field.onChange}>
                     <SelectTrigger id="pierna_dominante" className="w-full">
-                      <SelectValue placeholder="Sin especificar" />
+                      <SelectValue placeholder="Sin especificar">
+                        {(value) =>
+                          PIERNA_DOMINANTE_LABEL[value as string] ?? value
+                        }
+                      </SelectValue>
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="izquierda">Izquierda</SelectItem>
