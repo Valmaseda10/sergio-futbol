@@ -9,7 +9,10 @@ import {
   partidoSchema,
   type PartidoFormValues,
 } from "@/lib/validations/partido";
-import { crearPartido, actualizarPartido } from "@/app/(app)/partidos/actions";
+import {
+  crearPartidoLocal,
+  actualizarPartidoLocal,
+} from "@/app/(app)/partidos/local-actions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -57,14 +60,9 @@ export function PartidoForm({
   });
 
   async function onSubmit(values: PartidoFormValues) {
-    const formData = new FormData();
-    Object.entries(values).forEach(([key, value]) => {
-      formData.set(key, value);
-    });
-
     const result = partido
-      ? await actualizarPartido(partido.id, formData)
-      : await crearPartido(formData);
+      ? await actualizarPartidoLocal(partido.id, values)
+      : await crearPartidoLocal(values);
 
     if ("error" in result) {
       toast.error(result.error);
@@ -73,7 +71,6 @@ export function PartidoForm({
 
     toast.success(partido ? "Partido actualizado" : "Partido creado");
     router.push(`/partidos/${result.id}`);
-    router.refresh();
   }
 
   return (

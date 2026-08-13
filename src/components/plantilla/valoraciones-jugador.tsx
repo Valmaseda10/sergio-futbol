@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useLiveQuery } from "dexie-react-hooks";
 import { toast } from "sonner";
 import { Trash2 } from "lucide-react";
 import {
@@ -15,24 +15,18 @@ import {
   ResponsiveContainer,
 } from "recharts";
 import {
-  crearValoracionJugador,
-  eliminarValoracionJugador,
-} from "@/app/(app)/plantilla/actions";
+  crearValoracionJugadorLocal,
+  eliminarValoracionJugadorLocal,
+} from "@/app/(app)/plantilla/local-actions";
+import { localDb } from "@/lib/db/local-db";
+import {
+  valoracionJugadorFormDataToValues,
+} from "@/lib/validations/valoracion-jugador";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-
-interface Valoracion {
-  id: string;
-  fecha: string;
-  tecnica: number | null;
-  fisico: number | null;
-  tactica: number | null;
-  actitud: number | null;
-  notas: string | null;
-}
 
 function hoyISO() {
   const now = new Date();
@@ -47,16 +41,16 @@ function formatearFechaCorta(fecha: string) {
   });
 }
 
-export function ValoracionesJugador({
-  jugadorId,
-  valoracionesIniciales,
-}: {
-  jugadorId: string;
-  valoracionesIniciales: Valoracion[];
-}) {
-  const router = useRouter();
-  const [valoraciones, setValoraciones] = useState(
-    [...valoracionesIniciales].sort((a, b) => a.fecha.localeCompare(b.fecha)),
+export function ValoracionesJugador({ jugadorId }: { jugadorId: string }) {
+  const valoraciones = useLiveQuery(
+    () =>
+      localDb.valoraciones_jugador
+        .where("jugador_id")
+        .equals(jugadorId)
+        .toArray()
+        .then((rows) => rows.sort((a, b) => a.fecha.localeCompare(b.fecha))),
+    [jugadorId],
+    [],
   );
   const [mostrarForm, setMostrarForm] = useState(false);
   const [guardando, setGuardando] = useState(false);
@@ -66,7 +60,10 @@ export function ValoracionesJugador({
     e.preventDefault();
     setGuardando(true);
     const formData = new FormData(e.currentTarget);
-    const result = await crearValoracionJugador(jugadorId, formData);
+    const result = await crearValoracionJugadorLocal(
+      jugadorId,
+      valoracionJugadorFormDataToValues(formData),
+    );
     setGuardando(false);
 
     if ("error" in result) {
@@ -75,26 +72,16 @@ export function ValoracionesJugador({
     }
 
     toast.success("Valoración guardada");
-    setValoraciones((prev) =>
-      [...prev, result.valoracion].sort((a, b) =>
-        a.fecha.localeCompare(b.fecha),
-      ),
-    );
     setMostrarForm(false);
-    router.refresh();
   }
 
   async function handleDelete(id: string) {
     setBorrando(id);
-    const previas = valoraciones;
-    setValoraciones((prev) => prev.filter((v) => v.id !== id));
-
-    const result = await eliminarValoracionJugador(id, jugadorId);
+    const result = await eliminarValoracionJugadorLocal(id);
     setBorrando(null);
 
     if ("error" in result) {
       toast.error(result.error);
-      setValoraciones(previas);
     }
   }
 

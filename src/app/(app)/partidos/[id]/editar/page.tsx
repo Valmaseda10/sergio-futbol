@@ -1,22 +1,23 @@
-import { notFound } from "next/navigation";
-import { createClient } from "@/lib/supabase/server";
+"use client";
+
+import { useParams } from "next/navigation";
+import { useLiveQuery } from "dexie-react-hooks";
+import { localDb } from "@/lib/db/local-db";
 import { PartidoForm } from "@/components/partidos/partido-form";
 
-export default async function EditarPartidoPage({
-  params,
-}: {
-  params: Promise<{ id: string }>;
-}) {
-  const { id } = await params;
-  const supabase = await createClient();
-  const { data: partido } = await supabase
-    .from("partidos")
-    .select("*")
-    .eq("id", id)
-    .single();
+export default function EditarPartidoPage() {
+  const { id } = useParams<{ id: string }>();
+  const partido = useLiveQuery(
+    async () => (await localDb.partidos.get(id)) ?? null,
+    [id],
+  );
 
-  if (!partido) {
-    notFound();
+  if (partido === undefined) {
+    return <p className="text-sm text-muted-foreground">Cargando...</p>;
+  }
+
+  if (partido === null) {
+    return <p className="text-sm text-muted-foreground">Partido no encontrado.</p>;
   }
 
   return (

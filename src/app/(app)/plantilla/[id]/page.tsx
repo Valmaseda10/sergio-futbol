@@ -1,7 +1,12 @@
+"use client";
+
+import { useEffect, useState } from "react";
 import Link from "next/link";
-import { notFound } from "next/navigation";
+import { useParams } from "next/navigation";
+import { useLiveQuery } from "dexie-react-hooks";
 import { Pencil } from "lucide-react";
-import { createClient } from "@/lib/supabase/server";
+import { localDb } from "@/lib/db/local-db";
+import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -24,36 +29,30 @@ const PIERNA_LABEL: Record<string, string> = {
   ambidiestro: "Ambidiestro",
 };
 
-export default async function FichaJugadorPage({
-  params,
-}: {
-  params: Promise<{ id: string }>;
-}) {
-  const { id } = await params;
-  const supabase = await createClient();
-  const { data: jugador } = await supabase
-    .from("jugadores")
-    .select("*")
-    .eq("id", id)
-    .single();
+export default function FichaJugadorPage() {
+  const { id } = useParams<{ id: string }>();
+  const jugador = useLiveQuery(
+    async () => (await localDb.jugadores.get(id)) ?? null,
+    [id],
+  );
+  const [fotoSignedUrl, setFotoSignedUrl] = useState<string | null>(null);
 
-  if (!jugador) {
-    notFound();
+  useEffect(() => {
+    if (!jugador?.foto_url || !navigator.onLine) return;
+    const supabase = createClient();
+    supabase.storage
+      .from("jugadores")
+      .createSignedUrl(jugador.foto_url, 3600)
+      .then(({ data }) => setFotoSignedUrl(data?.signedUrl ?? null));
+  }, [jugador?.foto_url]);
+
+  if (jugador === undefined) {
+    return <p className="text-sm text-muted-foreground">Cargando...</p>;
   }
 
-  const { data: valoraciones } = await supabase
-    .from("valoraciones_jugador")
-    .select("id, fecha, tecnica, fisico, tactica, actitud, notas")
-    .eq("jugador_id", id)
-    .order("fecha", { ascending: true });
-
-  const fotoSignedUrl = jugador.foto_url
-    ? (
-        await supabase.storage
-          .from("jugadores")
-          .createSignedUrl(jugador.foto_url, 3600)
-      ).data?.signedUrl ?? null
-    : null;
+  if (jugador === null) {
+    return <p className="text-sm text-muted-foreground">Jugador no encontrado.</p>;
+  }
 
   const nombreCompleto = `${jugador.nombre} ${jugador.apellidos}`;
 
@@ -163,10 +162,7 @@ export default async function FichaJugadorPage({
         </Card>
       )}
 
-      <ValoracionesJugador
-        jugadorId={jugador.id}
-        valoracionesIniciales={valoraciones ?? []}
-      />
+      <ValoracionesJugador jugadorId={jugador.id} />
 
       <BajaReactivarButton
         jugadorId={jugador.id}

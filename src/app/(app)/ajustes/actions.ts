@@ -3,78 +3,9 @@
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
-import {
-  estadoFormDataToValues,
-  estadoSchema,
-} from "@/lib/validations/estado";
 import type { Rol } from "@/lib/types/database.types";
 
-type ActionResult = { error: string } | { success: true; id: string };
 type SimpleResult = { error: string } | { success: true };
-
-export async function crearEstado(formData: FormData): Promise<ActionResult> {
-  const parsed = estadoSchema.safeParse(estadoFormDataToValues(formData));
-
-  if (!parsed.success) {
-    return { error: parsed.error.issues[0]?.message ?? "Datos no válidos" };
-  }
-
-  const supabase = await createClient();
-  const { data, error } = await supabase
-    .from("estados")
-    .insert(parsed.data)
-    .select("id")
-    .single();
-
-  if (error || !data) {
-    return { error: error?.message ?? "No se ha podido crear el estado" };
-  }
-
-  revalidatePath("/ajustes");
-  return { success: true, id: data.id };
-}
-
-export async function actualizarEstado(
-  id: string,
-  formData: FormData,
-): Promise<SimpleResult> {
-  const parsed = estadoSchema.safeParse(estadoFormDataToValues(formData));
-
-  if (!parsed.success) {
-    return { error: parsed.error.issues[0]?.message ?? "Datos no válidos" };
-  }
-
-  const supabase = await createClient();
-  const { error } = await supabase
-    .from("estados")
-    .update(parsed.data)
-    .eq("id", id);
-
-  if (error) {
-    return { error: error.message };
-  }
-
-  revalidatePath("/ajustes");
-  return { success: true };
-}
-
-export async function toggleActivoEstado(
-  id: string,
-  activo: boolean,
-): Promise<SimpleResult> {
-  const supabase = await createClient();
-  const { error } = await supabase
-    .from("estados")
-    .update({ activo })
-    .eq("id", id);
-
-  if (error) {
-    return { error: error.message };
-  }
-
-  revalidatePath("/ajustes");
-  return { success: true };
-}
 
 async function contarAdminsActivos(
   supabase: Awaited<ReturnType<typeof createClient>>,

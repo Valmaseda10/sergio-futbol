@@ -1,10 +1,11 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useLiveQuery } from "dexie-react-hooks";
 import { toast } from "sonner";
 import { Trash2 } from "lucide-react";
-import { crearEvento, eliminarEvento } from "@/app/(app)/partidos/actions";
+import { crearEventoLocal, eliminarEventoLocal } from "@/app/(app)/partidos/local-actions";
+import { localDb } from "@/lib/db/local-db";
 import type { TipoEventoPartido } from "@/lib/types/database.types";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -25,13 +26,6 @@ interface Jugador {
   dorsal: number | null;
 }
 
-interface Evento {
-  id: string;
-  jugador_id: string;
-  tipo: TipoEventoPartido;
-  minuto: number | null;
-}
-
 const TIPO_LABEL: Record<TipoEventoPartido, string> = {
   gol: "Gol",
   asistencia: "Asistencia",
@@ -42,14 +36,15 @@ const TIPO_LABEL: Record<TipoEventoPartido, string> = {
 export function EventosList({
   partidoId,
   convocados,
-  eventosIniciales,
 }: {
   partidoId: string;
   convocados: Jugador[];
-  eventosIniciales: Evento[];
 }) {
-  const router = useRouter();
-  const [eventos, setEventos] = useState(eventosIniciales);
+  const eventos = useLiveQuery(
+    () => localDb.eventos_partido.where("partido_id").equals(partidoId).toArray(),
+    [partidoId],
+    [],
+  );
   const [jugadorId, setJugadorId] = useState("");
   const [tipo, setTipo] = useState<TipoEventoPartido>("gol");
   const [minuto, setMinuto] = useState("");
@@ -65,7 +60,7 @@ export function EventosList({
     }
 
     setEnviando(true);
-    const result = await crearEvento(partidoId, jugadorId, tipo, minuto);
+    const result = await crearEventoLocal(partidoId, jugadorId, tipo, minuto);
     setEnviando(false);
 
     if ("error" in result) {
@@ -74,24 +69,14 @@ export function EventosList({
     }
 
     toast.success("Evento añadido");
-    setEventos((prev) => [...prev, result.evento]);
     setJugadorId("");
     setMinuto("");
-    router.refresh();
   }
 
   async function handleDelete(eventoId: string) {
     setBorrando(eventoId);
-    const previos = eventos;
-    setEventos((prev) => prev.filter((e) => e.id !== eventoId));
-
-    const result = await eliminarEvento(eventoId, partidoId);
+    await eliminarEventoLocal(eventoId);
     setBorrando(null);
-
-    if ("error" in result) {
-      toast.error(result.error);
-      setEventos(previos);
-    }
   }
 
   return (

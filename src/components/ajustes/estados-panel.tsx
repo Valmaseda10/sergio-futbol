@@ -1,14 +1,18 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useLiveQuery } from "dexie-react-hooks";
 import { toast } from "sonner";
 import { Pencil } from "lucide-react";
 import {
-  crearEstado,
-  actualizarEstado,
-  toggleActivoEstado,
-} from "@/app/(app)/ajustes/actions";
+  crearEstadoLocal,
+  actualizarEstadoLocal,
+  toggleActivoEstadoLocal,
+} from "@/app/(app)/ajustes/local-actions";
+import { localDb } from "@/lib/db/local-db";
+import {
+  estadoFormDataToValues,
+} from "@/lib/validations/estado";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -47,16 +51,16 @@ function EstadoForm({
   estado?: Estado;
   onDone: () => void;
 }) {
-  const router = useRouter();
   const [guardando, setGuardando] = useState(false);
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     setGuardando(true);
     const formData = new FormData(e.currentTarget);
+    const values = estadoFormDataToValues(formData);
     const result = estado
-      ? await actualizarEstado(estado.id, formData)
-      : await crearEstado(formData);
+      ? await actualizarEstadoLocal(estado.id, values)
+      : await crearEstadoLocal(values);
     setGuardando(false);
 
     if ("error" in result) {
@@ -65,7 +69,6 @@ function EstadoForm({
     }
 
     toast.success(estado ? "Estado actualizado" : "Estado creado");
-    router.refresh();
     onDone();
   }
 
@@ -113,33 +116,35 @@ function EstadoForm({
   );
 }
 
-export function EstadosPanel({
-  estadosIniciales,
-}: {
-  estadosIniciales: Estado[];
-}) {
-  const router = useRouter();
+export function EstadosPanel() {
+  const estados = useLiveQuery(
+    () =>
+      localDb.estados
+        .toArray()
+        .then((rows) =>
+          rows.sort((a, b) =>
+            a.tipo === b.tipo
+              ? a.nombre.localeCompare(b.nombre)
+              : a.tipo.localeCompare(b.tipo),
+          ),
+        ),
+    [],
+    [],
+  );
   const [mostrarNuevo, setMostrarNuevo] = useState(false);
   const [editando, setEditando] = useState<Estado | null>(null);
   const [pendiente, setPendiente] = useState<string | null>(null);
 
   async function handleToggle(estado: Estado) {
     setPendiente(estado.id);
-    const result = await toggleActivoEstado(estado.id, !estado.activo);
+    await toggleActivoEstadoLocal(estado.id, !estado.activo);
     setPendiente(null);
-
-    if ("error" in result) {
-      toast.error(result.error);
-      return;
-    }
-
-    router.refresh();
   }
 
   return (
     <div className="space-y-3">
       <ul className="divide-y rounded-md border">
-        {estadosIniciales.map((estado) => (
+        {estados.map((estado) => (
           <li key={estado.id} className="flex items-center gap-3 p-3">
             <span
               className="size-4 shrink-0 rounded-full"

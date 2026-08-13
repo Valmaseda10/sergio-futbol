@@ -1,28 +1,27 @@
+"use client";
+
 import Link from "next/link";
+import { useLiveQuery } from "dexie-react-hooks";
 import { Plus } from "lucide-react";
-import { createClient } from "@/lib/supabase/server";
+import { localDb } from "@/lib/db/local-db";
 import { Button } from "@/components/ui/button";
 import { JugadoresList } from "@/components/plantilla/jugadores-list";
 
-export default async function PlantillaPage() {
-  const supabase = await createClient();
-  const { data: jugadores } = await supabase
-    .from("jugadores")
-    .select("id, nombre, apellidos, dorsal, posicion, activo, foto_url")
-    .order("dorsal", { ascending: true, nullsFirst: false })
-    .order("apellidos", { ascending: true });
-
-  const jugadoresConFoto = await Promise.all(
-    (jugadores ?? []).map(async ({ foto_url, ...jugador }) => ({
-      ...jugador,
-      fotoSignedUrl: foto_url
-        ? (
-            await supabase.storage
-              .from("jugadores")
-              .createSignedUrl(foto_url, 3600)
-          ).data?.signedUrl ?? null
-        : null,
-    })),
+export default function PlantillaPage() {
+  const jugadores = useLiveQuery(
+    () =>
+      localDb.jugadores.toArray().then((rows) =>
+        rows.sort((a, b) => {
+          if (a.dorsal == null && b.dorsal != null) return 1;
+          if (a.dorsal != null && b.dorsal == null) return -1;
+          if (a.dorsal != null && b.dorsal != null && a.dorsal !== b.dorsal) {
+            return a.dorsal - b.dorsal;
+          }
+          return a.apellidos.localeCompare(b.apellidos);
+        }),
+      ),
+    [],
+    [],
   );
 
   return (
@@ -34,7 +33,7 @@ export default async function PlantillaPage() {
           Nuevo
         </Button>
       </div>
-      <JugadoresList jugadores={jugadoresConFoto} />
+      <JugadoresList jugadores={jugadores ?? []} />
     </div>
   );
 }

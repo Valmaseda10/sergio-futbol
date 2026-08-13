@@ -5,6 +5,7 @@ import { LogOut } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { SyncStatusBadge } from "@/components/sync/sync-status";
 import type { Rol } from "@/lib/types/database.types";
 
 export function TopBar({ nombre, rol }: { nombre: string; rol: Rol }) {
@@ -26,6 +27,7 @@ export function TopBar({ nombre, rol }: { nombre: string; rol: Rol }) {
         </p>
       </div>
       <div className="flex items-center gap-2">
+        <SyncStatusBadge />
         <div className="hidden text-right sm:block">
           <p className="text-sm font-medium leading-tight">{nombre}</p>
           <Badge variant="secondary" className="text-[10px] capitalize">

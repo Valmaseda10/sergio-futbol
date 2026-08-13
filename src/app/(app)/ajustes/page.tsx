@@ -18,27 +18,21 @@ export default async function AjustesPage() {
 
   const isAdmin = usuario?.rol === "admin";
 
-  const [{ data: estados }, { data: solicitudes }, { data: usuarios }] =
-    await Promise.all([
-      supabase
-        .from("estados")
-        .select("id, nombre, color, tipo, activo")
-        .order("tipo", { ascending: true })
-        .order("nombre", { ascending: true }),
-      isAdmin
-        ? supabase
-            .from("solicitudes_acceso")
-            .select("id, nombre, email, mensaje, fecha_solicitud")
-            .eq("estado", "pendiente")
-            .order("fecha_solicitud", { ascending: true })
-        : Promise.resolve({ data: null }),
-      isAdmin
-        ? supabase
-            .from("usuarios")
-            .select("id, nombre, email, rol, activo")
-            .order("nombre", { ascending: true })
-        : Promise.resolve({ data: null }),
-    ]);
+  const [{ data: solicitudes }, { data: usuarios }] = await Promise.all([
+    isAdmin
+      ? supabase
+          .from("solicitudes_acceso")
+          .select("id, nombre, email, mensaje, fecha_solicitud")
+          .eq("estado", "pendiente")
+          .order("fecha_solicitud", { ascending: true })
+      : Promise.resolve({ data: null }),
+    isAdmin
+      ? supabase
+          .from("usuarios")
+          .select("id, nombre, email, rol, activo")
+          .order("nombre", { ascending: true })
+      : Promise.resolve({ data: null }),
+  ]);
 
   return (
     <div className="space-y-4">
@@ -60,7 +54,7 @@ export default async function AjustesPage() {
           <CardTitle>Estados</CardTitle>
         </CardHeader>
         <CardContent>
-          <EstadosPanel estadosIniciales={estados ?? []} />
+          <EstadosPanel />
         </CardContent>
       </Card>
 

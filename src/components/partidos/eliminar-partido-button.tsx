@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { Trash2 } from "lucide-react";
-import { eliminarPartido } from "@/app/(app)/partidos/actions";
+import { eliminarPartidoLocal } from "@/app/(app)/partidos/local-actions";
 import { Button } from "@/components/ui/button";
 import {
   AlertDialog,
@@ -25,7 +25,7 @@ export function EliminarPartidoButton({ id }: { id: string }) {
 
   async function handleConfirm() {
     setLoading(true);
-    const result = await eliminarPartido(id);
+    const result = await eliminarPartidoLocal(id);
     setLoading(false);
 
     if ("error" in result) {
@@ -36,7 +36,6 @@ export function EliminarPartidoButton({ id }: { id: string }) {
     setOpen(false);
     toast.success("Partido eliminado");
     router.push("/partidos");
-    router.refresh();
   }
 
   return (

@@ -11,7 +11,10 @@ import {
   jugadorSchema,
   type JugadorFormValues,
 } from "@/lib/validations/jugador";
-import { crearJugador, actualizarJugador } from "@/app/(app)/plantilla/actions";
+import {
+  crearJugadorLocal,
+  actualizarJugadorLocal,
+} from "@/app/(app)/plantilla/local-actions";
 import { JugadorAvatar } from "@/components/plantilla/jugador-avatar";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -75,17 +78,9 @@ export function JugadorForm({
   }
 
   async function onSubmit(values: JugadorFormValues) {
-    const formData = new FormData();
-    Object.entries(values).forEach(([key, value]) => {
-      formData.set(key, value);
-    });
-    if (fotoFile) {
-      formData.set("foto", fotoFile);
-    }
-
     const result = jugador
-      ? await actualizarJugador(jugador.id, formData)
-      : await crearJugador(formData);
+      ? await actualizarJugadorLocal(jugador.id, values, fotoFile)
+      : await crearJugadorLocal(values, fotoFile);
 
     if ("error" in result) {
       toast.error(result.error);
@@ -94,7 +89,6 @@ export function JugadorForm({
 
     toast.success(jugador ? "Jugador actualizado" : "Jugador creado");
     router.push(`/plantilla/${result.id}`);
-    router.refresh();
   }
 
   return (

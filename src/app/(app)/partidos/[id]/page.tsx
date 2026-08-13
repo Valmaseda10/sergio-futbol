@@ -1,5 +1,8 @@
+"use client";
+
 import Link from "next/link";
-import { notFound } from "next/navigation";
+import { useParams } from "next/navigation";
+import { useLiveQuery } from "dexie-react-hooks";
 import {
   Pencil,
   Users,
@@ -10,7 +13,7 @@ import {
   Clock,
   ChevronRight,
 } from "lucide-react";
-import { createClient } from "@/lib/supabase/server";
+import { localDb } from "@/lib/db/local-db";
 import { capitalizarPrimera } from "@/lib/date";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -34,44 +37,50 @@ const COMPETICION_LABEL: Record<string, string> = {
   copa: "Copa",
 };
 
-export default async function FichaPartidoPage({
-  params,
-}: {
-  params: Promise<{ id: string }>;
-}) {
-  const { id } = await params;
-  const supabase = await createClient();
+export default function FichaPartidoPage() {
+  const { id } = useParams<{ id: string }>();
 
-  const [
-    { data: partido },
-    { count: convocadosCount },
-    { count: titularesCount },
-    { count: eventosCount },
-    { data: valoracion },
-  ] = await Promise.all([
-    supabase.from("partidos").select("*").eq("id", id).single(),
-    supabase
-      .from("convocatorias")
-      .select("id", { count: "exact", head: true })
-      .eq("partido_id", id),
-    supabase
-      .from("alineaciones")
-      .select("id", { count: "exact", head: true })
-      .eq("partido_id", id)
-      .eq("titular", true),
-    supabase
-      .from("eventos_partido")
-      .select("id", { count: "exact", head: true })
-      .eq("partido_id", id),
-    supabase
-      .from("valoraciones_partido")
-      .select("id")
-      .eq("partido_id", id)
-      .maybeSingle(),
-  ]);
+  const partido = useLiveQuery(
+    async () => (await localDb.partidos.get(id)) ?? null,
+    [id],
+  );
+  const convocadosCount = useLiveQuery(
+    () => localDb.convocatorias.where("partido_id").equals(id).count(),
+    [id],
+    0,
+  );
+  const titularesCount = useLiveQuery(
+    () =>
+      localDb.alineaciones
+        .where("partido_id")
+        .equals(id)
+        .filter((a) => a.titular)
+        .count(),
+    [id],
+    0,
+  );
+  const eventosCount = useLiveQuery(
+    () => localDb.eventos_partido.where("partido_id").equals(id).count(),
+    [id],
+    0,
+  );
+  const tieneValoracion = useLiveQuery(
+    () =>
+      localDb.valoraciones_partido
+        .where("partido_id")
+        .equals(id)
+        .count()
+        .then((n) => n > 0),
+    [id],
+    false,
+  );
 
-  if (!partido) {
-    notFound();
+  if (partido === undefined) {
+    return <p className="text-sm text-muted-foreground">Cargando...</p>;
+  }
+
+  if (partido === null) {
+    return <p className="text-sm text-muted-foreground">Partido no encontrado.</p>;
   }
 
   const tieneResultado =
@@ -82,26 +91,25 @@ export default async function FichaPartidoPage({
       href: `/partidos/${id}/convocatoria`,
       icon: Users,
       label: "Convocatoria",
-      estado: `${convocadosCount ?? 0} convocados`,
+      estado: `${convocadosCount} convocados`,
     },
     {
       href: `/partidos/${id}/alineacion`,
       icon: LayoutGrid,
       label: "Alineación",
-      estado:
-        (titularesCount ?? 0) > 0 ? "Definida" : "Sin definir",
+      estado: titularesCount > 0 ? "Definida" : "Sin definir",
     },
     {
       href: `/partidos/${id}/eventos`,
       icon: ListOrdered,
       label: "Eventos",
-      estado: `${eventosCount ?? 0} registrados`,
+      estado: `${eventosCount} registrados`,
     },
     {
       href: `/partidos/${id}/valoracion`,
       icon: Star,
       label: "Valoración",
-      estado: valoracion ? "Completada" : "Sin valorar",
+      estado: tieneValoracion ? "Completada" : "Sin valorar",
     },
   ];
 

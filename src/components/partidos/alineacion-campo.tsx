@@ -1,11 +1,12 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { X } from "lucide-react";
 import { FORMACIONES, type Formacion } from "@/lib/formaciones";
-import { guardarAlineacion } from "@/app/(app)/partidos/actions";
+import { guardarAlineacionLocal } from "@/app/(app)/partidos/local-actions";
+import { createClient } from "@/lib/supabase/client";
 import { JugadorAvatar } from "@/components/plantilla/jugador-avatar";
 import { Button } from "@/components/ui/button";
 import {
@@ -27,7 +28,7 @@ interface Jugador {
   nombre: string;
   apellidos: string;
   dorsal: number | null;
-  fotoSignedUrl: string | null;
+  foto_url: string | null;
 }
 
 function remapearAFormacion(
@@ -88,11 +89,37 @@ export function AlineacionCampo({
   );
   const [huecoAbierto, setHuecoAbierto] = useState<string | null>(null);
   const [guardando, setGuardando] = useState(false);
+  const [fotoUrls, setFotoUrls] = useState<Record<string, string>>({});
 
   const jugadoresPorId = useMemo(
     () => new Map(convocados.map((j) => [j.id, j])),
     [convocados],
   );
+
+  const rutasFoto = useMemo(
+    () => convocados.map((j) => j.foto_url).filter((v): v is string => !!v),
+    [convocados],
+  );
+  const rutasFotoKey = rutasFoto.join(",");
+
+  useEffect(() => {
+    if (rutasFoto.length === 0 || !navigator.onLine) return;
+    const supabase = createClient();
+    supabase.storage
+      .from("jugadores")
+      .createSignedUrls(rutasFoto, 3600)
+      .then(({ data }) => {
+        if (!data) return;
+        setFotoUrls((prev) => {
+          const next = { ...prev };
+          for (const d of data) {
+            if (d.signedUrl && d.path) next[d.path] = d.signedUrl;
+          }
+          return next;
+        });
+      });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [rutasFotoKey]);
 
   const asignadosIds = new Set(Object.values(asignaciones));
   const disponibles = convocados.filter((j) => !asignadosIds.has(j.id));
@@ -134,7 +161,7 @@ export function AlineacionCampo({
     }));
     const suplentesIds = disponibles.map((j) => j.id);
 
-    const result = await guardarAlineacion(partidoId, titulares, suplentesIds);
+    const result = await guardarAlineacionLocal(partidoId, titulares, suplentesIds);
     setGuardando(false);
 
     if ("error" in result) {
@@ -144,7 +171,6 @@ export function AlineacionCampo({
 
     toast.success("Alineación guardada");
     router.push(`/partidos/${partidoId}`);
-    router.refresh();
   }
 
   const huecoActivo = formacion.huecos.find((h) => h.id === huecoAbierto);
@@ -216,7 +242,7 @@ export function AlineacionCampo({
                 className="flex items-center gap-2 rounded-full border py-1 pr-3 pl-1 text-sm"
               >
                 <JugadorAvatar
-                  src={j.fotoSignedUrl}
+                  src={j.foto_url ? fotoUrls[j.foto_url] ?? null : null}
                   nombre={j.nombre}
                   apellidos={j.apellidos}
                   className="size-6"
@@ -265,7 +291,7 @@ export function AlineacionCampo({
                 className="flex w-full items-center gap-2 rounded-md p-2 text-left text-sm hover:bg-muted"
               >
                 <JugadorAvatar
-                  src={j.fotoSignedUrl}
+                  src={j.foto_url ? fotoUrls[j.foto_url] ?? null : null}
                   nombre={j.nombre}
                   apellidos={j.apellidos}
                   className="size-7"

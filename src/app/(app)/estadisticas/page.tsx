@@ -1,4 +1,8 @@
-import { createClient } from "@/lib/supabase/server";
+"use client";
+
+import { useMemo } from "react";
+import { useLiveQuery } from "dexie-react-hooks";
+import { localDb } from "@/lib/db/local-db";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ResultadosChart } from "@/components/estadisticas/resultados-chart";
 import { AsistenciaChart } from "@/components/estadisticas/asistencia-chart";
@@ -16,96 +20,133 @@ function hoyISO() {
   return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
 }
 
-export default async function EstadisticasPage() {
-  const supabase = await createClient();
+export default function EstadisticasPage() {
   const hoy = hoyISO();
 
-  const [
-    { data: jugadores },
-    { data: partidos },
-    { data: eventos },
-    { data: convocatorias },
-    { data: alineaciones },
-    { data: entrenamientos },
-    { data: asistencias },
-    { data: estados },
-  ] = await Promise.all([
-    supabase
-      .from("jugadores")
-      .select("id, nombre, apellidos, dorsal, fecha_alta")
-      .eq("activo", true),
-    supabase
-      .from("partidos")
-      .select("id, fecha, rival, resultado_favor, resultado_contra")
-      .not("resultado_favor", "is", null)
-      .not("resultado_contra", "is", null)
-      .order("fecha", { ascending: true }),
-    supabase.from("eventos_partido").select("jugador_id, tipo"),
-    supabase.from("convocatorias").select("jugador_id").eq("convocado", true),
-    supabase.from("alineaciones").select("jugador_id, titular"),
-    supabase.from("entrenamientos").select("id, fecha").lte("fecha", hoy),
-    supabase
-      .from("asistencias_entrenamiento")
-      .select("entrenamiento_id, jugador_id, estado_id"),
-    supabase.from("estados").select("id, nombre"),
-  ]);
-
-  const nombrePorEstado = new Map(
-    (estados ?? []).map((e) => [e.id, e.nombre]),
+  const jugadores = useLiveQuery(
+    () => localDb.jugadores.filter((j) => j.activo).toArray(),
+    [],
+    [],
   );
-  const asistenciasConNombre = (asistencias ?? [])
-    .filter((a) => a.estado_id)
-    .map((a) => ({
-      entrenamiento_id: a.entrenamiento_id,
-      jugador_id: a.jugador_id,
-      estado_nombre: nombrePorEstado.get(a.estado_id as string) ?? "",
-    }));
+  const partidos = useLiveQuery(() => localDb.partidos.toArray(), [], []);
+  const eventos = useLiveQuery(
+    () => localDb.eventos_partido.toArray(),
+    [],
+    [],
+  );
+  const convocatorias = useLiveQuery(
+    () => localDb.convocatorias.filter((c) => c.convocado).toArray(),
+    [],
+    [],
+  );
+  const alineaciones = useLiveQuery(
+    () => localDb.alineaciones.toArray(),
+    [],
+    [],
+  );
+  const entrenamientos = useLiveQuery(
+    () => localDb.entrenamientos.toArray(),
+    [],
+    [],
+  );
+  const asistencias = useLiveQuery(
+    () => localDb.asistencias_entrenamiento.toArray(),
+    [],
+    [],
+  );
+  const estados = useLiveQuery(() => localDb.estados.toArray(), [], []);
 
-  const partidosJugados = (partidos ?? []).map((p) => ({
-    id: p.id,
-    fecha: p.fecha,
-    rival: p.rival,
-    resultado_favor: p.resultado_favor as number,
-    resultado_contra: p.resultado_contra as number,
-  }));
-
-  const resumen = calcularResumenEquipo(partidosJugados);
-
-  const asistenciaEquipo = calcularAsistenciaEquipoPorSesion(
-    entrenamientos ?? [],
-    asistenciasConNombre,
-    (jugadores ?? []).length,
+  const partidosJugados = useMemo(
+    () =>
+      partidos
+        .filter((p) => p.resultado_favor != null && p.resultado_contra != null)
+        .sort((a, b) => a.fecha.localeCompare(b.fecha))
+        .map((p) => ({
+          id: p.id,
+          fecha: p.fecha,
+          rival: p.rival,
+          resultado_favor: p.resultado_favor as number,
+          resultado_contra: p.resultado_contra as number,
+        })),
+    [partidos],
   );
 
-  const statsJugadores = calcularStatsJugadores(
-    jugadores ?? [],
-    eventos ?? [],
-    convocatorias ?? [],
-    alineaciones ?? [],
-    entrenamientos ?? [],
-    asistenciasConNombre,
-    hoy,
+  const entrenamientosPasados = useMemo(
+    () => entrenamientos.filter((e) => e.fecha <= hoy),
+    [entrenamientos, hoy],
   );
 
-  const goleadores = statsJugadores
-    .filter((j) => j.goles > 0)
-    .sort((a, b) => b.goles - a.goles)
-    .slice(0, 5)
-    .map((j) => ({ nombre: `${j.nombre} ${j.apellidos}`, goles: j.goles }));
+  const asistenciasConNombre = useMemo(() => {
+    const nombrePorEstado = new Map(estados.map((e) => [e.id, e.nombre]));
+    return asistencias
+      .filter((a) => a.estado_id)
+      .map((a) => ({
+        entrenamiento_id: a.entrenamiento_id,
+        jugador_id: a.jugador_id,
+        estado_nombre: nombrePorEstado.get(a.estado_id as string) ?? "",
+      }));
+  }, [asistencias, estados]);
 
-  const datosResultados = partidosJugados.map((p) => ({
-    rival: `${p.rival} (${new Date(`${p.fecha}T00:00:00`).toLocaleDateString("es-ES", { day: "2-digit", month: "2-digit" })})`,
-    Favor: p.resultado_favor,
-    Contra: p.resultado_contra,
-  }));
+  const resumen = useMemo(
+    () => calcularResumenEquipo(partidosJugados),
+    [partidosJugados],
+  );
 
-  const datosAsistencia = asistenciaEquipo.map((a) => ({
-    fecha: new Date(`${a.fecha}T00:00:00`).toLocaleDateString("es-ES", {
-      day: "2-digit",
-      month: "2-digit",
-    }),
-    pctAsistencia: a.pctAsistencia,
-  }));
+  const asistenciaEquipo = useMemo(
+    () =>
+      calcularAsistenciaEquipoPorSesion(
+        entrenamientosPasados,
+        asistenciasConNombre,
+        jugadores.length,
+      ),
+    [entrenamientosPasados, asistenciasConNombre, jugadores],
+  );
+
+  const statsJugadores = useMemo(
+    () =>
+      calcularStatsJugadores(
+        jugadores,
+        eventos,
+        convocatorias,
+        alineaciones,
+        entrenamientosPasados,
+        asistenciasConNombre,
+        hoy,
+      ),
+    [jugadores, eventos, convocatorias, alineaciones, entrenamientosPasados, asistenciasConNombre, hoy],
+  );
+
+  const goleadores = useMemo(
+    () =>
+      statsJugadores
+        .filter((j) => j.goles > 0)
+        .sort((a, b) => b.goles - a.goles)
+        .slice(0, 5)
+        .map((j) => ({ nombre: `${j.nombre} ${j.apellidos}`, goles: j.goles })),
+    [statsJugadores],
+  );
+
+  const datosResultados = useMemo(
+    () =>
+      partidosJugados.map((p) => ({
+        rival: `${p.rival} (${new Date(`${p.fecha}T00:00:00`).toLocaleDateString("es-ES", { day: "2-digit", month: "2-digit" })})`,
+        Favor: p.resultado_favor,
+        Contra: p.resultado_contra,
+      })),
+    [partidosJugados],
+  );
+
+  const datosAsistencia = useMemo(
+    () =>
+      asistenciaEquipo.map((a) => ({
+        fecha: new Date(`${a.fecha}T00:00:00`).toLocaleDateString("es-ES", {
+          day: "2-digit",
+          month: "2-digit",
+        }),
+        pctAsistencia: a.pctAsistencia,
+      })),
+    [asistenciaEquipo],
+  );
 
   return (
     <div className="space-y-4">

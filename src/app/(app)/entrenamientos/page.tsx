@@ -1,6 +1,9 @@
+"use client";
+
 import Link from "next/link";
+import { useLiveQuery } from "dexie-react-hooks";
 import { Plus, CalendarPlus, MapPin, Clock } from "lucide-react";
-import { createClient } from "@/lib/supabase/server";
+import { localDb } from "@/lib/db/local-db";
 import { capitalizarPrimera } from "@/lib/date";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -20,23 +23,23 @@ function hoyISO() {
   return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
 }
 
-export default async function EntrenamientosPage() {
-  const supabase = await createClient();
+export default function EntrenamientosPage() {
   const hoy = hoyISO();
 
-  const [{ data: proximos }, { data: anteriores }] = await Promise.all([
-    supabase
-      .from("entrenamientos")
-      .select("id, fecha, hora_inicio, lugar, objetivos")
-      .gte("fecha", hoy)
-      .order("fecha", { ascending: true }),
-    supabase
-      .from("entrenamientos")
-      .select("id, fecha, hora_inicio, lugar, objetivos")
-      .lt("fecha", hoy)
-      .order("fecha", { ascending: false })
-      .limit(10),
-  ]);
+  const entrenamientos = useLiveQuery(
+    () => localDb.entrenamientos.toArray(),
+    [],
+    [],
+  );
+
+  const proximos = entrenamientos
+    .filter((e) => e.fecha >= hoy)
+    .sort((a, b) => a.fecha.localeCompare(b.fecha));
+
+  const anteriores = entrenamientos
+    .filter((e) => e.fecha < hoy)
+    .sort((a, b) => b.fecha.localeCompare(a.fecha))
+    .slice(0, 10);
 
   return (
     <div className="space-y-4">
@@ -67,7 +70,7 @@ export default async function EntrenamientosPage() {
         <h2 className="text-sm font-medium text-muted-foreground">
           Próximos
         </h2>
-        {!proximos || proximos.length === 0 ? (
+        {proximos.length === 0 ? (
           <p className="py-4 text-center text-sm text-muted-foreground">
             No hay entrenamientos programados.
           </p>
@@ -108,7 +111,7 @@ export default async function EntrenamientosPage() {
         )}
       </section>
 
-      {anteriores && anteriores.length > 0 && (
+      {anteriores.length > 0 && (
         <section className="space-y-2">
           <h2 className="text-sm font-medium text-muted-foreground">
             Anteriores

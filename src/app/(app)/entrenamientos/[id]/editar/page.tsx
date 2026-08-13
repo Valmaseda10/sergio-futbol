@@ -1,22 +1,27 @@
-import { notFound } from "next/navigation";
-import { createClient } from "@/lib/supabase/server";
+"use client";
+
+import { useParams } from "next/navigation";
+import { useLiveQuery } from "dexie-react-hooks";
+import { localDb } from "@/lib/db/local-db";
 import { EntrenamientoForm } from "@/components/entrenamientos/entrenamiento-form";
 
-export default async function EditarEntrenamientoPage({
-  params,
-}: {
-  params: Promise<{ id: string }>;
-}) {
-  const { id } = await params;
-  const supabase = await createClient();
-  const { data: entrenamiento } = await supabase
-    .from("entrenamientos")
-    .select("*")
-    .eq("id", id)
-    .single();
+export default function EditarEntrenamientoPage() {
+  const { id } = useParams<{ id: string }>();
+  const entrenamiento = useLiveQuery(
+    async () => (await localDb.entrenamientos.get(id)) ?? null,
+    [id],
+  );
 
-  if (!entrenamiento) {
-    notFound();
+  if (entrenamiento === undefined) {
+    return <p className="text-sm text-muted-foreground">Cargando...</p>;
+  }
+
+  if (entrenamiento === null) {
+    return (
+      <p className="text-sm text-muted-foreground">
+        Entrenamiento no encontrado.
+      </p>
+    );
   }
 
   return (

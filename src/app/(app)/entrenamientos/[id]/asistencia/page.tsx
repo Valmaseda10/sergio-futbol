@@ -1,7 +1,11 @@
+"use client";
+
+import { useMemo } from "react";
 import Link from "next/link";
-import { notFound } from "next/navigation";
+import { useParams } from "next/navigation";
+import { useLiveQuery } from "dexie-react-hooks";
 import { ChevronLeft } from "lucide-react";
-import { createClient } from "@/lib/supabase/server";
+import { localDb } from "@/lib/db/local-db";
 import { capitalizarPrimera } from "@/lib/date";
 import { AsistenciaGrid } from "@/components/entrenamientos/asistencia-grid";
 
@@ -15,56 +19,56 @@ function formatearFechaCorta(fecha: string) {
   );
 }
 
-export default async function AsistenciaPage({
-  params,
-}: {
-  params: Promise<{ id: string }>;
-}) {
-  const { id } = await params;
-  const supabase = await createClient();
+export default function AsistenciaPage() {
+  const { id } = useParams<{ id: string }>();
 
-  const [{ data: entrenamiento }, { data: jugadores }, { data: estados }, { data: asistencias }] =
-    await Promise.all([
-      supabase.from("entrenamientos").select("id, fecha").eq("id", id).single(),
-      supabase
-        .from("jugadores")
-        .select("id, nombre, apellidos, dorsal, foto_url")
-        .eq("activo", true)
-        .order("dorsal", { ascending: true, nullsFirst: false })
-        .order("apellidos", { ascending: true }),
-      supabase
-        .from("estados")
-        .select("id, nombre, color")
-        .eq("activo", true)
-        .order("nombre", { ascending: true }),
-      supabase
-        .from("asistencias_entrenamiento")
-        .select("jugador_id, estado_id")
-        .eq("entrenamiento_id", id),
-    ]);
+  const entrenamiento = useLiveQuery(
+    async () => (await localDb.entrenamientos.get(id)) ?? null,
+    [id],
+  );
+  const jugadores = useLiveQuery(
+    () =>
+      localDb.jugadores
+        .filter((j) => j.activo)
+        .toArray()
+        .then((rows) =>
+          rows.sort((a, b) => {
+            if (a.dorsal == null && b.dorsal != null) return 1;
+            if (a.dorsal != null && b.dorsal == null) return -1;
+            if (a.dorsal != null && b.dorsal != null && a.dorsal !== b.dorsal) {
+              return a.dorsal - b.dorsal;
+            }
+            return a.apellidos.localeCompare(b.apellidos);
+          }),
+        ),
+    [],
+    [],
+  );
+  const estados = useLiveQuery(
+    () =>
+      localDb.estados
+        .filter((e) => e.activo)
+        .toArray()
+        .then((rows) => rows.sort((a, b) => a.nombre.localeCompare(b.nombre))),
+    [],
+    [],
+  );
+  const jugadoresParaGrid = useMemo(
+    () => jugadores.map(({ foto_url, ...j }) => ({ ...j, foto_url })),
+    [jugadores],
+  );
 
-  if (!entrenamiento) {
-    notFound();
+  if (entrenamiento === undefined) {
+    return <p className="text-sm text-muted-foreground">Cargando...</p>;
   }
 
-  const jugadoresConFoto = await Promise.all(
-    (jugadores ?? []).map(async ({ foto_url, ...jugador }) => ({
-      ...jugador,
-      fotoSignedUrl: foto_url
-        ? (
-            await supabase.storage
-              .from("jugadores")
-              .createSignedUrl(foto_url, 3600)
-          ).data?.signedUrl ?? null
-        : null,
-    })),
-  );
-
-  const asistenciasIniciales = Object.fromEntries(
-    (asistencias ?? [])
-      .filter((a) => a.estado_id)
-      .map((a) => [a.jugador_id, a.estado_id as string]),
-  );
+  if (entrenamiento === null) {
+    return (
+      <p className="text-sm text-muted-foreground">
+        Entrenamiento no encontrado.
+      </p>
+    );
+  }
 
   return (
     <div className="space-y-4">
@@ -85,9 +89,8 @@ export default async function AsistenciaPage({
       </div>
       <AsistenciaGrid
         entrenamientoId={id}
-        jugadores={jugadoresConFoto}
-        estados={estados ?? []}
-        asistenciasIniciales={asistenciasIniciales}
+        jugadores={jugadoresParaGrid}
+        estados={estados}
       />
     </div>
   );

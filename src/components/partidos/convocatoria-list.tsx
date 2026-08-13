@@ -1,8 +1,10 @@
 "use client";
 
-import { useState } from "react";
-import { toast } from "sonner";
-import { toggleConvocado } from "@/app/(app)/partidos/actions";
+import { useEffect, useMemo, useState } from "react";
+import { useLiveQuery } from "dexie-react-hooks";
+import { toggleConvocadoLocal } from "@/app/(app)/partidos/local-actions";
+import { localDb } from "@/lib/db/local-db";
+import { createClient } from "@/lib/supabase/client";
 import { JugadorAvatar } from "@/components/plantilla/jugador-avatar";
 import { Checkbox } from "@/components/ui/checkbox";
 
@@ -11,44 +13,64 @@ interface Jugador {
   nombre: string;
   apellidos: string;
   dorsal: number | null;
-  fotoSignedUrl: string | null;
+  foto_url: string | null;
 }
 
 export function ConvocatoriaList({
   partidoId,
   jugadores,
-  convocadosIniciales,
 }: {
   partidoId: string;
   jugadores: Jugador[];
-  convocadosIniciales: string[];
 }) {
-  const [convocados, setConvocados] = useState(new Set(convocadosIniciales));
   const [pendiente, setPendiente] = useState<string | null>(null);
+  const [fotoUrls, setFotoUrls] = useState<Record<string, string>>({});
+
+  const convocatorias = useLiveQuery(
+    () =>
+      localDb.convocatorias
+        .where("partido_id")
+        .equals(partidoId)
+        .filter((c) => c.convocado)
+        .toArray(),
+    [partidoId],
+    [],
+  );
+  const convocados = useMemo(
+    () => new Set(convocatorias.map((c) => c.jugador_id)),
+    [convocatorias],
+  );
+
+  const rutasFoto = useMemo(
+    () => jugadores.map((j) => j.foto_url).filter((v): v is string => !!v),
+    [jugadores],
+  );
+  const rutasFotoKey = rutasFoto.join(",");
+
+  useEffect(() => {
+    if (rutasFoto.length === 0 || !navigator.onLine) return;
+    const supabase = createClient();
+    supabase.storage
+      .from("jugadores")
+      .createSignedUrls(rutasFoto, 3600)
+      .then(({ data }) => {
+        if (!data) return;
+        setFotoUrls((prev) => {
+          const next = { ...prev };
+          for (const d of data) {
+            if (d.signedUrl && d.path) next[d.path] = d.signedUrl;
+          }
+          return next;
+        });
+      });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [rutasFotoKey]);
 
   async function handleToggle(jugadorId: string) {
     const yaConvocado = convocados.has(jugadorId);
     setPendiente(jugadorId);
-
-    setConvocados((prev) => {
-      const next = new Set(prev);
-      if (yaConvocado) next.delete(jugadorId);
-      else next.add(jugadorId);
-      return next;
-    });
-
-    const result = await toggleConvocado(partidoId, jugadorId, !yaConvocado);
+    await toggleConvocadoLocal(partidoId, jugadorId, !yaConvocado);
     setPendiente(null);
-
-    if ("error" in result) {
-      toast.error(result.error);
-      setConvocados((prev) => {
-        const next = new Set(prev);
-        if (yaConvocado) next.add(jugadorId);
-        else next.delete(jugadorId);
-        return next;
-      });
-    }
   }
 
   return (
@@ -68,7 +90,7 @@ export function ConvocatoriaList({
                   onCheckedChange={() => handleToggle(j.id)}
                 />
                 <JugadorAvatar
-                  src={j.fotoSignedUrl}
+                  src={j.foto_url ? fotoUrls[j.foto_url] ?? null : null}
                   nombre={j.nombre}
                   apellidos={j.apellidos}
                   className="size-8"

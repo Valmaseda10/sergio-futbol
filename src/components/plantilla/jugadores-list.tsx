@@ -1,8 +1,9 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { ChevronRight, Search } from "lucide-react";
+import { createClient } from "@/lib/supabase/client";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
@@ -16,7 +17,7 @@ interface JugadorListItem {
   dorsal: number | null;
   posicion: string | null;
   activo: boolean;
-  fotoSignedUrl: string | null;
+  foto_url: string | null;
 }
 
 export function JugadoresList({
@@ -26,6 +27,32 @@ export function JugadoresList({
 }) {
   const [search, setSearch] = useState("");
   const [mostrarInactivos, setMostrarInactivos] = useState(false);
+  const [fotoUrls, setFotoUrls] = useState<Record<string, string>>({});
+
+  const rutasFoto = useMemo(
+    () => jugadores.map((j) => j.foto_url).filter((v): v is string => !!v),
+    [jugadores],
+  );
+  const rutasFotoKey = rutasFoto.join(",");
+
+  useEffect(() => {
+    if (rutasFoto.length === 0 || !navigator.onLine) return;
+    const supabase = createClient();
+    supabase.storage
+      .from("jugadores")
+      .createSignedUrls(rutasFoto, 3600)
+      .then(({ data }) => {
+        if (!data) return;
+        setFotoUrls((prev) => {
+          const next = { ...prev };
+          for (const d of data) {
+            if (d.signedUrl && d.path) next[d.path] = d.signedUrl;
+          }
+          return next;
+        });
+      });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [rutasFotoKey]);
 
   const filtrados = useMemo(() => {
     const term = search.trim().toLowerCase();
@@ -74,7 +101,7 @@ export function JugadoresList({
                 className="flex items-center gap-3 p-3 hover:bg-muted/50"
               >
                 <JugadorAvatar
-                  src={j.fotoSignedUrl}
+                  src={j.foto_url ? fotoUrls[j.foto_url] ?? null : null}
                   nombre={j.nombre}
                   apellidos={j.apellidos}
                 />

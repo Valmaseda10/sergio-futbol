@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { Trash2 } from "lucide-react";
-import { eliminarEntrenamiento } from "@/app/(app)/entrenamientos/actions";
+import { eliminarEntrenamientoLocal } from "@/app/(app)/entrenamientos/local-actions";
 import { Button } from "@/components/ui/button";
 import {
   AlertDialog,
@@ -25,7 +25,7 @@ export function EliminarEntrenamientoButton({ id }: { id: string }) {
 
   async function handleConfirm() {
     setLoading(true);
-    const result = await eliminarEntrenamiento(id);
+    const result = await eliminarEntrenamientoLocal(id);
     setLoading(false);
 
     if ("error" in result) {
@@ -36,7 +36,6 @@ export function EliminarEntrenamientoButton({ id }: { id: string }) {
     setOpen(false);
     toast.success("Entrenamiento eliminado");
     router.push("/entrenamientos");
-    router.refresh();
   }
 
   return (

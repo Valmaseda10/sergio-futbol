@@ -10,9 +10,9 @@ import {
   type EntrenamientoFormValues,
 } from "@/lib/validations/entrenamiento";
 import {
-  crearEntrenamiento,
-  actualizarEntrenamiento,
-} from "@/app/(app)/entrenamientos/actions";
+  crearEntrenamientoLocal,
+  actualizarEntrenamientoLocal,
+} from "@/app/(app)/entrenamientos/local-actions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -41,14 +41,9 @@ export function EntrenamientoForm({
   });
 
   async function onSubmit(values: EntrenamientoFormValues) {
-    const formData = new FormData();
-    Object.entries(values).forEach(([key, value]) => {
-      formData.set(key, value);
-    });
-
     const result = entrenamiento
-      ? await actualizarEntrenamiento(entrenamiento.id, formData)
-      : await crearEntrenamiento(formData);
+      ? await actualizarEntrenamientoLocal(entrenamiento.id, values)
+      : await crearEntrenamientoLocal(values);
 
     if ("error" in result) {
       toast.error(result.error);
@@ -57,7 +52,6 @@ export function EntrenamientoForm({
 
     toast.success(entrenamiento ? "Entrenamiento actualizado" : "Entrenamiento creado");
     router.push(`/entrenamientos/${result.id}`);
-    router.refresh();
   }
 
   return (

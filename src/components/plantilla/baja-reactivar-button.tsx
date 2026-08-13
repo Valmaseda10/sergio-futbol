@@ -1,9 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { toggleActivoJugador } from "@/app/(app)/plantilla/actions";
+import { toggleActivoJugadorLocal } from "@/app/(app)/plantilla/local-actions";
 import { Button } from "@/components/ui/button";
 import {
   AlertDialog,
@@ -26,13 +25,12 @@ export function BajaReactivarButton({
   activo: boolean;
   nombreCompleto: string;
 }) {
-  const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [open, setOpen] = useState(false);
 
   async function handleConfirm() {
     setLoading(true);
-    const result = await toggleActivoJugador(jugadorId, !activo);
+    const result = await toggleActivoJugadorLocal(jugadorId, !activo);
     setLoading(false);
 
     if ("error" in result) {
@@ -42,7 +40,6 @@ export function BajaReactivarButton({
 
     setOpen(false);
     toast.success(activo ? "Jugador dado de baja" : "Jugador reactivado");
-    router.refresh();
   }
 
   return (

@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { guardarValoracion } from "@/app/(app)/partidos/actions";
+import { guardarValoracionLocal } from "@/app/(app)/partidos/local-actions";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -32,7 +32,7 @@ export function ValoracionForm({
 
   async function handleGuardar() {
     setGuardando(true);
-    const result = await guardarValoracion(partidoId, valoracion, rating);
+    const result = await guardarValoracionLocal(partidoId, valoracion, rating);
     setGuardando(false);
 
     if ("error" in result) {
@@ -42,7 +42,6 @@ export function ValoracionForm({
 
     toast.success("Valoración guardada");
     router.push(`/partidos/${partidoId}`);
-    router.refresh();
   }
 
   return (

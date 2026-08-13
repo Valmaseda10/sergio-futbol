@@ -1,28 +1,34 @@
+"use client";
+
 import Link from "next/link";
-import { notFound } from "next/navigation";
+import { useParams } from "next/navigation";
+import { useLiveQuery } from "dexie-react-hooks";
 import { ChevronLeft } from "lucide-react";
-import { createClient } from "@/lib/supabase/server";
+import { localDb } from "@/lib/db/local-db";
 import { ValoracionForm } from "@/components/partidos/valoracion-form";
 
-export default async function ValoracionPage({
-  params,
-}: {
-  params: Promise<{ id: string }>;
-}) {
-  const { id } = await params;
-  const supabase = await createClient();
+export default function ValoracionPage() {
+  const { id } = useParams<{ id: string }>();
 
-  const [{ data: partido }, { data: valoracion }] = await Promise.all([
-    supabase.from("partidos").select("id, rival").eq("id", id).single(),
-    supabase
-      .from("valoraciones_partido")
-      .select("valoracion_general, rating_equipo")
-      .eq("partido_id", id)
-      .maybeSingle(),
-  ]);
+  const partido = useLiveQuery(
+    async () => (await localDb.partidos.get(id)) ?? null,
+    [id],
+  );
+  const valoracion = useLiveQuery(
+    async () =>
+      (await localDb.valoraciones_partido
+        .where("partido_id")
+        .equals(id)
+        .first()) ?? null,
+    [id],
+  );
 
-  if (!partido) {
-    notFound();
+  if (partido === undefined || valoracion === undefined) {
+    return <p className="text-sm text-muted-foreground">Cargando...</p>;
+  }
+
+  if (partido === null) {
+    return <p className="text-sm text-muted-foreground">Partido no encontrado.</p>;
   }
 
   return (

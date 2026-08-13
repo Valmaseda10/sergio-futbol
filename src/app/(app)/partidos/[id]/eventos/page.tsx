@@ -1,44 +1,52 @@
+"use client";
+
+import { useMemo } from "react";
 import Link from "next/link";
-import { notFound } from "next/navigation";
+import { useParams } from "next/navigation";
+import { useLiveQuery } from "dexie-react-hooks";
 import { ChevronLeft } from "lucide-react";
-import { createClient } from "@/lib/supabase/server";
+import { localDb } from "@/lib/db/local-db";
 import { EventosList } from "@/components/partidos/eventos-list";
 
-export default async function EventosPage({
-  params,
-}: {
-  params: Promise<{ id: string }>;
-}) {
-  const { id } = await params;
-  const supabase = await createClient();
+export default function EventosPage() {
+  const { id } = useParams<{ id: string }>();
 
-  const [{ data: partido }, { data: convocatorias }, { data: eventos }] =
-    await Promise.all([
-      supabase.from("partidos").select("id, rival").eq("id", id).single(),
-      supabase
-        .from("convocatorias")
-        .select("jugador_id")
-        .eq("partido_id", id)
-        .eq("convocado", true),
-      supabase
-        .from("eventos_partido")
-        .select("id, jugador_id, tipo, minuto")
-        .eq("partido_id", id),
-    ]);
+  const partido = useLiveQuery(
+    async () => (await localDb.partidos.get(id)) ?? null,
+    [id],
+  );
+  const convocatorias = useLiveQuery(
+    () =>
+      localDb.convocatorias
+        .where("partido_id")
+        .equals(id)
+        .filter((c) => c.convocado)
+        .toArray(),
+    [id],
+    [],
+  );
+  const jugadores = useLiveQuery(() => localDb.jugadores.toArray(), [], []);
 
-  if (!partido) {
-    notFound();
+  const convocados = useMemo(() => {
+    const jugadoresPorId = new Map(jugadores.map((j) => [j.id, j]));
+    return convocatorias
+      .map((c) => jugadoresPorId.get(c.jugador_id))
+      .filter((j): j is NonNullable<typeof j> => !!j)
+      .map((j) => ({
+        id: j.id,
+        nombre: j.nombre,
+        apellidos: j.apellidos,
+        dorsal: j.dorsal,
+      }));
+  }, [convocatorias, jugadores]);
+
+  if (partido === undefined) {
+    return <p className="text-sm text-muted-foreground">Cargando...</p>;
   }
 
-  const convocadoIds = (convocatorias ?? []).map((c) => c.jugador_id);
-  const { data: convocadosData } =
-    convocadoIds.length > 0
-      ? await supabase
-          .from("jugadores")
-          .select("id, nombre, apellidos, dorsal")
-          .in("id", convocadoIds)
-      : { data: [] };
-  const convocados = convocadosData ?? [];
+  if (partido === null) {
+    return <p className="text-sm text-muted-foreground">Partido no encontrado.</p>;
+  }
 
   return (
     <div className="space-y-4">
@@ -63,11 +71,7 @@ export default async function EventosPage({
           .
         </p>
       ) : (
-        <EventosList
-          partidoId={id}
-          convocados={convocados}
-          eventosIniciales={eventos ?? []}
-        />
+        <EventosList partidoId={id} convocados={convocados} />
       )}
     </div>
   );

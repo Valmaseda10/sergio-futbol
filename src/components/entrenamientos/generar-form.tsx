@@ -9,7 +9,7 @@ import {
   generarSchema,
   type GenerarFormValues,
 } from "@/lib/validations/entrenamiento";
-import { generarEntrenamientos } from "@/app/(app)/entrenamientos/actions";
+import { generarEntrenamientosLocal } from "@/app/(app)/entrenamientos/local-actions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -42,7 +42,7 @@ export function GenerarForm() {
   });
 
   async function onSubmit(values: GenerarFormValues) {
-    const result = await generarEntrenamientos(values);
+    const result = await generarEntrenamientosLocal(values);
 
     if ("error" in result) {
       toast.error(result.error);
@@ -55,7 +55,6 @@ export function GenerarForm() {
         : `${result.creados} entrenamientos creados`,
     );
     router.push("/entrenamientos");
-    router.refresh();
   }
 
   return (

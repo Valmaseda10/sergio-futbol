@@ -1,57 +1,66 @@
+"use client";
+
+import { useMemo } from "react";
 import Link from "next/link";
-import { notFound } from "next/navigation";
+import { useParams } from "next/navigation";
+import { useLiveQuery } from "dexie-react-hooks";
 import { ChevronLeft } from "lucide-react";
-import { createClient } from "@/lib/supabase/server";
+import { localDb } from "@/lib/db/local-db";
 import { AlineacionCampo } from "@/components/partidos/alineacion-campo";
 
-export default async function AlineacionPage({
-  params,
-}: {
-  params: Promise<{ id: string }>;
-}) {
-  const { id } = await params;
-  const supabase = await createClient();
+export default function AlineacionPage() {
+  const { id } = useParams<{ id: string }>();
 
-  const [{ data: partido }, { data: convocatorias }, { data: alineaciones }] =
-    await Promise.all([
-      supabase.from("partidos").select("id, rival").eq("id", id).single(),
-      supabase
-        .from("convocatorias")
-        .select("jugador_id")
-        .eq("partido_id", id)
-        .eq("convocado", true),
-      supabase
-        .from("alineaciones")
-        .select("jugador_id, titular, posicion_jugada")
-        .eq("partido_id", id)
-        .eq("titular", true),
-    ]);
+  const partido = useLiveQuery(
+    async () => (await localDb.partidos.get(id)) ?? null,
+    [id],
+  );
+  const convocatorias = useLiveQuery(
+    () =>
+      localDb.convocatorias
+        .where("partido_id")
+        .equals(id)
+        .filter((c) => c.convocado)
+        .toArray(),
+    [id],
+    [],
+  );
+  const jugadores = useLiveQuery(() => localDb.jugadores.toArray(), [], []);
+  const alineaciones = useLiveQuery(
+    () =>
+      localDb.alineaciones
+        .where("partido_id")
+        .equals(id)
+        .filter((a) => a.titular)
+        .toArray(),
+    [id],
+    [],
+  );
 
-  if (!partido) {
-    notFound();
+  const convocados = useMemo(() => {
+    const jugadoresPorId = new Map(jugadores.map((j) => [j.id, j]));
+    return convocatorias
+      .map((c) => jugadoresPorId.get(c.jugador_id))
+      .filter((j): j is NonNullable<typeof j> => !!j)
+      .map(({ foto_url, ...j }) => ({ ...j, foto_url }));
+  }, [convocatorias, jugadores]);
+
+  const titularesIniciales = useMemo(
+    () =>
+      alineaciones.map((a) => ({
+        jugadorId: a.jugador_id,
+        posicion: a.posicion_jugada ?? "",
+      })),
+    [alineaciones],
+  );
+
+  if (partido === undefined) {
+    return <p className="text-sm text-muted-foreground">Cargando...</p>;
   }
 
-  const convocadoIds = (convocatorias ?? []).map((c) => c.jugador_id);
-  const { data: jugadores } =
-    convocadoIds.length > 0
-      ? await supabase
-          .from("jugadores")
-          .select("id, nombre, apellidos, dorsal, foto_url")
-          .in("id", convocadoIds)
-      : { data: [] };
-
-  const convocados = await Promise.all(
-    (jugadores ?? []).map(async ({ foto_url, ...jugador }) => ({
-      ...jugador,
-      fotoSignedUrl: foto_url
-        ? (
-            await supabase.storage
-              .from("jugadores")
-              .createSignedUrl(foto_url, 3600)
-          ).data?.signedUrl ?? null
-        : null,
-    })),
-  );
+  if (partido === null) {
+    return <p className="text-sm text-muted-foreground">Partido no encontrado.</p>;
+  }
 
   return (
     <div className="space-y-4">
@@ -79,10 +88,7 @@ export default async function AlineacionPage({
         <AlineacionCampo
           partidoId={id}
           convocados={convocados}
-          titularesIniciales={(alineaciones ?? []).map((a) => ({
-            jugadorId: a.jugador_id,
-            posicion: a.posicion_jugada ?? "",
-          }))}
+          titularesIniciales={titularesIniciales}
         />
       )}
     </div>

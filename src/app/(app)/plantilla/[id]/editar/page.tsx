@@ -1,31 +1,36 @@
-import { notFound } from "next/navigation";
-import { createClient } from "@/lib/supabase/server";
+"use client";
+
+import { useEffect, useState } from "react";
+import { useParams } from "next/navigation";
+import { useLiveQuery } from "dexie-react-hooks";
+import { localDb } from "@/lib/db/local-db";
+import { createClient } from "@/lib/supabase/client";
 import { JugadorForm } from "@/components/plantilla/jugador-form";
 
-export default async function EditarJugadorPage({
-  params,
-}: {
-  params: Promise<{ id: string }>;
-}) {
-  const { id } = await params;
-  const supabase = await createClient();
-  const { data: jugador } = await supabase
-    .from("jugadores")
-    .select("*")
-    .eq("id", id)
-    .single();
+export default function EditarJugadorPage() {
+  const { id } = useParams<{ id: string }>();
+  const jugador = useLiveQuery(
+    async () => (await localDb.jugadores.get(id)) ?? null,
+    [id],
+  );
+  const [fotoSignedUrl, setFotoSignedUrl] = useState<string | null>(null);
 
-  if (!jugador) {
-    notFound();
+  useEffect(() => {
+    if (!jugador?.foto_url || !navigator.onLine) return;
+    const supabase = createClient();
+    supabase.storage
+      .from("jugadores")
+      .createSignedUrl(jugador.foto_url, 3600)
+      .then(({ data }) => setFotoSignedUrl(data?.signedUrl ?? null));
+  }, [jugador?.foto_url]);
+
+  if (jugador === undefined) {
+    return <p className="text-sm text-muted-foreground">Cargando...</p>;
   }
 
-  const fotoSignedUrl = jugador.foto_url
-    ? (
-        await supabase.storage
-          .from("jugadores")
-          .createSignedUrl(jugador.foto_url, 3600)
-      ).data?.signedUrl ?? null
-    : null;
+  if (jugador === null) {
+    return <p className="text-sm text-muted-foreground">Jugador no encontrado.</p>;
+  }
 
   return (
     <div className="space-y-4">

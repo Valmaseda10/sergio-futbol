@@ -1,8 +1,10 @@
 "use client";
 
-import { useState } from "react";
-import { toast } from "sonner";
-import { actualizarAsistencia } from "@/app/(app)/entrenamientos/actions";
+import { useEffect, useMemo, useState } from "react";
+import { useLiveQuery } from "dexie-react-hooks";
+import { actualizarAsistenciaLocal } from "@/app/(app)/entrenamientos/local-actions";
+import { localDb } from "@/lib/db/local-db";
+import { createClient } from "@/lib/supabase/client";
 import { JugadorAvatar } from "@/components/plantilla/jugador-avatar";
 import { cn } from "@/lib/utils";
 
@@ -11,7 +13,7 @@ interface Jugador {
   nombre: string;
   apellidos: string;
   dorsal: number | null;
-  fotoSignedUrl: string | null;
+  foto_url: string | null;
 }
 
 interface Estado {
@@ -24,44 +26,66 @@ export function AsistenciaGrid({
   entrenamientoId,
   jugadores,
   estados,
-  asistenciasIniciales,
 }: {
   entrenamientoId: string;
   jugadores: Jugador[];
   estados: Estado[];
-  asistenciasIniciales: Record<string, string>;
 }) {
-  const [asistencias, setAsistencias] =
-    useState<Record<string, string>>(asistenciasIniciales);
   const [pendiente, setPendiente] = useState<string | null>(null);
+  const [fotoUrls, setFotoUrls] = useState<Record<string, string>>({});
+
+  const asistenciasRows = useLiveQuery(
+    () =>
+      localDb.asistencias_entrenamiento
+        .where("entrenamiento_id")
+        .equals(entrenamientoId)
+        .toArray(),
+    [entrenamientoId],
+    [],
+  );
+
+  const asistencias = useMemo(
+    () =>
+      Object.fromEntries(
+        asistenciasRows
+          .filter((a) => a.estado_id)
+          .map((a) => [a.jugador_id, a.estado_id as string]),
+      ),
+    [asistenciasRows],
+  );
+
+  const rutasFoto = useMemo(
+    () => jugadores.map((j) => j.foto_url).filter((v): v is string => !!v),
+    [jugadores],
+  );
+  const rutasFotoKey = rutasFoto.join(",");
+
+  useEffect(() => {
+    if (rutasFoto.length === 0 || !navigator.onLine) return;
+    const supabase = createClient();
+    supabase.storage
+      .from("jugadores")
+      .createSignedUrls(rutasFoto, 3600)
+      .then(({ data }) => {
+        if (!data) return;
+        setFotoUrls((prev) => {
+          const next = { ...prev };
+          for (const d of data) {
+            if (d.signedUrl && d.path) next[d.path] = d.signedUrl;
+          }
+          return next;
+        });
+      });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [rutasFotoKey]);
 
   async function handleChip(jugadorId: string, estadoId: string) {
     const actual = asistencias[jugadorId];
     const nuevoEstadoId = actual === estadoId ? null : estadoId;
 
     setPendiente(jugadorId);
-    const previo = asistencias[jugadorId];
-    setAsistencias((prev) => {
-      const next = { ...prev };
-      if (nuevoEstadoId) {
-        next[jugadorId] = nuevoEstadoId;
-      } else {
-        delete next[jugadorId];
-      }
-      return next;
-    });
-
-    const result = await actualizarAsistencia(
-      entrenamientoId,
-      jugadorId,
-      nuevoEstadoId,
-    );
+    await actualizarAsistenciaLocal(entrenamientoId, jugadorId, nuevoEstadoId);
     setPendiente(null);
-
-    if ("error" in result) {
-      toast.error(result.error);
-      setAsistencias((prev) => ({ ...prev, [jugadorId]: previo }));
-    }
   }
 
   return (
@@ -74,7 +98,7 @@ export function AsistenciaGrid({
           <li key={j.id} className="space-y-2 p-3">
             <div className="flex items-center gap-3">
               <JugadorAvatar
-                src={j.fotoSignedUrl}
+                src={j.foto_url ? fotoUrls[j.foto_url] ?? null : null}
                 nombre={j.nombre}
                 apellidos={j.apellidos}
                 className="size-8"
