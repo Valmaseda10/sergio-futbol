@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { JugadorAvatar } from "@/components/plantilla/jugador-avatar";
 import { BajaReactivarButton } from "@/components/plantilla/baja-reactivar-button";
+import { ValoracionesJugador } from "@/components/plantilla/valoraciones-jugador";
 
 function formatearFecha(fecha: string | null) {
   if (!fecha) return "—";
@@ -39,6 +40,12 @@ export default async function FichaJugadorPage({
   if (!jugador) {
     notFound();
   }
+
+  const { data: valoraciones } = await supabase
+    .from("valoraciones_jugador")
+    .select("id, fecha, tecnica, fisico, tactica, actitud, notas")
+    .eq("jugador_id", id)
+    .order("fecha", { ascending: true });
 
   const fotoSignedUrl = jugador.foto_url
     ? (
@@ -155,6 +162,11 @@ export default async function FichaJugadorPage({
           </CardContent>
         </Card>
       )}
+
+      <ValoracionesJugador
+        jugadorId={jugador.id}
+        valoracionesIniciales={valoraciones ?? []}
+      />
 
       <BajaReactivarButton
         jugadorId={jugador.id}

@@ -7,8 +7,14 @@ import {
   jugadorSchema,
   toJugadorInsert,
 } from "@/lib/validations/jugador";
+import {
+  valoracionJugadorFormDataToValues,
+  valoracionJugadorSchema,
+  toValoracionJugadorInsert,
+} from "@/lib/validations/valoracion-jugador";
 
 type ActionResult = { error: string } | { success: true; id: string };
+type SimpleResult = { error: string } | { success: true };
 
 async function subirFoto(
   supabase: Awaited<ReturnType<typeof createClient>>,
@@ -127,4 +133,65 @@ export async function toggleActivoJugador(
   revalidatePath("/plantilla");
   revalidatePath(`/plantilla/${id}`);
   return { success: true, id };
+}
+
+type ValoracionResult =
+  | { error: string }
+  | {
+      success: true;
+      valoracion: {
+        id: string;
+        fecha: string;
+        tecnica: number | null;
+        fisico: number | null;
+        tactica: number | null;
+        actitud: number | null;
+        notas: string | null;
+      };
+    };
+
+export async function crearValoracionJugador(
+  jugadorId: string,
+  formData: FormData,
+): Promise<ValoracionResult> {
+  const values = valoracionJugadorFormDataToValues(formData);
+  const parsed = valoracionJugadorSchema.safeParse(values);
+
+  if (!parsed.success) {
+    return { error: parsed.error.issues[0]?.message ?? "Datos no válidos" };
+  }
+
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("valoraciones_jugador")
+    .insert(toValoracionJugadorInsert(jugadorId, parsed.data))
+    .select("id, fecha, tecnica, fisico, tactica, actitud, notas")
+    .single();
+
+  if (error || !data) {
+    return {
+      error: error?.message ?? "No se ha podido guardar la valoración",
+    };
+  }
+
+  revalidatePath(`/plantilla/${jugadorId}`);
+  return { success: true, valoracion: data };
+}
+
+export async function eliminarValoracionJugador(
+  id: string,
+  jugadorId: string,
+): Promise<SimpleResult> {
+  const supabase = await createClient();
+  const { error } = await supabase
+    .from("valoraciones_jugador")
+    .delete()
+    .eq("id", id);
+
+  if (error) {
+    return { error: error.message };
+  }
+
+  revalidatePath(`/plantilla/${jugadorId}`);
+  return { success: true };
 }
