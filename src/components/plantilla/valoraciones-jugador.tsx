@@ -160,10 +160,10 @@ export function ValoracionesJugador({ jugadorId }: { jugadorId: string }) {
                   <YAxis domain={[0, 10]} fontSize={12} />
                   <Tooltip />
                   <Legend />
-                  <Line type="monotone" dataKey="Técnica" stroke="#3b82f6" />
-                  <Line type="monotone" dataKey="Físico" stroke="#22c55e" />
-                  <Line type="monotone" dataKey="Táctica" stroke="#a855f7" />
-                  <Line type="monotone" dataKey="Actitud" stroke="#f97316" />
+                  <Line type="monotone" dataKey="Técnica" stroke="var(--grana)" />
+                  <Line type="monotone" dataKey="Físico" stroke="var(--pitch)" />
+                  <Line type="monotone" dataKey="Táctica" stroke="var(--gold)" />
+                  <Line type="monotone" dataKey="Actitud" stroke="var(--muted-foreground)" />
                 </LineChart>
               </ResponsiveContainer>
             </div>

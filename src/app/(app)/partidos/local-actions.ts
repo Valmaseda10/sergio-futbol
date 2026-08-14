@@ -11,18 +11,33 @@ import {
   type LocalValoracionPartido,
 } from "@/lib/db/local-db";
 import { queueMutation } from "@/lib/db/sync";
+import { createClient } from "@/lib/supabase/client";
+import { subirArchivoPrivado, extensionDeArchivo } from "@/lib/storage";
 import {
   partidoSchema,
   toPartidoInsert,
   type PartidoFormValues,
 } from "@/lib/validations/partido";
-import type { TipoEventoPartido } from "@/lib/types/database.types";
+import type { TipoAbp, TipoEventoPartido, TipoGol } from "@/lib/types/database.types";
 
 type ActionResult = { error: string } | { success: true; id: string };
 type SimpleResult = { error: string } | { success: true };
 
+async function subirFotoRival(partidoId: string, foto: File): Promise<void> {
+  const path = `partidos/${partidoId}.${extensionDeArchivo(foto)}`;
+  await subirArchivoPrivado(path, foto);
+
+  const supabase = createClient();
+  await supabase
+    .from("partidos")
+    .update({ foto_rival_url: path })
+    .eq("id", partidoId);
+  await localDb.partidos.update(partidoId, { foto_rival_url: path });
+}
+
 export async function crearPartidoLocal(
   values: PartidoFormValues,
+  fotoRival?: File | null,
 ): Promise<ActionResult> {
   const parsed = partidoSchema.safeParse(values);
   if (!parsed.success) {
@@ -33,11 +48,25 @@ export async function crearPartidoLocal(
   const row: LocalPartido = {
     id,
     ...toPartidoInsert(parsed.data),
+    foto_rival_url: null,
     created_at: new Date().toISOString(),
   };
 
   await localDb.partidos.put(row);
   await queueMutation("partidos", "insert", id, row);
+
+  if (fotoRival && fotoRival.size > 0) {
+    try {
+      await subirFotoRival(id, fotoRival);
+    } catch (e) {
+      return {
+        error:
+          e instanceof Error
+            ? e.message
+            : "Partido creado, pero la foto no se pudo subir",
+      };
+    }
+  }
 
   return { success: true, id };
 }
@@ -45,6 +74,7 @@ export async function crearPartidoLocal(
 export async function actualizarPartidoLocal(
   id: string,
   values: PartidoFormValues,
+  fotoRival?: File | null,
 ): Promise<ActionResult> {
   const parsed = partidoSchema.safeParse(values);
   if (!parsed.success) {
@@ -54,6 +84,19 @@ export async function actualizarPartidoLocal(
   const patch = toPartidoInsert(parsed.data);
   await localDb.partidos.update(id, patch);
   await queueMutation("partidos", "update", id, patch);
+
+  if (fotoRival && fotoRival.size > 0) {
+    try {
+      await subirFotoRival(id, fotoRival);
+    } catch (e) {
+      return {
+        error:
+          e instanceof Error
+            ? e.message
+            : "Partido actualizado, pero la foto no se pudo subir",
+      };
+    }
+  }
 
   return { success: true, id };
 }
@@ -137,7 +180,12 @@ export async function toggleConvocadoLocal(
 
 export async function guardarAlineacionLocal(
   partidoId: string,
-  titulares: { jugadorId: string; posicion: string }[],
+  titulares: {
+    jugadorId: string;
+    posicion: string;
+    posX?: number;
+    posY?: number;
+  }[],
   suplentesIds: string[],
 ): Promise<SimpleResult> {
   const existentes = await localDb.alineaciones
@@ -148,12 +196,25 @@ export async function guardarAlineacionLocal(
     existentes.map((a) => [a.jugador_id, a]),
   );
 
-  const deseados = new Map<string, { titular: boolean; posicion: string | null }>();
+  const deseados = new Map<
+    string,
+    { titular: boolean; posicion: string | null; posX: number | null; posY: number | null }
+  >();
   for (const t of titulares) {
-    deseados.set(t.jugadorId, { titular: true, posicion: t.posicion });
+    deseados.set(t.jugadorId, {
+      titular: true,
+      posicion: t.posicion,
+      posX: t.posX ?? null,
+      posY: t.posY ?? null,
+    });
   }
   for (const jugadorId of suplentesIds) {
-    deseados.set(jugadorId, { titular: false, posicion: null });
+    deseados.set(jugadorId, {
+      titular: false,
+      posicion: null,
+      posX: null,
+      posY: null,
+    });
   }
 
   const aBorrar = existentes.filter((a) => !deseados.has(a.jugador_id));
@@ -169,6 +230,8 @@ export async function guardarAlineacionLocal(
       const patch = {
         titular: datos.titular,
         posicion_jugada: datos.posicion,
+        pos_x: datos.posX,
+        pos_y: datos.posY,
       };
       await localDb.alineaciones.update(existente.id, patch);
       await queueMutation("alineaciones", "update", existente.id, patch);
@@ -182,6 +245,8 @@ export async function guardarAlineacionLocal(
         posicion_jugada: datos.posicion,
         minuto_entra: null,
         minuto_sale: null,
+        pos_x: datos.posX,
+        pos_y: datos.posY,
       };
       await localDb.alineaciones.put(row);
       await queueMutation("alineaciones", "insert", id, row);
@@ -195,9 +260,18 @@ type EventoResult = { error: string } | { success: true; evento: LocalEventoPart
 
 export async function crearEventoLocal(
   partidoId: string,
-  jugadorId: string,
+  jugadorId: string | null,
   tipo: TipoEventoPartido,
   minuto: string,
+  golDetalle?: {
+    aFavor?: boolean;
+    tipoGol?: TipoGol | null;
+    posX?: number | null;
+    posY?: number | null;
+    abpTipo?: TipoAbp | null;
+    posXCentro?: number | null;
+    posYCentro?: number | null;
+  },
 ): Promise<EventoResult> {
   const id = crypto.randomUUID();
   const row: LocalEventoPartido = {
@@ -206,6 +280,13 @@ export async function crearEventoLocal(
     jugador_id: jugadorId,
     tipo,
     minuto: minuto !== "" ? Number(minuto) : null,
+    a_favor: golDetalle?.aFavor ?? true,
+    tipo_gol: golDetalle?.tipoGol ?? null,
+    pos_x: golDetalle?.posX ?? null,
+    pos_y: golDetalle?.posY ?? null,
+    abp_tipo: golDetalle?.abpTipo ?? null,
+    pos_x_centro: golDetalle?.posXCentro ?? null,
+    pos_y_centro: golDetalle?.posYCentro ?? null,
   };
 
   await localDb.eventos_partido.put(row);

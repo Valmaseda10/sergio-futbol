@@ -50,6 +50,8 @@ export default function AlineacionPage() {
       alineaciones.map((a) => ({
         jugadorId: a.jugador_id,
         posicion: a.posicion_jugada ?? "",
+        posX: a.pos_x ?? undefined,
+        posY: a.pos_y ?? undefined,
       })),
     [alineaciones],
   );

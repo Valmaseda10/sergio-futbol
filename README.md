@@ -58,10 +58,14 @@ El registro no es abierto: el primer usuario `admin` hay que crearlo a mano una 
 
 En **Authentication → URL Configuration**, añade a *Redirect URLs*:
 
-- `http://localhost:3000/auth/callback` (desarrollo)
-- `https://<tu-dominio-de-vercel>/auth/callback` (producción, una vez desplegado)
+- `http://localhost:3000/auth/set-password` (desarrollo)
+- `https://<tu-dominio-de-vercel>/auth/set-password` (producción, una vez desplegado)
 
-Esto es necesario para que los enlaces de invitación y de "olvidé mi contraseña" funcionen.
+Esto es necesario para que los enlaces de invitación y de "olvidé mi contraseña" funcionen. El
+`redirectTo` de esos dos flujos apunta directamente a `/auth/set-password` (página cliente): el
+token de sesión llega en el fragmento de la URL (`#access_token=...`), que solo el navegador
+puede leer, así que no puede pasar por un Route Handler de servidor intermedio — el cliente de
+Supabase lo detecta y procesa automáticamente al cargar la página.
 
 ### 6. Regenerar los tipos TypeScript (opcional pero recomendado)
 
@@ -87,7 +91,7 @@ Abre [http://localhost:3000](http://localhost:3000).
    - `NEXT_PUBLIC_SUPABASE_ANON_KEY`
    - `SUPABASE_SERVICE_ROLE_KEY` (marca la variable como *sensitive*: solo se usa server-side, en los Route Handlers de aprobación de solicitudes)
    - `NEXT_PUBLIC_SITE_URL` — la URL de producción, p. ej. `https://infantil-b.vercel.app`
-3. Despliega. Después del primer despliegue, añade la URL de producción `/auth/callback` a las Redirect URLs de Supabase Auth (paso 5 de arriba).
+3. Despliega. Después del primer despliegue, añade la URL de producción `/auth/set-password` a las Redirect URLs de Supabase Auth (paso 5 de arriba).
 
 ## Comandos
 

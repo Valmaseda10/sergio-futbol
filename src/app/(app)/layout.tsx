@@ -1,3 +1,4 @@
+import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { TopBar } from "@/components/nav/top-bar";
@@ -9,19 +10,22 @@ export default async function AppLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  // El middleware ya ha validado la sesión en esta misma petición: se
+  // reutiliza el id de usuario que nos pasa por header en vez de volver a
+  // llamar a getUser() (ese segundo viaje de red se notaba en cada
+  // navegación, sobre todo en móvil).
+  const headersList = await headers();
+  const userId = headersList.get("x-user-id");
 
-  if (!user) {
+  if (!userId) {
     redirect("/login");
   }
 
+  const supabase = await createClient();
   const { data: usuario } = await supabase
     .from("usuarios")
     .select("nombre, rol, activo")
-    .eq("id", user.id)
+    .eq("id", userId)
     .single();
 
   if (!usuario || !usuario.activo) {
@@ -34,7 +38,7 @@ export default async function AppLayout({
       <TopBar nombre={usuario.nombre} rol={usuario.rol} />
       <div className="flex flex-1">
         <SideNav />
-        <main className="flex-1 p-4 pb-20 md:pb-4">{children}</main>
+        <main className="flex-1 p-4 pb-28 md:pb-4">{children}</main>
       </div>
       <BottomNav />
     </div>

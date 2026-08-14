@@ -12,6 +12,7 @@ interface Jugador {
   id: string;
   nombre: string;
   apellidos: string;
+  alias: string | null;
   dorsal: number | null;
   foto_url: string | null;
 }
@@ -96,9 +97,13 @@ export function ConvocatoriaList({
                   className="size-8"
                 />
                 <span className="min-w-0 flex-1 truncate text-sm font-medium">
-                  {j.dorsal != null ? `${j.dorsal} · ` : ""}
-                  {j.nombre} {j.apellidos}
+                  {j.alias || `${j.nombre} ${j.apellidos}`}
                 </span>
+                {j.dorsal != null && (
+                  <span className="flex size-6 shrink-0 items-center justify-center rounded-full border-2 border-gold font-heading text-xs tabular-nums">
+                    {j.dorsal}
+                  </span>
+                )}
               </label>
             </li>
           );

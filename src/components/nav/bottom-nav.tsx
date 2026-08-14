@@ -2,14 +2,24 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Users, CalendarDays, Trophy, BarChart3, Settings } from "lucide-react";
+import {
+  Users,
+  CalendarDays,
+  Trophy,
+  LayoutGrid,
+  Video,
+  BarChart3,
+  Settings,
+} from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const NAV_ITEMS = [
   { href: "/plantilla", label: "Plantilla", icon: Users },
-  { href: "/entrenamientos", label: "Entrenos", icon: CalendarDays },
+  { href: "/entrenamientos", label: "Entrenamientos", icon: CalendarDays },
   { href: "/partidos", label: "Partidos", icon: Trophy },
-  { href: "/estadisticas", label: "Stats", icon: BarChart3 },
+  { href: "/pizarra", label: "Pizarra", icon: LayoutGrid },
+  { href: "/videos", label: "Vídeos", icon: Video },
+  { href: "/estadisticas", label: "Estadísticas", icon: BarChart3 },
   { href: "/ajustes", label: "Ajustes", icon: Settings },
 ] as const;
 
@@ -21,7 +31,7 @@ export function BottomNav() {
       className="fixed inset-x-0 bottom-0 z-40 border-t bg-background pb-[env(safe-area-inset-bottom)] md:hidden"
       aria-label="Navegación principal"
     >
-      <ul className="grid grid-cols-5">
+      <ul className="grid grid-cols-7">
         {NAV_ITEMS.map(({ href, label, icon: Icon }) => {
           const active = pathname.startsWith(href);
           return (
@@ -29,7 +39,7 @@ export function BottomNav() {
               <Link
                 href={href}
                 className={cn(
-                  "flex flex-col items-center gap-1 py-2 text-xs",
+                  "flex flex-col items-center gap-1 px-1 py-2 text-center text-[10px] leading-tight",
                   active
                     ? "text-primary"
                     : "text-muted-foreground hover:text-foreground",

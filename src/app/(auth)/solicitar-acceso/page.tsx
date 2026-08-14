@@ -7,7 +7,6 @@ import { z } from "zod";
 import Link from "next/link";
 import { CheckCircle2 } from "lucide-react";
 import { toast } from "sonner";
-import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -20,16 +19,22 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 
-const requestSchema = z.object({
-  nombre: z.string().min(2, "Introduce tu nombre"),
-  email: z.string().email("Introduce un email válido"),
-  mensaje: z.string().optional(),
-});
+const requestSchema = z
+  .object({
+    nombre: z.string().min(2, "Introduce tu nombre"),
+    email: z.string().email("Introduce un email válido"),
+    password: z.string().min(6, "La contraseña debe tener al menos 6 caracteres"),
+    passwordConfirm: z.string(),
+    mensaje: z.string().optional(),
+  })
+  .refine((data) => data.password === data.passwordConfirm, {
+    message: "Las contraseñas no coinciden",
+    path: ["passwordConfirm"],
+  });
 
 type RequestValues = z.infer<typeof requestSchema>;
 
 export default function SolicitarAccesoPage() {
-  const supabase = createClient();
   const [sent, setSent] = useState(false);
 
   const {
@@ -41,17 +46,21 @@ export default function SolicitarAccesoPage() {
   });
 
   async function onSubmit(values: RequestValues) {
-    const { error } = await supabase.from("solicitudes_acceso").insert({
-      nombre: values.nombre,
-      email: values.email,
-      mensaje: values.mensaje || null,
+    const res = await fetch("/api/solicitudes/registrar", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        nombre: values.nombre,
+        email: values.email,
+        password: values.password,
+        mensaje: values.mensaje,
+      }),
     });
+    const body = await res.json().catch(() => ({}));
 
-    if (error) {
-      // El error más probable en un scaffold recién creado es que las
-      // variables de entorno de Supabase todavía sean placeholders.
+    if (!res.ok) {
       toast.error("No se ha podido enviar la solicitud", {
-        description: "Comprueba la configuración de Supabase.",
+        description: body.error,
       });
       return;
     }
@@ -66,8 +75,9 @@ export default function SolicitarAccesoPage() {
           <CheckCircle2 className="size-10 text-green-600" />
           <p className="font-medium">Solicitud enviada</p>
           <p className="text-sm text-muted-foreground">
-            Un administrador revisará tu solicitud y recibirás un email de
-            invitación si se aprueba.
+            Ya puedes entrar con tu email y tu contraseña en cuanto un
+            administrador acepte tu solicitud desde Ajustes. Hasta entonces
+            verás un aviso de que tu acceso todavía no ha sido aceptado.
           </p>
           <Link href="/login" className="text-sm font-medium underline">
             Volver al inicio de sesión
@@ -82,7 +92,8 @@ export default function SolicitarAccesoPage() {
       <CardHeader>
         <CardTitle>Solicitar acceso</CardTitle>
         <CardDescription>
-          Rellena tus datos; un administrador revisará tu solicitud.
+          Rellena tus datos y elige una contraseña; un administrador revisará
+          tu solicitud.
         </CardDescription>
       </CardHeader>
       <CardContent>
@@ -107,6 +118,34 @@ export default function SolicitarAccesoPage() {
             {errors.email && (
               <p className="text-sm text-destructive">
                 {errors.email.message}
+              </p>
+            )}
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="password">Contraseña</Label>
+            <Input
+              id="password"
+              type="password"
+              autoComplete="new-password"
+              {...register("password")}
+            />
+            {errors.password && (
+              <p className="text-sm text-destructive">
+                {errors.password.message}
+              </p>
+            )}
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="passwordConfirm">Repite la contraseña</Label>
+            <Input
+              id="passwordConfirm"
+              type="password"
+              autoComplete="new-password"
+              {...register("passwordConfirm")}
+            />
+            {errors.passwordConfirm && (
+              <p className="text-sm text-destructive">
+                {errors.passwordConfirm.message}
               </p>
             )}
           </div>

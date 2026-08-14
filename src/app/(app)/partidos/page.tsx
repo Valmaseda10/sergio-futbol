@@ -2,21 +2,12 @@
 
 import Link from "next/link";
 import { useLiveQuery } from "dexie-react-hooks";
-import { Plus, MapPin } from "lucide-react";
+import { Plus, MapPin, Search } from "lucide-react";
 import { localDb, type LocalPartido } from "@/lib/db/local-db";
-import { capitalizarPrimera } from "@/lib/date";
+import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-
-function formatearFechaCorta(fecha: string) {
-  return capitalizarPrimera(
-    new Date(`${fecha}T00:00:00`).toLocaleDateString("es-ES", {
-      weekday: "short",
-      day: "2-digit",
-      month: "short",
-    }),
-  );
-}
+import { FechaTile } from "@/components/ui/fecha-tile";
 
 function hoyISO() {
   const now = new Date();
@@ -29,7 +20,13 @@ const COMPETICION_LABEL: Record<string, string> = {
   copa: "Copa",
 };
 
-function renderFila(p: LocalPartido) {
+const COMPETICION_CLASSNAME: Record<string, string> = {
+  liga: "border-transparent bg-primary text-primary-foreground",
+  copa: "border-transparent bg-gold text-gold-foreground",
+  amistoso: "",
+};
+
+function Fila({ p }: { p: LocalPartido }) {
   const tieneResultado =
     p.resultado_favor != null && p.resultado_contra != null;
 
@@ -39,13 +36,16 @@ function renderFila(p: LocalPartido) {
         href={`/partidos/${p.id}`}
         className="flex items-center gap-3 p-3 hover:bg-muted/50"
       >
+        <FechaTile fecha={p.fecha} />
         <div className="min-w-0 flex-1">
           <p className="text-sm font-medium">
-            {formatearFechaCorta(p.fecha)} ·{" "}
             {p.local_visitante === "local" ? "vs" : "@"} {p.rival}
           </p>
           <p className="flex flex-wrap items-center gap-x-3 text-xs text-muted-foreground">
-            <Badge variant="secondary" className="text-[10px]">
+            <Badge
+              variant="secondary"
+              className={cn("text-[10px]", COMPETICION_CLASSNAME[p.competicion])}
+            >
               {COMPETICION_LABEL[p.competicion]}
             </Badge>
             {p.lugar && (
@@ -57,7 +57,7 @@ function renderFila(p: LocalPartido) {
           </p>
         </div>
         {tieneResultado && (
-          <span className="text-sm font-semibold">
+          <span className="font-heading text-lg tabular-nums">
             {p.resultado_favor} - {p.resultado_contra}
           </span>
         )}
@@ -89,6 +89,18 @@ export default function PartidosPage() {
         </Button>
       </div>
 
+      <div className="flex flex-wrap gap-2">
+        <Button
+          size="sm"
+          variant="outline"
+          nativeButton={false}
+          render={<Link href="/partidos/scouting" />}
+        >
+          <Search className="size-4" />
+          Scouting
+        </Button>
+      </div>
+
       <section className="space-y-2">
         <h2 className="text-sm font-medium text-muted-foreground">
           Próximos
@@ -99,7 +111,9 @@ export default function PartidosPage() {
           </p>
         ) : (
           <ul className="divide-y rounded-md border">
-            {proximos.map(renderFila)}
+            {proximos.map((p) => (
+              <Fila key={p.id} p={p} />
+            ))}
           </ul>
         )}
       </section>
@@ -110,7 +124,9 @@ export default function PartidosPage() {
             Anteriores
           </h2>
           <ul className="divide-y rounded-md border">
-            {anteriores.map(renderFila)}
+            {anteriores.map((p) => (
+              <Fila key={p.id} p={p} />
+            ))}
           </ul>
         </section>
       )}

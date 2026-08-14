@@ -47,7 +47,7 @@ export default function AsistenciaPage() {
   const estados = useLiveQuery(
     () =>
       localDb.estados
-        .filter((e) => e.activo)
+        .filter((e) => e.activo && e.tipo === "entrenamiento")
         .toArray()
         .then((rows) => rows.sort((a, b) => a.nombre.localeCompare(b.nombre))),
     [],

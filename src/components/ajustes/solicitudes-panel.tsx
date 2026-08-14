@@ -55,7 +55,7 @@ export function SolicitudesPanel({
         return;
       }
 
-      toast.success("Solicitud aprobada, invitación enviada por email");
+      toast.success("Solicitud aprobada, ya puede acceder");
       router.refresh();
     } finally {
       setPendingId(null);

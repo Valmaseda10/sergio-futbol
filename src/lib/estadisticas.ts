@@ -20,8 +20,15 @@ export interface PartidoJugado {
 }
 
 export interface EventoPartidoRow {
-  jugador_id: string;
-  tipo: "gol" | "asistencia" | "tarjeta_amarilla" | "tarjeta_roja";
+  jugador_id: string | null;
+  tipo:
+    | "gol"
+    | "asistencia"
+    | "tarjeta_amarilla"
+    | "tarjeta_roja"
+    | "cambio_entra"
+    | "cambio_sale"
+    | "autogol";
 }
 
 export interface ConvocatoriaRow {
@@ -56,6 +63,14 @@ export interface JugadorStats {
   tarjetasRojas: number;
   minutosAprox: number;
   pctAsistencia: number | null;
+  entrenamientosTotales: number;
+  entrenamientosAsistidos: number;
+  entrenamientosPerdidos: number;
+}
+
+export interface GolPartidoRow {
+  a_favor: boolean;
+  tipo_gol: string;
 }
 
 export interface ResumenEquipo {
@@ -90,6 +105,17 @@ export function calcularResumenEquipo(partidos: PartidoJugado[]): ResumenEquipo 
     golesFavor,
     golesContra,
   };
+}
+
+export function calcularGolesPorTipo(
+  goles: GolPartidoRow[],
+  tipos: { value: string; label: string }[],
+) {
+  return tipos.map((t) => ({
+    tipo: t.label,
+    Favor: goles.filter((g) => g.a_favor && g.tipo_gol === t.value).length,
+    Contra: goles.filter((g) => !g.a_favor && g.tipo_gol === t.value).length,
+  }));
 }
 
 export function calcularAsistenciaEquipoPorSesion(
@@ -178,6 +204,40 @@ export function calcularStatsJugadores(
         .length,
       minutosAprox: titularias * DURACION_PARTIDO_MINUTOS,
       pctAsistencia,
+      entrenamientosTotales: totalEntrenamientos,
+      entrenamientosAsistidos: totalEntrenamientos - ausencias,
+      entrenamientosPerdidos: ausencias,
+    };
+  });
+}
+
+const INTERVALOS_GOL = [
+  { desde: 0, hasta: 10 },
+  { desde: 10, hasta: 20 },
+  { desde: 20, hasta: 30 },
+  { desde: 30, hasta: 40 },
+  { desde: 40, hasta: 50 },
+  { desde: 50, hasta: 60 },
+  { desde: 60, hasta: 70 },
+];
+
+export interface GolMinutoRow {
+  minuto: number | null;
+  a_favor: boolean;
+}
+
+export function calcularGolesPorIntervalo(goles: GolMinutoRow[]) {
+  return INTERVALOS_GOL.map(({ desde, hasta }) => {
+    const enIntervalo = goles.filter(
+      (g) =>
+        g.minuto != null &&
+        g.minuto >= desde &&
+        (hasta === 70 ? g.minuto <= hasta : g.minuto < hasta),
+    );
+    return {
+      intervalo: `${desde}-${hasta}`,
+      Favor: enIntervalo.filter((g) => g.a_favor).length,
+      Contra: enIntervalo.filter((g) => !g.a_favor).length,
     };
   });
 }

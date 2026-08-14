@@ -1,14 +1,26 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useLiveQuery } from "dexie-react-hooks";
-import { Pencil, ClipboardList, MapPin, Clock } from "lucide-react";
+import {
+  Pencil,
+  ClipboardList,
+  MapPin,
+  Clock,
+  FileText,
+  ExternalLink,
+} from "lucide-react";
 import { localDb } from "@/lib/db/local-db";
 import { capitalizarPrimera } from "@/lib/date";
+import { createClient } from "@/lib/supabase/client";
+import { esPdf } from "@/lib/storage";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { EliminarEntrenamientoButton } from "@/components/entrenamientos/eliminar-entrenamiento-button";
+import { AsistenciaResumen } from "@/components/entrenamientos/asistencia-resumen";
+import { FechaTile } from "@/components/ui/fecha-tile";
 
 function formatearFecha(fecha: string) {
   return capitalizarPrimera(
@@ -27,6 +39,18 @@ export default function FichaEntrenamientoPage() {
     async () => (await localDb.entrenamientos.get(id)) ?? null,
     [id],
   );
+  const [documentoSignedUrl, setDocumentoSignedUrl] = useState<string | null>(
+    null,
+  );
+
+  useEffect(() => {
+    if (!entrenamiento?.documento_url || !navigator.onLine) return;
+    const supabase = createClient();
+    supabase.storage
+      .from("adjuntos")
+      .createSignedUrl(entrenamiento.documento_url, 3600)
+      .then(({ data }) => setDocumentoSignedUrl(data?.signedUrl ?? null));
+  }, [entrenamiento?.documento_url]);
 
   if (entrenamiento === undefined) {
     return <p className="text-sm text-muted-foreground">Cargando...</p>;
@@ -43,6 +67,7 @@ export default function FichaEntrenamientoPage() {
   return (
     <div className="space-y-4">
       <div className="flex items-center gap-3">
+        <FechaTile fecha={entrenamiento.fecha} />
         <div className="min-w-0 flex-1">
           <h1 className="truncate text-xl font-semibold">
             {formatearFecha(entrenamiento.fecha)}
@@ -89,6 +114,34 @@ export default function FichaEntrenamientoPage() {
         <ClipboardList className="size-4" />
         Pasar lista
       </Button>
+
+      <AsistenciaResumen entrenamientoId={entrenamiento.id} />
+
+      {entrenamiento.documento_url && documentoSignedUrl && (
+        <Card>
+          <CardContent className="pt-6">
+            {esPdf(entrenamiento.documento_url) ? (
+              <a
+                href={documentoSignedUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center gap-2 text-sm text-primary underline underline-offset-4"
+              >
+                <FileText className="size-4" />
+                Ver documento de la sesión
+                <ExternalLink className="size-3.5" />
+              </a>
+            ) : (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={documentoSignedUrl}
+                alt="Foto de la sesión"
+                className="max-h-80 w-full rounded-md object-contain"
+              />
+            )}
+          </CardContent>
+        </Card>
+      )}
 
       <Card>
         <CardHeader>

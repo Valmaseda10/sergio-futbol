@@ -27,8 +27,9 @@ export function AsistenciaChart({
             type="monotone"
             dataKey="pctAsistencia"
             name="Asistencia"
-            stroke="#3b82f6"
-            dot={{ r: 3 }}
+            stroke="var(--gold)"
+            strokeWidth={2}
+            dot={{ r: 3, fill: "var(--gold)", strokeWidth: 0 }}
           />
         </LineChart>
       </ResponsiveContainer>

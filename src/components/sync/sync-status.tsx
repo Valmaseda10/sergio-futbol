@@ -20,7 +20,7 @@ export function SyncStatusBadge() {
 
   if (!online) {
     return (
-      <Badge variant="outline" className="gap-1 text-[10px]">
+      <Badge className="gap-1 border-transparent bg-[#3a1418] text-[10px] text-[#e37980]">
         <CloudOff className="size-3" />
         Sin conexión{pending > 0 ? ` · ${pending} sin subir` : ""}
       </Badge>
@@ -29,7 +29,7 @@ export function SyncStatusBadge() {
 
   if (syncing || pending > 0) {
     return (
-      <Badge variant="secondary" className="gap-1 text-[10px]">
+      <Badge className="gap-1 border-transparent bg-[#3a2e14] text-[10px] text-[#d9a857]">
         <RefreshCw className="size-3 animate-spin" />
         Sincronizando{pending > 0 ? ` (${pending})` : ""}
       </Badge>
@@ -37,10 +37,7 @@ export function SyncStatusBadge() {
   }
 
   return (
-    <Badge
-      variant="secondary"
-      className="gap-1 text-[10px] text-muted-foreground"
-    >
+    <Badge className="gap-1 border-transparent bg-[#16241c] text-[10px] text-[#5c9473]">
       <Cloud className="size-3" />
       Sincronizado
     </Badge>

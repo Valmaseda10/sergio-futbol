@@ -1,5 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 
 export async function POST(
   _request: NextRequest,
@@ -23,7 +24,7 @@ export async function POST(
     .update({ estado: "rechazado" })
     .eq("id", id)
     .eq("estado", "pendiente")
-    .select("id");
+    .select("id, user_id");
 
   if (error) {
     return NextResponse.json({ error: error.message }, { status: 500 });
@@ -34,6 +35,15 @@ export async function POST(
       { error: "No autorizado o solicitud ya resuelta" },
       { status: 403 },
     );
+  }
+
+  // La cuenta se había creado ya en Auth al enviar la solicitud; al
+  // rechazarla se borra para que ese email quede libre y no quede una
+  // cuenta con contraseña válida pero sin acceso real.
+  const userId = data[0].user_id;
+  if (userId) {
+    const admin = createAdminClient();
+    await admin.auth.admin.deleteUser(userId);
   }
 
   return NextResponse.json({ ok: true });

@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -32,6 +33,8 @@ type SetPasswordValues = z.infer<typeof setPasswordSchema>;
 export default function SetPasswordPage() {
   const router = useRouter();
   const supabase = createClient();
+  const [comprobando, setComprobando] = useState(true);
+  const [sesionValida, setSesionValida] = useState(false);
 
   const {
     register,
@@ -40,6 +43,41 @@ export default function SetPasswordPage() {
   } = useForm<SetPasswordValues>({
     resolver: zodResolver(setPasswordSchema),
   });
+
+  // El enlace de invitación/recuperación llega con el token de sesión en el
+  // fragmento de la URL (#access_token=...), que solo el navegador puede
+  // leer (nunca llega al servidor). El cliente de Supabase lo detecta y
+  // procesa automáticamente al inicializarse (detectSessionInUrl); si en
+  // vez de eso llega un parámetro ?code= (PKCE), lo intercambiamos aquí.
+  useEffect(() => {
+    let cancelado = false;
+
+    (async () => {
+      const code = new URLSearchParams(window.location.search).get("code");
+      if (code) {
+        await supabase.auth.exchangeCodeForSession(code);
+      }
+
+      const { data } = await supabase.auth.getSession();
+      if (cancelado) return;
+
+      if (!data.session) {
+        toast.error("El enlace no es válido o ha caducado", {
+          description: "Pide que te reenvíen la invitación o el email.",
+        });
+        router.push("/login");
+        return;
+      }
+
+      setSesionValida(true);
+      setComprobando(false);
+    })();
+
+    return () => {
+      cancelado = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   async function onSubmit(values: SetPasswordValues) {
     const { error } = await supabase.auth.updateUser({
@@ -56,6 +94,16 @@ export default function SetPasswordPage() {
     toast.success("Contraseña guardada");
     router.push("/plantilla");
     router.refresh();
+  }
+
+  if (comprobando || !sesionValida) {
+    return (
+      <Card>
+        <CardContent className="py-10 text-center text-sm text-muted-foreground">
+          Comprobando el enlace...
+        </CardContent>
+      </Card>
+    );
   }
 
   return (

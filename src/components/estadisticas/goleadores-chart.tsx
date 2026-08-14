@@ -28,7 +28,7 @@ export function GoleadoresChart({
             fontSize={12}
           />
           <Tooltip />
-          <Bar dataKey="goles" name="Goles" fill="#f97316" radius={[0, 4, 4, 0]} />
+          <Bar dataKey="goles" name="Goles" fill="var(--grana)" radius={[0, 4, 4, 0]} />
         </BarChart>
       </ResponsiveContainer>
     </div>

@@ -1,9 +1,11 @@
 "use client";
 
+import { useRef, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
+import { Paperclip, FileText, ExternalLink } from "lucide-react";
 import {
   ENTRENAMIENTO_FORM_DEFAULTS,
   entrenamientoSchema,
@@ -27,9 +29,14 @@ function FieldError({ message }: { message?: string }) {
 export function EntrenamientoForm({
   entrenamiento,
 }: {
-  entrenamiento?: EntrenamientoFormValues & { id: string };
+  entrenamiento?: EntrenamientoFormValues & {
+    id: string;
+    documentoSignedUrl?: string | null;
+  };
 }) {
   const router = useRouter();
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [documento, setDocumento] = useState<File | null>(null);
 
   const {
     register,
@@ -40,10 +47,16 @@ export function EntrenamientoForm({
     defaultValues: entrenamiento ?? ENTRENAMIENTO_FORM_DEFAULTS,
   });
 
+  function handleDocumentoChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setDocumento(file);
+  }
+
   async function onSubmit(values: EntrenamientoFormValues) {
     const result = entrenamiento
-      ? await actualizarEntrenamientoLocal(entrenamiento.id, values)
-      : await crearEntrenamientoLocal(values);
+      ? await actualizarEntrenamientoLocal(entrenamiento.id, values, documento)
+      : await crearEntrenamientoLocal(values, documento);
 
     if ("error" in result) {
       toast.error(result.error);
@@ -56,6 +69,48 @@ export function EntrenamientoForm({
 
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+      <Card>
+        <CardContent className="space-y-4 pt-6">
+          <div className="space-y-2">
+            <Label>Foto o documento de la sesión</Label>
+            <div className="flex flex-wrap items-center gap-3">
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => fileInputRef.current?.click()}
+              >
+                <Paperclip className="size-4" />
+                {documento
+                  ? documento.name
+                  : entrenamiento?.documentoSignedUrl
+                    ? "Cambiar archivo"
+                    : "Añadir foto o PDF"}
+              </Button>
+              {!documento && entrenamiento?.documentoSignedUrl && (
+                <a
+                  href={entrenamiento.documentoSignedUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center gap-1 text-sm text-primary underline underline-offset-4"
+                >
+                  <FileText className="size-3.5" />
+                  Ver actual
+                  <ExternalLink className="size-3" />
+                </a>
+              )}
+            </div>
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/*,application/pdf"
+              className="hidden"
+              onChange={handleDocumentoChange}
+            />
+          </div>
+        </CardContent>
+      </Card>
+
       <Card>
         <CardContent className="space-y-4 pt-6">
           <div className="space-y-2">

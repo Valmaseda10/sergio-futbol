@@ -10,7 +10,7 @@ export async function POST(
   const { id } = await params;
 
   // Solo un admin autenticado (comprobado vía RLS con el cliente normal)
-  // puede desencadenar una invitación real.
+  // puede aprobar una solicitud.
   const supabase = await createClient();
   const {
     data: { user },
@@ -35,7 +35,7 @@ export async function POST(
 
   const { data: solicitud, error: fetchError } = await supabase
     .from("solicitudes_acceso")
-    .select("id, nombre, email, estado")
+    .select("id, nombre, email, estado, user_id")
     .eq("id", id)
     .single();
 
@@ -53,23 +53,20 @@ export async function POST(
     );
   }
 
-  const admin = createAdminClient();
-  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL;
-
-  const { data: invited, error: inviteError } =
-    await admin.auth.admin.inviteUserByEmail(solicitud.email, {
-      redirectTo: `${siteUrl}/auth/callback?next=/auth/set-password`,
-    });
-
-  if (inviteError || !invited.user) {
+  if (!solicitud.user_id) {
     return NextResponse.json(
-      { error: inviteError?.message ?? "No se ha podido invitar al usuario" },
-      { status: 500 },
+      { error: "Esta solicitud no tiene una cuenta asociada" },
+      { status: 409 },
     );
   }
 
+  // La cuenta ya existe en Auth (se creó con su propia contraseña al enviar
+  // la solicitud); aprobar solo consiste en darle acceso real creando su
+  // fila en usuarios. No se envía ningún email.
+  const admin = createAdminClient();
+
   const { error: insertError } = await admin.from("usuarios").insert({
-    id: invited.user.id,
+    id: solicitud.user_id,
     nombre: solicitud.nombre,
     email: solicitud.email,
     rol,

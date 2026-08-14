@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useLiveQuery } from "dexie-react-hooks";
@@ -12,13 +13,18 @@ import {
   MapPin,
   Clock,
   ChevronRight,
+  Video,
 } from "lucide-react";
 import { localDb } from "@/lib/db/local-db";
 import { capitalizarPrimera } from "@/lib/date";
+import { createClient } from "@/lib/supabase/client";
+import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { EliminarPartidoButton } from "@/components/partidos/eliminar-partido-button";
+import { ResumenGoles } from "@/components/partidos/resumen-goles";
+import { FechaTile } from "@/components/ui/fecha-tile";
 
 function formatearFecha(fecha: string) {
   return capitalizarPrimera(
@@ -35,6 +41,12 @@ const COMPETICION_LABEL: Record<string, string> = {
   liga: "Liga",
   amistoso: "Amistoso",
   copa: "Copa",
+};
+
+const COMPETICION_CLASSNAME: Record<string, string> = {
+  liga: "border-transparent bg-primary text-primary-foreground",
+  copa: "border-transparent bg-gold text-gold-foreground",
+  amistoso: "",
 };
 
 export default function FichaPartidoPage() {
@@ -74,6 +86,23 @@ export default function FichaPartidoPage() {
     [id],
     false,
   );
+  const videosCount = useLiveQuery(
+    () => localDb.videos.where("partido_id").equals(id).count(),
+    [id],
+    0,
+  );
+  const [fotoRivalSignedUrl, setFotoRivalSignedUrl] = useState<string | null>(
+    null,
+  );
+
+  useEffect(() => {
+    if (!partido?.foto_rival_url || !navigator.onLine) return;
+    const supabase = createClient();
+    supabase.storage
+      .from("adjuntos")
+      .createSignedUrl(partido.foto_rival_url, 3600)
+      .then(({ data }) => setFotoRivalSignedUrl(data?.signedUrl ?? null));
+  }, [partido?.foto_rival_url]);
 
   if (partido === undefined) {
     return <p className="text-sm text-muted-foreground">Cargando...</p>;
@@ -111,11 +140,26 @@ export default function FichaPartidoPage() {
       label: "Valoración",
       estado: tieneValoracion ? "Completada" : "Sin valorar",
     },
+    {
+      href: `/partidos/${id}/videos`,
+      icon: Video,
+      label: "Vídeos",
+      estado: `${videosCount} vídeos`,
+    },
   ];
 
   return (
     <div className="space-y-4">
       <div className="flex items-center gap-3">
+        <FechaTile fecha={partido.fecha} />
+        {fotoRivalSignedUrl && (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            src={fotoRivalSignedUrl}
+            alt={partido.rival}
+            className="size-10 shrink-0 rounded-full border object-cover"
+          />
+        )}
         <div className="min-w-0 flex-1">
           <h1 className="truncate text-xl font-semibold">
             {partido.local_visitante === "local" ? "vs" : "@"} {partido.rival}
@@ -135,12 +179,15 @@ export default function FichaPartidoPage() {
               </span>
             )}
           </p>
-          <Badge variant="secondary" className="mt-1">
+          <Badge
+            variant="secondary"
+            className={cn("mt-1", COMPETICION_CLASSNAME[partido.competicion])}
+          >
             {COMPETICION_LABEL[partido.competicion]}
           </Badge>
         </div>
         {tieneResultado && (
-          <span className="text-2xl font-bold">
+          <span className="font-heading text-3xl tabular-nums">
             {partido.resultado_favor} - {partido.resultado_contra}
           </span>
         )}
@@ -173,6 +220,8 @@ export default function FichaPartidoPage() {
           </li>
         ))}
       </ul>
+
+      <ResumenGoles partidoId={id} />
 
       {partido.notas && (
         <Card>

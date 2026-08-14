@@ -2,6 +2,7 @@ import { createClient } from "@/lib/supabase/server";
 import { SolicitudesPanel } from "@/components/ajustes/solicitudes-panel";
 import { EstadosPanel } from "@/components/ajustes/estados-panel";
 import { UsuariosPanel } from "@/components/ajustes/usuarios-panel";
+import { CambiarPasswordPanel } from "@/components/ajustes/cambiar-password-panel";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 export default async function AjustesPage() {
@@ -37,6 +38,15 @@ export default async function AjustesPage() {
   return (
     <div className="space-y-4">
       <h1 className="text-2xl font-semibold">Ajustes</h1>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Mi contraseña</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <CambiarPasswordPanel />
+        </CardContent>
+      </Card>
 
       {isAdmin && (
         <Card>

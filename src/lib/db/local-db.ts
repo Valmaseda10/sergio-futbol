@@ -4,7 +4,6 @@
 // Tablas deliberadamente NO incluidas (se quedan online-only):
 // - usuarios / solicitudes_acceso: la gestión de usuarios requiere la
 //   service_role key, que nunca debe llegar al cliente.
-// - lesiones: todavía no tiene ningún módulo de UI que la use.
 
 import Dexie, { type Table } from "dexie";
 import type {
@@ -24,6 +23,12 @@ export type LocalAlineacion = Tables["alineaciones"]["Row"];
 export type LocalEventoPartido = Tables["eventos_partido"]["Row"];
 export type LocalValoracionPartido = Tables["valoraciones_partido"]["Row"];
 export type LocalValoracionJugador = Tables["valoraciones_jugador"]["Row"];
+export type LocalVideo = Tables["videos"]["Row"];
+export type LocalLesion = Tables["lesiones"]["Row"];
+export type LocalLesionSesion = Tables["lesion_sesiones_readaptacion"]["Row"];
+export type LocalRivalScouting = Tables["rivales_scouting"]["Row"];
+export type LocalRivalJugadorDestacado =
+  Tables["rivales_jugadores_destacados"]["Row"];
 
 export const SYNCED_TABLES = [
   "jugadores",
@@ -36,6 +41,11 @@ export const SYNCED_TABLES = [
   "eventos_partido",
   "valoraciones_partido",
   "valoraciones_jugador",
+  "videos",
+  "lesiones",
+  "lesion_sesiones_readaptacion",
+  "rivales_scouting",
+  "rivales_jugadores_destacados",
 ] as const;
 
 export type SyncedTable = (typeof SYNCED_TABLES)[number];
@@ -76,6 +86,11 @@ class LocalDb extends Dexie {
   eventos_partido!: Table<LocalEventoPartido, string>;
   valoraciones_partido!: Table<LocalValoracionPartido, string>;
   valoraciones_jugador!: Table<LocalValoracionJugador, string>;
+  videos!: Table<LocalVideo, string>;
+  lesiones!: Table<LocalLesion, string>;
+  lesion_sesiones_readaptacion!: Table<LocalLesionSesion, string>;
+  rivales_scouting!: Table<LocalRivalScouting, string>;
+  rivales_jugadores_destacados!: Table<LocalRivalJugadorDestacado, string>;
   outbox!: Table<OutboxEntry, number>;
   meta!: Table<MetaEntry, string>;
 
@@ -95,6 +110,27 @@ class LocalDb extends Dexie {
       valoraciones_jugador: "id, jugador_id, fecha",
       outbox: "++id, table, createdAt",
       meta: "key",
+    });
+
+    this.version(2).stores({
+      videos: "id, tipo, partido_id, fecha",
+    });
+
+    this.version(3).stores({
+      lesiones: "id, jugador_id, fecha_inicio",
+      lesion_sesiones_readaptacion: "id, lesion_id, fecha",
+      rivales_scouting: "id, nombre",
+      rivales_jugadores_destacados: "id, rival_id, categoria",
+    });
+
+    this.version(4).stores({
+      goles_partido: "id, partido_id, a_favor, tipo_gol",
+    });
+
+    // goles_partido se unifica dentro de eventos_partido (a_favor, tipo_gol,
+    // pos_x, pos_y ahora viven ahí); se elimina la tabla independiente.
+    this.version(5).stores({
+      goles_partido: null,
     });
   }
 }

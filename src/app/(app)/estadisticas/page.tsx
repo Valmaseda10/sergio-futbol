@@ -7,13 +7,19 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ResultadosChart } from "@/components/estadisticas/resultados-chart";
 import { AsistenciaChart } from "@/components/estadisticas/asistencia-chart";
 import { GoleadoresChart } from "@/components/estadisticas/goleadores-chart";
+import { TiposGolChart } from "@/components/estadisticas/tipos-gol-chart";
+import { MapaGoles } from "@/components/estadisticas/mapa-goles";
+import { GolesIntervaloChart } from "@/components/estadisticas/goles-intervalo-chart";
 import { JugadoresTable } from "@/components/estadisticas/jugadores-table";
 import {
   DURACION_PARTIDO_MINUTOS,
   calcularAsistenciaEquipoPorSesion,
+  calcularGolesPorIntervalo,
+  calcularGolesPorTipo,
   calcularResumenEquipo,
   calcularStatsJugadores,
 } from "@/lib/estadisticas";
+import { TIPOS_GOL } from "@/lib/validations/gol";
 
 function hoyISO() {
   const now = new Date();
@@ -136,6 +142,55 @@ export default function EstadisticasPage() {
     [partidosJugados],
   );
 
+  const goles = useMemo(
+    () =>
+      eventos
+        .filter((e) => e.tipo_gol != null)
+        .map((e) => ({ a_favor: e.a_favor, tipo_gol: e.tipo_gol as string })),
+    [eventos],
+  );
+  const datosGoles = useMemo(
+    () => calcularGolesPorTipo(goles, TIPOS_GOL),
+    [goles],
+  );
+  const hayGoles = useMemo(
+    () => datosGoles.some((d) => d.Favor > 0 || d.Contra > 0),
+    [datosGoles],
+  );
+
+  const golesUbicacion = useMemo(
+    () =>
+      eventos
+        .filter(
+          (e) =>
+            (e.tipo === "gol" || e.tipo === "autogol") &&
+            e.pos_x != null &&
+            e.pos_y != null,
+        )
+        .map((e) => ({
+          pos_x: e.pos_x as number,
+          pos_y: e.pos_y as number,
+          a_favor: e.a_favor,
+        })),
+    [eventos],
+  );
+
+  const golesPorMinuto = useMemo(
+    () =>
+      eventos
+        .filter((e) => e.tipo === "gol" && e.minuto != null)
+        .map((e) => ({ minuto: e.minuto, a_favor: e.a_favor })),
+    [eventos],
+  );
+  const datosIntervalos = useMemo(
+    () => calcularGolesPorIntervalo(golesPorMinuto),
+    [golesPorMinuto],
+  );
+  const hayGolesPorMinuto = useMemo(
+    () => datosIntervalos.some((d) => d.Favor > 0 || d.Contra > 0),
+    [datosIntervalos],
+  );
+
   const datosAsistencia = useMemo(
     () =>
       asistenciaEquipo.map((a) => ({
@@ -155,13 +210,13 @@ export default function EstadisticasPage() {
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
         <Card>
           <CardContent className="pt-6 text-center">
-            <p className="text-2xl font-bold">{resumen.partidosJugados}</p>
+            <p className="font-heading text-3xl tabular-nums">{resumen.partidosJugados}</p>
             <p className="text-xs text-muted-foreground">Partidos jugados</p>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="pt-6 text-center">
-            <p className="text-2xl font-bold">
+            <p className="font-heading text-3xl tabular-nums">
               {resumen.victorias}-{resumen.empates}-{resumen.derrotas}
             </p>
             <p className="text-xs text-muted-foreground">V-E-D</p>
@@ -169,13 +224,13 @@ export default function EstadisticasPage() {
         </Card>
         <Card>
           <CardContent className="pt-6 text-center">
-            <p className="text-2xl font-bold">{resumen.golesFavor}</p>
+            <p className="font-heading text-3xl tabular-nums text-pitch">{resumen.golesFavor}</p>
             <p className="text-xs text-muted-foreground">Goles a favor</p>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="pt-6 text-center">
-            <p className="text-2xl font-bold">{resumen.golesContra}</p>
+            <p className="font-heading text-3xl tabular-nums text-destructive">{resumen.golesContra}</p>
             <p className="text-xs text-muted-foreground">Goles en contra</p>
           </CardContent>
         </Card>
@@ -224,6 +279,51 @@ export default function EstadisticasPage() {
             </p>
           ) : (
             <GoleadoresChart datos={goleadores} />
+          )}
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">Cómo han sido los goles</CardTitle>
+        </CardHeader>
+        <CardContent>
+          {!hayGoles ? (
+            <p className="py-8 text-center text-sm text-muted-foreground">
+              Todavía no hay goles registrados por tipo de jugada.
+            </p>
+          ) : (
+            <TiposGolChart datos={datosGoles} />
+          )}
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">Goles por intervalo de tiempo</CardTitle>
+        </CardHeader>
+        <CardContent>
+          {!hayGolesPorMinuto ? (
+            <p className="py-8 text-center text-sm text-muted-foreground">
+              Todavía no hay goles con minuto registrado.
+            </p>
+          ) : (
+            <GolesIntervaloChart datos={datosIntervalos} />
+          )}
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">Mapa de goles</CardTitle>
+        </CardHeader>
+        <CardContent>
+          {golesUbicacion.length === 0 ? (
+            <p className="py-8 text-center text-sm text-muted-foreground">
+              Todavía no hay goles con ubicación registrada.
+            </p>
+          ) : (
+            <MapaGoles goles={golesUbicacion} />
           )}
         </CardContent>
       </Card>

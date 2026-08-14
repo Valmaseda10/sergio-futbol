@@ -1,9 +1,11 @@
 "use client";
 
+import { useRef, useState } from "react";
 import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
+import { Camera } from "lucide-react";
 import {
   PARTIDO_FORM_DEFAULTS,
   partidoSchema,
@@ -45,9 +47,17 @@ function FieldError({ message }: { message?: string }) {
 export function PartidoForm({
   partido,
 }: {
-  partido?: PartidoFormValues & { id: string };
+  partido?: PartidoFormValues & {
+    id: string;
+    fotoRivalSignedUrl?: string | null;
+  };
 }) {
   const router = useRouter();
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [fotoPreview, setFotoPreview] = useState<string | null>(
+    partido?.fotoRivalSignedUrl ?? null,
+  );
+  const [fotoRival, setFotoRival] = useState<File | null>(null);
 
   const {
     register,
@@ -59,10 +69,17 @@ export function PartidoForm({
     defaultValues: partido ?? PARTIDO_FORM_DEFAULTS,
   });
 
+  function handleFotoChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setFotoRival(file);
+    setFotoPreview(URL.createObjectURL(file));
+  }
+
   async function onSubmit(values: PartidoFormValues) {
     const result = partido
-      ? await actualizarPartidoLocal(partido.id, values)
-      : await crearPartidoLocal(values);
+      ? await actualizarPartidoLocal(partido.id, values, fotoRival)
+      : await crearPartidoLocal(values, fotoRival);
 
     if ("error" in result) {
       toast.error(result.error);
@@ -75,6 +92,41 @@ export function PartidoForm({
 
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+      <Card>
+        <CardContent className="flex items-center gap-4 pt-6">
+          {fotoPreview ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={fotoPreview}
+              alt="Escudo del rival"
+              className="size-16 rounded-full border object-cover"
+            />
+          ) : (
+            <div className="flex size-16 items-center justify-center rounded-full border bg-muted text-xs text-muted-foreground">
+              Rival
+            </div>
+          )}
+          <div>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => fileInputRef.current?.click()}
+            >
+              <Camera className="size-4" />
+              {fotoPreview ? "Cambiar foto del rival" : "Añadir foto del rival"}
+            </Button>
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/*"
+              className="hidden"
+              onChange={handleFotoChange}
+            />
+          </div>
+        </CardContent>
+      </Card>
+
       <Card>
         <CardContent className="space-y-4 pt-6">
           <div className="grid grid-cols-2 gap-4">

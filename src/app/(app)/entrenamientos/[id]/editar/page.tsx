@@ -1,8 +1,10 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import { useLiveQuery } from "dexie-react-hooks";
 import { localDb } from "@/lib/db/local-db";
+import { createClient } from "@/lib/supabase/client";
 import { EntrenamientoForm } from "@/components/entrenamientos/entrenamiento-form";
 
 export default function EditarEntrenamientoPage() {
@@ -11,6 +13,18 @@ export default function EditarEntrenamientoPage() {
     async () => (await localDb.entrenamientos.get(id)) ?? null,
     [id],
   );
+  const [documentoSignedUrl, setDocumentoSignedUrl] = useState<string | null>(
+    null,
+  );
+
+  useEffect(() => {
+    if (!entrenamiento?.documento_url || !navigator.onLine) return;
+    const supabase = createClient();
+    supabase.storage
+      .from("adjuntos")
+      .createSignedUrl(entrenamiento.documento_url, 3600)
+      .then(({ data }) => setDocumentoSignedUrl(data?.signedUrl ?? null));
+  }, [entrenamiento?.documento_url]);
 
   if (entrenamiento === undefined) {
     return <p className="text-sm text-muted-foreground">Cargando...</p>;
@@ -37,6 +51,7 @@ export default function EditarEntrenamientoPage() {
           objetivos: entrenamiento.objetivos ?? "",
           ejercicios: entrenamiento.ejercicios ?? "",
           notas: entrenamiento.notas ?? "",
+          documentoSignedUrl,
         }}
       />
     </div>

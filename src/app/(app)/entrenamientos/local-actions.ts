@@ -8,6 +8,8 @@ import {
   type LocalEntrenamiento,
 } from "@/lib/db/local-db";
 import { queueMutation } from "@/lib/db/sync";
+import { createClient } from "@/lib/supabase/client";
+import { subirArchivoPrivado, extensionDeArchivo } from "@/lib/storage";
 import {
   entrenamientoSchema,
   generarSchema,
@@ -19,8 +21,24 @@ import {
 type ActionResult = { error: string } | { success: true; id: string };
 type SimpleResult = { error: string } | { success: true };
 
+async function subirDocumento(
+  entrenamientoId: string,
+  archivo: File,
+): Promise<void> {
+  const path = `entrenamientos/${entrenamientoId}.${extensionDeArchivo(archivo)}`;
+  await subirArchivoPrivado(path, archivo);
+
+  const supabase = createClient();
+  await supabase
+    .from("entrenamientos")
+    .update({ documento_url: path })
+    .eq("id", entrenamientoId);
+  await localDb.entrenamientos.update(entrenamientoId, { documento_url: path });
+}
+
 export async function crearEntrenamientoLocal(
   values: EntrenamientoFormValues,
+  documento?: File | null,
 ): Promise<ActionResult> {
   const parsed = entrenamientoSchema.safeParse(values);
   if (!parsed.success) {
@@ -31,11 +49,25 @@ export async function crearEntrenamientoLocal(
   const row: LocalEntrenamiento = {
     id,
     ...toEntrenamientoInsert(parsed.data),
+    documento_url: null,
     created_at: new Date().toISOString(),
   };
 
   await localDb.entrenamientos.put(row);
   await queueMutation("entrenamientos", "insert", id, row);
+
+  if (documento && documento.size > 0) {
+    try {
+      await subirDocumento(id, documento);
+    } catch (e) {
+      return {
+        error:
+          e instanceof Error
+            ? e.message
+            : "Entrenamiento creado, pero el archivo no se pudo subir",
+      };
+    }
+  }
 
   return { success: true, id };
 }
@@ -43,6 +75,7 @@ export async function crearEntrenamientoLocal(
 export async function actualizarEntrenamientoLocal(
   id: string,
   values: EntrenamientoFormValues,
+  documento?: File | null,
 ): Promise<ActionResult> {
   const parsed = entrenamientoSchema.safeParse(values);
   if (!parsed.success) {
@@ -52,6 +85,19 @@ export async function actualizarEntrenamientoLocal(
   const patch = toEntrenamientoInsert(parsed.data);
   await localDb.entrenamientos.update(id, patch);
   await queueMutation("entrenamientos", "update", id, patch);
+
+  if (documento && documento.size > 0) {
+    try {
+      await subirDocumento(id, documento);
+    } catch (e) {
+      return {
+        error:
+          e instanceof Error
+            ? e.message
+            : "Entrenamiento actualizado, pero el archivo no se pudo subir",
+      };
+    }
+  }
 
   return { success: true, id };
 }
@@ -137,6 +183,7 @@ export async function generarEntrenamientosLocal(
     objetivos: null,
     ejercicios: null,
     notas: null,
+    documento_url: null,
     created_at: now,
   }));
 

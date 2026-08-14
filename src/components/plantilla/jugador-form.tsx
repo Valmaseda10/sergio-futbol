@@ -11,6 +11,7 @@ import {
   jugadorSchema,
   type JugadorFormValues,
 } from "@/lib/validations/jugador";
+import { POSICIONES } from "@/lib/posiciones";
 import {
   crearJugadorLocal,
   actualizarJugadorLocal,
@@ -138,6 +139,15 @@ export function JugadorForm({
             </div>
           </div>
 
+          <div className="space-y-2">
+            <Label htmlFor="alias">Alias (cómo se le ve en el campo)</Label>
+            <Input
+              id="alias"
+              placeholder="Ej: Marquitos"
+              {...register("alias")}
+            />
+          </div>
+
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label htmlFor="dorsal">Dorsal</Label>
@@ -153,10 +163,28 @@ export function JugadorForm({
             </div>
             <div className="space-y-2">
               <Label htmlFor="posicion">Posición</Label>
-              <Input
-                id="posicion"
-                placeholder="Ej: lateral derecho"
-                {...register("posicion")}
+              <Controller
+                control={control}
+                name="posicion"
+                render={({ field }) => (
+                  <Select value={field.value} onValueChange={field.onChange}>
+                    <SelectTrigger id="posicion" className="w-full">
+                      <SelectValue placeholder="Sin especificar">
+                        {(value) =>
+                          POSICIONES.find((p) => p.value === value)?.label ??
+                          (value as string)
+                        }
+                      </SelectValue>
+                    </SelectTrigger>
+                    <SelectContent>
+                      {POSICIONES.map((p) => (
+                        <SelectItem key={p.value} value={p.value}>
+                          {p.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                )}
               />
             </div>
           </div>
@@ -200,26 +228,60 @@ export function JugadorForm({
             <Input id="fecha_alta" type="date" {...register("fecha_alta")} />
             <FieldError message={errors.fecha_alta?.message} />
           </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="equipo_anterior">Equipo anterior</Label>
+            <Input
+              id="equipo_anterior"
+              placeholder="Ej: CD Ejemplo"
+              {...register("equipo_anterior")}
+            />
+          </div>
         </CardContent>
       </Card>
 
       <Card>
         <CardContent className="space-y-4 pt-6">
           <p className="text-sm font-medium">Contacto</p>
+
+          <p className="text-xs text-muted-foreground">Padre</p>
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label htmlFor="contacto_nombre">Nombre</Label>
-              <Input id="contacto_nombre" {...register("contacto_nombre")} />
+              <Label htmlFor="contacto_padre_nombre">Nombre</Label>
+              <Input
+                id="contacto_padre_nombre"
+                {...register("contacto_padre_nombre")}
+              />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="contacto_telefono">Teléfono</Label>
+              <Label htmlFor="contacto_padre_telefono">Teléfono</Label>
               <Input
-                id="contacto_telefono"
+                id="contacto_padre_telefono"
                 type="tel"
-                {...register("contacto_telefono")}
+                {...register("contacto_padre_telefono")}
               />
             </div>
           </div>
+
+          <p className="text-xs text-muted-foreground">Madre</p>
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="contacto_madre_nombre">Nombre</Label>
+              <Input
+                id="contacto_madre_nombre"
+                {...register("contacto_madre_nombre")}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="contacto_madre_telefono">Teléfono</Label>
+              <Input
+                id="contacto_madre_telefono"
+                type="tel"
+                {...register("contacto_madre_telefono")}
+              />
+            </div>
+          </div>
+
           <div className="space-y-2">
             <Label htmlFor="contacto_email">Email</Label>
             <Input

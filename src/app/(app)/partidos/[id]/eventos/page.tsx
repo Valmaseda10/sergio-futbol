@@ -36,6 +36,7 @@ export default function EventosPage() {
         id: j.id,
         nombre: j.nombre,
         apellidos: j.apellidos,
+        alias: j.alias,
         dorsal: j.dorsal,
       }));
   }, [convocatorias, jugadores]);

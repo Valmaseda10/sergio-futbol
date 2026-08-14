@@ -32,8 +32,8 @@ export function ResultadosChart({
           <YAxis allowDecimals={false} fontSize={12} />
           <Tooltip />
           <Legend />
-          <Bar dataKey="Favor" fill="#22c55e" radius={[4, 4, 0, 0]} />
-          <Bar dataKey="Contra" fill="#ef4444" radius={[4, 4, 0, 0]} />
+          <Bar dataKey="Favor" fill="var(--pitch)" radius={[4, 4, 0, 0]} />
+          <Bar dataKey="Contra" fill="var(--destructive)" radius={[4, 4, 0, 0]} />
         </BarChart>
       </ResponsiveContainer>
     </div>

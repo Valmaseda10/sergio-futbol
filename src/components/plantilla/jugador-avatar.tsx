@@ -17,7 +17,9 @@ export function JugadorAvatar({
   return (
     <Avatar className={cn("size-10", className)}>
       {src && <AvatarImage src={src} alt={`${nombre} ${apellidos}`} />}
-      <AvatarFallback>{initials || "?"}</AvatarFallback>
+      <AvatarFallback className="bg-accent font-heading text-accent-foreground">
+        {initials || "?"}
+      </AvatarFallback>
     </Avatar>
   );
 }

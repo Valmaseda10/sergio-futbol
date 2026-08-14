@@ -21,6 +21,9 @@ const COLUMNAS: { key: Columna; label: string }[] = [
   { key: "tarjetasAmarillas", label: "TA" },
   { key: "tarjetasRojas", label: "TR" },
   { key: "minutosAprox", label: "Min. aprox." },
+  { key: "entrenamientosTotales", label: "Entrenos" },
+  { key: "entrenamientosAsistidos", label: "Asistió" },
+  { key: "entrenamientosPerdidos", label: "Perdió" },
   { key: "pctAsistencia", label: "% Entreno" },
 ];
 
@@ -54,7 +57,10 @@ export function JugadoresTable({ jugadores }: { jugadores: JugadorStats[] }) {
             {COLUMNAS.map((col) => (
               <TableHead
                 key={col.key}
-                className="cursor-pointer whitespace-nowrap select-none"
+                className={
+                  "cursor-pointer whitespace-nowrap select-none" +
+                  (orden === col.key ? " text-primary" : "")
+                }
                 onClick={() => handleSort(col.key)}
               >
                 <span className="inline-flex items-center gap-1">
@@ -76,17 +82,20 @@ export function JugadoresTable({ jugadores }: { jugadores: JugadorStats[] }) {
         <TableBody>
           {ordenados.map((j) => (
             <TableRow key={j.id}>
-              <TableCell className="whitespace-nowrap font-medium">
+              <TableCell className="whitespace-nowrap font-medium uppercase">
                 {j.dorsal != null ? `${j.dorsal} · ` : ""}
                 {j.nombre} {j.apellidos}
               </TableCell>
-              <TableCell>{j.convocatorias}</TableCell>
-              <TableCell>{j.goles}</TableCell>
-              <TableCell>{j.asistencias}</TableCell>
-              <TableCell>{j.tarjetasAmarillas}</TableCell>
-              <TableCell>{j.tarjetasRojas}</TableCell>
-              <TableCell>{j.minutosAprox}</TableCell>
-              <TableCell>
+              <TableCell className="tabular-nums">{j.convocatorias}</TableCell>
+              <TableCell className="font-heading tabular-nums">{j.goles}</TableCell>
+              <TableCell className="tabular-nums">{j.asistencias}</TableCell>
+              <TableCell className="tabular-nums">{j.tarjetasAmarillas}</TableCell>
+              <TableCell className="tabular-nums">{j.tarjetasRojas}</TableCell>
+              <TableCell className="tabular-nums">{j.minutosAprox}</TableCell>
+              <TableCell className="tabular-nums">{j.entrenamientosTotales}</TableCell>
+              <TableCell className="tabular-nums">{j.entrenamientosAsistidos}</TableCell>
+              <TableCell className="tabular-nums">{j.entrenamientosPerdidos}</TableCell>
+              <TableCell className="tabular-nums">
                 {j.pctAsistencia != null ? `${j.pctAsistencia}%` : "—"}
               </TableCell>
             </TableRow>

@@ -1,19 +1,33 @@
 "use client";
 
 import Link from "next/link";
+import { useMemo } from "react";
 import { useLiveQuery } from "dexie-react-hooks";
 import { Plus, CalendarPlus, MapPin, Clock } from "lucide-react";
-import { localDb } from "@/lib/db/local-db";
+import { localDb, type LocalEntrenamiento } from "@/lib/db/local-db";
 import { capitalizarPrimera } from "@/lib/date";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { FechaTile } from "@/components/ui/fecha-tile";
 
-function formatearFechaCorta(fecha: string) {
+function nombreDia(fecha: string) {
   return capitalizarPrimera(
     new Date(`${fecha}T00:00:00`).toLocaleDateString("es-ES", {
-      weekday: "short",
-      day: "2-digit",
-      month: "short",
+      weekday: "long",
+    }),
+  );
+}
+
+function claveMes(fecha: string) {
+  return fecha.slice(0, 7); // YYYY-MM
+}
+
+function nombreMes(clave: string) {
+  const [anio, mes] = clave.split("-").map(Number);
+  return capitalizarPrimera(
+    new Date(anio, mes - 1, 1).toLocaleDateString("es-ES", {
+      month: "long",
+      year: "numeric",
     }),
   );
 }
@@ -21,6 +35,37 @@ function formatearFechaCorta(fecha: string) {
 function hoyISO() {
   const now = new Date();
   return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
+}
+
+function Fila({ e }: { e: LocalEntrenamiento }) {
+  return (
+    <li key={e.id}>
+      <Link
+        href={`/entrenamientos/${e.id}`}
+        className="flex items-center gap-3 p-3 hover:bg-muted/50"
+      >
+        <FechaTile fecha={e.fecha} />
+        <div className="min-w-0 flex-1">
+          <p className="text-sm font-medium">{nombreDia(e.fecha)}</p>
+          <p className="flex flex-wrap items-center gap-x-3 text-xs text-muted-foreground">
+            {e.hora_inicio && (
+              <span className="flex items-center gap-1">
+                <Clock className="size-3" />
+                {e.hora_inicio.slice(0, 5)}
+              </span>
+            )}
+            {e.lugar && (
+              <span className="flex items-center gap-1">
+                <MapPin className="size-3" />
+                {e.lugar}
+              </span>
+            )}
+          </p>
+        </div>
+        {!e.objetivos && <Badge variant="outline">Sin planificar</Badge>}
+      </Link>
+    </li>
+  );
 }
 
 export default function EntrenamientosPage() {
@@ -32,14 +77,21 @@ export default function EntrenamientosPage() {
     [],
   );
 
-  const proximos = entrenamientos
-    .filter((e) => e.fecha >= hoy)
-    .sort((a, b) => a.fecha.localeCompare(b.fecha));
-
-  const anteriores = entrenamientos
-    .filter((e) => e.fecha < hoy)
-    .sort((a, b) => b.fecha.localeCompare(a.fecha))
-    .slice(0, 10);
+  const meses = useMemo(() => {
+    const grupos = new Map<string, LocalEntrenamiento[]>();
+    for (const e of entrenamientos) {
+      const clave = claveMes(e.fecha);
+      if (!grupos.has(clave)) grupos.set(clave, []);
+      grupos.get(clave)!.push(e);
+    }
+    return Array.from(grupos.entries())
+      .sort(([a], [b]) => a.localeCompare(b))
+      .map(([clave, lista]) => ({
+        clave,
+        entrenamientos: lista.sort((a, b) => a.fecha.localeCompare(b.fecha)),
+        esMesActual: clave === claveMes(hoy),
+      }));
+  }, [entrenamientos, hoy]);
 
   return (
     <div className="space-y-4">
@@ -66,87 +118,29 @@ export default function EntrenamientosPage() {
         </div>
       </div>
 
-      <section className="space-y-2">
-        <h2 className="text-sm font-medium text-muted-foreground">
-          Próximos
-        </h2>
-        {proximos.length === 0 ? (
-          <p className="py-4 text-center text-sm text-muted-foreground">
-            No hay entrenamientos programados.
-          </p>
-        ) : (
-          <ul className="divide-y rounded-md border">
-            {proximos.map((e) => (
-              <li key={e.id}>
-                <Link
-                  href={`/entrenamientos/${e.id}`}
-                  className="flex items-center gap-3 p-3 hover:bg-muted/50"
-                >
-                  <div className="min-w-0 flex-1">
-                    <p className="text-sm font-medium">
-                      {formatearFechaCorta(e.fecha)}
-                    </p>
-                    <p className="flex flex-wrap items-center gap-x-3 text-xs text-muted-foreground">
-                      {e.hora_inicio && (
-                        <span className="flex items-center gap-1">
-                          <Clock className="size-3" />
-                          {e.hora_inicio.slice(0, 5)}
-                        </span>
-                      )}
-                      {e.lugar && (
-                        <span className="flex items-center gap-1">
-                          <MapPin className="size-3" />
-                          {e.lugar}
-                        </span>
-                      )}
-                    </p>
-                  </div>
-                  {!e.objetivos && (
-                    <Badge variant="outline">Sin planificar</Badge>
-                  )}
-                </Link>
-              </li>
-            ))}
-          </ul>
-        )}
-      </section>
-
-      {anteriores.length > 0 && (
-        <section className="space-y-2">
-          <h2 className="text-sm font-medium text-muted-foreground">
-            Anteriores
-          </h2>
-          <ul className="divide-y rounded-md border">
-            {anteriores.map((e) => (
-              <li key={e.id}>
-                <Link
-                  href={`/entrenamientos/${e.id}`}
-                  className="flex items-center gap-3 p-3 hover:bg-muted/50"
-                >
-                  <div className="min-w-0 flex-1">
-                    <p className="text-sm font-medium">
-                      {formatearFechaCorta(e.fecha)}
-                    </p>
-                    <p className="flex flex-wrap items-center gap-x-3 text-xs text-muted-foreground">
-                      {e.hora_inicio && (
-                        <span className="flex items-center gap-1">
-                          <Clock className="size-3" />
-                          {e.hora_inicio.slice(0, 5)}
-                        </span>
-                      )}
-                      {e.lugar && (
-                        <span className="flex items-center gap-1">
-                          <MapPin className="size-3" />
-                          {e.lugar}
-                        </span>
-                      )}
-                    </p>
-                  </div>
-                </Link>
-              </li>
-            ))}
-          </ul>
-        </section>
+      {meses.length === 0 ? (
+        <p className="py-4 text-center text-sm text-muted-foreground">
+          No hay entrenamientos programados.
+        </p>
+      ) : (
+        meses.map(({ clave, entrenamientos: lista, esMesActual }) => (
+          <section key={clave} className="space-y-2">
+            <h2
+              className={
+                esMesActual
+                  ? "font-heading text-sm uppercase tracking-wide text-primary"
+                  : "text-sm font-medium text-muted-foreground"
+              }
+            >
+              {nombreMes(clave)}
+            </h2>
+            <ul className="divide-y rounded-md border">
+              {lista.map((e) => (
+                <Fila key={e.id} e={e} />
+              ))}
+            </ul>
+          </section>
+        ))
       )}
     </div>
   );

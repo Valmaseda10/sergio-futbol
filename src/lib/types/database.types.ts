@@ -11,8 +11,27 @@ export type TipoEventoPartido =
   | "gol"
   | "asistencia"
   | "tarjeta_amarilla"
-  | "tarjeta_roja";
+  | "tarjeta_roja"
+  | "cambio_entra"
+  | "cambio_sale"
+  | "autogol";
 export type EstadoSolicitud = "pendiente" | "aprobado" | "rechazado";
+export type TipoVideo = "partido" | "clip";
+export type CategoriaJugadorDestacado = "top" | "flojo";
+export type TipoGol =
+  | "juego_asociativo"
+  | "transicion_ofensiva"
+  | "juego_vertical"
+  | "centro_lateral"
+  | "error_propio"
+  | "abp"
+  | "situacion_1v1";
+export type TipoAbp =
+  | "corner"
+  | "falta_lateral"
+  | "falta_directa"
+  | "saque_banda"
+  | "penalti";
 
 export type Json =
   | string
@@ -73,13 +92,17 @@ export interface Database {
           id: string;
           nombre: string;
           apellidos: string;
+          alias: string | null;
           dorsal: number | null;
           posicion: string | null;
           pierna_dominante: PiernaDominante | null;
           fecha_nacimiento: string | null;
           foto_url: string | null;
-          contacto_nombre: string | null;
-          contacto_telefono: string | null;
+          equipo_anterior: string | null;
+          contacto_padre_nombre: string | null;
+          contacto_padre_telefono: string | null;
+          contacto_madre_nombre: string | null;
+          contacto_madre_telefono: string | null;
           contacto_email: string | null;
           notas_medicas: string | null;
           fecha_alta: string;
@@ -91,13 +114,17 @@ export interface Database {
           id?: string;
           nombre: string;
           apellidos: string;
+          alias?: string | null;
           dorsal?: number | null;
           posicion?: string | null;
           pierna_dominante?: PiernaDominante | null;
           fecha_nacimiento?: string | null;
           foto_url?: string | null;
-          contacto_nombre?: string | null;
-          contacto_telefono?: string | null;
+          equipo_anterior?: string | null;
+          contacto_padre_nombre?: string | null;
+          contacto_padre_telefono?: string | null;
+          contacto_madre_nombre?: string | null;
+          contacto_madre_telefono?: string | null;
           contacto_email?: string | null;
           notas_medicas?: string | null;
           fecha_alta?: string;
@@ -118,6 +145,7 @@ export interface Database {
           objetivos: string | null;
           ejercicios: string | null;
           notas: string | null;
+          documento_url: string | null;
           created_at: string;
         };
         Insert: {
@@ -129,6 +157,7 @@ export interface Database {
           objetivos?: string | null;
           ejercicios?: string | null;
           notas?: string | null;
+          documento_url?: string | null;
           created_at?: string;
         };
         Update: Partial<
@@ -168,6 +197,7 @@ export interface Database {
           resultado_favor: number | null;
           resultado_contra: number | null;
           notas: string | null;
+          foto_rival_url: string | null;
           created_at: string;
         };
         Insert: {
@@ -181,6 +211,7 @@ export interface Database {
           resultado_favor?: number | null;
           resultado_contra?: number | null;
           notas?: string | null;
+          foto_rival_url?: string | null;
           created_at?: string;
         };
         Update: Partial<Database["public"]["Tables"]["partidos"]["Insert"]>;
@@ -215,6 +246,8 @@ export interface Database {
           posicion_jugada: string | null;
           minuto_entra: number | null;
           minuto_sale: number | null;
+          pos_x: number | null;
+          pos_y: number | null;
         };
         Insert: {
           id?: string;
@@ -224,6 +257,8 @@ export interface Database {
           posicion_jugada?: string | null;
           minuto_entra?: number | null;
           minuto_sale?: number | null;
+          pos_x?: number | null;
+          pos_y?: number | null;
         };
         Update: Partial<
           Database["public"]["Tables"]["alineaciones"]["Insert"]
@@ -234,16 +269,30 @@ export interface Database {
         Row: {
           id: string;
           partido_id: string;
-          jugador_id: string;
+          jugador_id: string | null;
           tipo: TipoEventoPartido;
           minuto: number | null;
+          a_favor: boolean;
+          tipo_gol: TipoGol | null;
+          pos_x: number | null;
+          pos_y: number | null;
+          abp_tipo: TipoAbp | null;
+          pos_x_centro: number | null;
+          pos_y_centro: number | null;
         };
         Insert: {
           id?: string;
           partido_id: string;
-          jugador_id: string;
+          jugador_id?: string | null;
           tipo: TipoEventoPartido;
           minuto?: number | null;
+          a_favor?: boolean;
+          tipo_gol?: TipoGol | null;
+          pos_x?: number | null;
+          pos_y?: number | null;
+          abp_tipo?: TipoAbp | null;
+          pos_x_centro?: number | null;
+          pos_y_centro?: number | null;
         };
         Update: Partial<
           Database["public"]["Tables"]["eventos_partido"]["Insert"]
@@ -300,6 +349,7 @@ export interface Database {
           jugador_id: string;
           fecha_inicio: string;
           tipo: string;
+          mecanismo: string | null;
           fecha_prevista_alta: string | null;
           fecha_alta_real: string | null;
           notas: string | null;
@@ -309,11 +359,88 @@ export interface Database {
           jugador_id: string;
           fecha_inicio: string;
           tipo: string;
+          mecanismo?: string | null;
           fecha_prevista_alta?: string | null;
           fecha_alta_real?: string | null;
           notas?: string | null;
         };
         Update: Partial<Database["public"]["Tables"]["lesiones"]["Insert"]>;
+        Relationships: [];
+      };
+      lesion_sesiones_readaptacion: {
+        Row: {
+          id: string;
+          lesion_id: string;
+          fecha: string;
+          horario: string | null;
+          notas: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          lesion_id: string;
+          fecha?: string;
+          horario?: string | null;
+          notas?: string | null;
+          created_at?: string;
+        };
+        Update: Partial<
+          Database["public"]["Tables"]["lesion_sesiones_readaptacion"]["Insert"]
+        >;
+        Relationships: [];
+      };
+      rivales_scouting: {
+        Row: {
+          id: string;
+          nombre: string;
+          foto_url: string | null;
+          sistema_juego: string | null;
+          fase_ofensiva: string | null;
+          fase_defensiva: string | null;
+          abp: string | null;
+          notas: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          nombre: string;
+          foto_url?: string | null;
+          sistema_juego?: string | null;
+          fase_ofensiva?: string | null;
+          fase_defensiva?: string | null;
+          abp?: string | null;
+          notas?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: Partial<
+          Database["public"]["Tables"]["rivales_scouting"]["Insert"]
+        >;
+        Relationships: [];
+      };
+      rivales_jugadores_destacados: {
+        Row: {
+          id: string;
+          rival_id: string;
+          nombre: string;
+          dorsal: number | null;
+          categoria: CategoriaJugadorDestacado;
+          notas: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          rival_id: string;
+          nombre: string;
+          dorsal?: number | null;
+          categoria: CategoriaJugadorDestacado;
+          notas?: string | null;
+          created_at?: string;
+        };
+        Update: Partial<
+          Database["public"]["Tables"]["rivales_jugadores_destacados"]["Insert"]
+        >;
         Relationships: [];
       };
       solicitudes_acceso: {
@@ -324,6 +451,7 @@ export interface Database {
           mensaje: string | null;
           fecha_solicitud: string;
           estado: EstadoSolicitud;
+          user_id: string | null;
         };
         Insert: {
           id?: string;
@@ -332,10 +460,35 @@ export interface Database {
           mensaje?: string | null;
           fecha_solicitud?: string;
           estado?: EstadoSolicitud;
+          user_id?: string | null;
         };
         Update: Partial<
           Database["public"]["Tables"]["solicitudes_acceso"]["Insert"]
         >;
+        Relationships: [];
+      };
+      videos: {
+        Row: {
+          id: string;
+          titulo: string;
+          url: string;
+          tipo: TipoVideo;
+          partido_id: string | null;
+          fecha: string;
+          notas: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          titulo: string;
+          url: string;
+          tipo: TipoVideo;
+          partido_id?: string | null;
+          fecha?: string;
+          notas?: string | null;
+          created_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["videos"]["Insert"]>;
         Relationships: [];
       };
     };

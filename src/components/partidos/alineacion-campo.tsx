@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { X } from "lucide-react";
@@ -27,8 +27,28 @@ interface Jugador {
   id: string;
   nombre: string;
   apellidos: string;
+  alias: string | null;
   dorsal: number | null;
   foto_url: string | null;
+}
+
+interface Posicion {
+  top: number;
+  left: number;
+}
+
+const MARGEN = 5;
+
+function clamp(n: number, min: number, max: number) {
+  return Math.min(max, Math.max(min, n));
+}
+
+function nombreCampo(j: Jugador) {
+  return j.alias || j.apellidos;
+}
+
+function nombreCompleto(j: Jugador) {
+  return j.alias ? `${j.alias} (${j.nombre} ${j.apellidos})` : `${j.nombre} ${j.apellidos}`;
 }
 
 function remapearAFormacion(
@@ -73,9 +93,15 @@ export function AlineacionCampo({
 }: {
   partidoId: string;
   convocados: Jugador[];
-  titularesIniciales: { jugadorId: string; posicion: string }[];
+  titularesIniciales: {
+    jugadorId: string;
+    posicion: string;
+    posX?: number;
+    posY?: number;
+  }[];
 }) {
   const router = useRouter();
+  const pitchRef = useRef<HTMLDivElement>(null);
   const paresIniciales = titularesIniciales.map((t) => ({
     jugadorId: t.jugadorId,
     label: t.posicion,
@@ -87,9 +113,26 @@ export function AlineacionCampo({
   const [asignaciones, setAsignaciones] = useState<Record<string, string>>(
     () => remapearAFormacion(paresIniciales, mejorFormacionInicial(paresIniciales)),
   );
+  const [posiciones, setPosiciones] = useState<Record<string, Posicion>>(() => {
+    const inicial: Record<string, Posicion> = {};
+    for (const t of titularesIniciales) {
+      if (t.posX != null && t.posY != null) {
+        inicial[t.jugadorId] = { left: t.posX, top: t.posY };
+      }
+    }
+    return inicial;
+  });
   const [huecoAbierto, setHuecoAbierto] = useState<string | null>(null);
   const [guardando, setGuardando] = useState(false);
   const [fotoUrls, setFotoUrls] = useState<Record<string, string>>({});
+
+  const dragRef = useRef<{
+    huecoId: string;
+    jugadorId: string;
+    startX: number;
+    startY: number;
+    moved: boolean;
+  } | null>(null);
 
   const jugadoresPorId = useMemo(
     () => new Map(convocados.map((j) => [j.id, j])),
@@ -153,12 +196,64 @@ export function AlineacionCampo({
     setHuecoAbierto(null);
   }
 
+  function handlePointerDown(
+    e: React.PointerEvent<HTMLButtonElement>,
+    huecoId: string,
+    jugadorId: string,
+  ) {
+    e.currentTarget.setPointerCapture(e.pointerId);
+    dragRef.current = {
+      huecoId,
+      jugadorId,
+      startX: e.clientX,
+      startY: e.clientY,
+      moved: false,
+    };
+  }
+
+  function handlePointerMove(
+    e: React.PointerEvent<HTMLButtonElement>,
+    huecoId: string,
+  ) {
+    const drag = dragRef.current;
+    if (!drag || drag.huecoId !== huecoId) return;
+
+    const dx = e.clientX - drag.startX;
+    const dy = e.clientY - drag.startY;
+    if (!drag.moved && Math.hypot(dx, dy) < 6) return;
+
+    const rect = pitchRef.current?.getBoundingClientRect();
+    if (!rect) return;
+
+    drag.moved = true;
+    const left = clamp(((e.clientX - rect.left) / rect.width) * 100, MARGEN, 100 - MARGEN);
+    const top = clamp(((e.clientY - rect.top) / rect.height) * 100, MARGEN, 100 - MARGEN);
+    setPosiciones((prev) => ({ ...prev, [drag.jugadorId]: { top, left } }));
+  }
+
+  function handlePointerUp(
+    e: React.PointerEvent<HTMLButtonElement>,
+    huecoId: string,
+  ) {
+    const drag = dragRef.current;
+    dragRef.current = null;
+    if (drag && drag.huecoId === huecoId && !drag.moved) {
+      setHuecoAbierto(huecoId);
+    }
+  }
+
   async function handleGuardar() {
     setGuardando(true);
-    const titulares = Object.entries(asignaciones).map(([huecoId, jugadorId]) => ({
-      jugadorId,
-      posicion: formacion.huecos.find((h) => h.id === huecoId)?.label ?? "",
-    }));
+    const titulares = Object.entries(asignaciones).map(([huecoId, jugadorId]) => {
+      const hueco = formacion.huecos.find((h) => h.id === huecoId);
+      const pos = posiciones[jugadorId];
+      return {
+        jugadorId,
+        posicion: hueco?.label ?? "",
+        posX: pos?.left ?? hueco?.left,
+        posY: pos?.top ?? hueco?.top,
+      };
+    });
     const suplentesIds = disponibles.map((j) => j.id);
 
     const result = await guardarAlineacionLocal(partidoId, titulares, suplentesIds);
@@ -193,33 +288,57 @@ export function AlineacionCampo({
         </SelectContent>
       </Select>
 
-      <div className="relative aspect-[2/3] w-full overflow-hidden rounded-lg bg-green-700">
+      <p className="text-xs text-muted-foreground">
+        Toca una ficha para asignarla; mantén y arrastra para moverla libremente por el campo.
+      </p>
+
+      <div
+        ref={pitchRef}
+        className="relative aspect-[2/3] w-full touch-none overflow-hidden rounded-lg bg-pitch"
+      >
         <div className="absolute inset-x-0 top-1/2 h-px bg-white/40" />
         <div className="absolute top-1/2 left-1/2 size-16 -translate-x-1/2 -translate-y-1/2 rounded-full border border-white/40" />
         <div className="absolute inset-x-[20%] top-0 h-[12%] border-x border-b border-white/40" />
         <div className="absolute inset-x-[20%] bottom-0 h-[12%] border-x border-t border-white/40" />
+        <div className="absolute inset-x-[42%] top-0 h-[3%] border-x-2 border-b-2 border-white/70" />
+        <div className="absolute inset-x-[42%] bottom-0 h-[3%] border-x-2 border-t-2 border-white/70" />
 
         {formacion.huecos.map((hueco) => {
-          const jugador = jugadoresPorId.get(asignaciones[hueco.id] ?? "");
+          const jugadorId = asignaciones[hueco.id];
+          const jugador = jugadoresPorId.get(jugadorId ?? "");
+          const pos = (jugadorId && posiciones[jugadorId]) || {
+            top: hueco.top,
+            left: hueco.left,
+          };
           return (
             <button
               key={hueco.id}
               type="button"
-              onClick={() => setHuecoAbierto(hueco.id)}
+              onPointerDown={
+                jugador
+                  ? (e) => handlePointerDown(e, hueco.id, jugador.id)
+                  : undefined
+              }
+              onPointerMove={
+                jugador ? (e) => handlePointerMove(e, hueco.id) : undefined
+              }
+              onPointerUp={(e) =>
+                jugador ? handlePointerUp(e, hueco.id) : setHuecoAbierto(hueco.id)
+              }
               className="absolute flex -translate-x-1/2 -translate-y-1/2 flex-col items-center gap-0.5"
-              style={{ top: `${hueco.top}%`, left: `${hueco.left}%` }}
+              style={{ top: `${pos.top}%`, left: `${pos.left}%` }}
             >
               <span
                 className={
                   jugador
-                    ? "flex size-9 items-center justify-center rounded-full bg-white text-xs font-semibold text-foreground shadow"
+                    ? "flex size-9 items-center justify-center rounded-full border-2 border-gold bg-white font-heading text-sm tabular-nums text-foreground shadow"
                     : "flex size-9 items-center justify-center rounded-full border-2 border-dashed border-white/70 text-white/70"
                 }
               >
                 {jugador ? (jugador.dorsal ?? jugador.nombre[0]) : "+"}
               </span>
               <span className="max-w-16 truncate rounded bg-black/40 px-1 text-[10px] text-white">
-                {jugador ? jugador.apellidos : hueco.label}
+                {jugador ? nombreCampo(jugador) : hueco.label}
               </span>
             </button>
           );
@@ -248,7 +367,7 @@ export function AlineacionCampo({
                   className="size-6"
                 />
                 {j.dorsal != null ? `${j.dorsal} · ` : ""}
-                {j.apellidos}
+                {nombreCampo(j)}
               </li>
             ))}
           </ul>
@@ -275,7 +394,7 @@ export function AlineacionCampo({
                 className="flex w-full items-center gap-2 rounded-md p-2 text-left text-sm text-destructive hover:bg-destructive/10"
               >
                 <X className="size-4" />
-                Quitar a {jugadorEnHuecoActivo.nombre}
+                Quitar a {nombreCampo(jugadorEnHuecoActivo)}
               </button>
             )}
             {disponibles.length === 0 && !jugadorEnHuecoActivo && (
@@ -297,7 +416,7 @@ export function AlineacionCampo({
                   className="size-7"
                 />
                 {j.dorsal != null ? `${j.dorsal} · ` : ""}
-                {j.nombre} {j.apellidos}
+                {nombreCompleto(j)}
               </button>
             ))}
           </div>
