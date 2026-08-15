@@ -195,15 +195,17 @@ function JugadorDestacadoRow({
       className={cn(
         "flex items-center gap-3 rounded-md border-l-4 p-3",
         tono === "top"
-          ? "border-l-pitch bg-pitch/10"
-          : "border-l-destructive bg-destructive/10",
+          ? "border-l-green-600 bg-green-50 dark:bg-green-950"
+          : "border-l-red-600 bg-red-50 dark:bg-red-950",
       )}
     >
       <div className="min-w-0 flex-1">
         <p
           className={cn(
             "truncate text-sm font-medium",
-            tono === "top" ? "text-pitch" : "text-destructive",
+            tono === "top"
+              ? "text-green-800 dark:text-green-200"
+              : "text-red-800 dark:text-red-200",
           )}
         >
           {dorsal != null ? `${dorsal} · ` : ""}

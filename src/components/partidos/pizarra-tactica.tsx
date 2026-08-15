@@ -257,6 +257,14 @@ export function PizarraTactica({ jugadores }: { jugadores: Jugador[] }) {
   const enCampo = jugadores.filter((j) => posiciones[j.id]);
   const enBanquillo = jugadores.filter((j) => !posiciones[j.id]);
 
+  // `jugadores` ya llega ordenado por dorsal (y alfabéticamente si no hay
+  // dorsal); para los jugadores sin dorsal asignado, se usa su posición en
+  // esa lista como número de ficha, de forma que la pizarra siempre muestre
+  // un número —nunca una letra— y esos números salgan ordenados.
+  const numeroPorJugador = new Map(
+    jugadores.map((j, i) => [j.id, j.dorsal ?? i + 1]),
+  );
+
   function handleAplicarFormacion() {
     const formacion = FORMACIONES.find((f) => f.value === formacionValue);
     if (!formacion) return;
@@ -764,7 +772,7 @@ export function PizarraTactica({ jugadores }: { jugadores: Jugador[] }) {
               style={{ top: `${pos.top}%`, left: `${pos.left}%` }}
             >
               <span className="flex size-9 items-center justify-center rounded-full border-2 border-gold bg-white font-heading text-sm tabular-nums text-foreground shadow">
-                {j.dorsal ?? nombreFicha(j)[0]}
+                {numeroPorJugador.get(j.id)}
               </span>
               <span className="max-w-16 truncate rounded bg-black/40 px-1 text-[10px] text-white">
                 {nombreFicha(j)}
@@ -863,7 +871,7 @@ export function PizarraTactica({ jugadores }: { jugadores: Jugador[] }) {
                   className="flex items-center gap-2 rounded-full border py-1 pr-3 pl-2 text-sm hover:bg-muted"
                 >
                   <span className="flex size-6 items-center justify-center rounded-full bg-primary text-[10px] font-medium text-primary-foreground">
-                    {j.dorsal ?? nombreFicha(j)[0]}
+                    {numeroPorJugador.get(j.id)}
                   </span>
                   {nombreFicha(j)}
                 </button>
