@@ -35,7 +35,8 @@ interface Posicion {
 
 type ColorFicha = "azul" | "verde" | "amarillo" | "rojo";
 type ColorTrazo = ColorFicha | "blanco";
-type TipoMaterial = "cono" | "pica";
+type TipoMaterial = "cono" | "pica" | "maniqui" | "escalera" | "porteria";
+type ColorConoChino = "rojo" | "azul" | "blanco";
 
 interface FichaGenerica extends Posicion {
   color: ColorFicha;
@@ -43,6 +44,13 @@ interface FichaGenerica extends Posicion {
 
 interface ElementoMaterial extends Posicion {
   tipo: TipoMaterial;
+}
+
+// Los conos chinos (los planos, para marcar zonas) son un material aparte
+// de los conos altos: se guardan como su propio tipo de elemento porque,
+// a diferencia del resto del material, tienen color a elegir.
+interface ConoChino extends Posicion {
+  color: ColorConoChino;
 }
 
 interface Trazo {
@@ -59,7 +67,8 @@ interface PuntoBorrado extends Posicion {
 type Elemento =
   | { kind: "jugador"; id: string }
   | { kind: "ficha"; id: string }
-  | { kind: "material"; id: string };
+  | { kind: "material"; id: string }
+  | { kind: "conoChino"; id: string };
 
 const MARGEN = 5;
 // Radio de la goma de borrar, en píxeles de pantalla (se convierte a
@@ -88,6 +97,26 @@ const HEX_TRAZO: Record<ColorTrazo, string> = {
   verde: "#22c55e",
   amarillo: "#eab308",
   rojo: "#ef4444",
+};
+
+const COLORES_CONO_CHINO: { value: ColorConoChino; label: string; clase: string }[] = [
+  { value: "rojo", label: "Cono chino rojo", clase: "bg-red-500" },
+  { value: "azul", label: "Cono chino azul", clase: "bg-blue-500" },
+  { value: "blanco", label: "Cono chino blanco", clase: "bg-white border border-black/20" },
+];
+
+const TEXT_CLASE_CONO_CHINO: Record<ColorConoChino, string> = {
+  rojo: "text-red-500",
+  azul: "text-blue-500",
+  blanco: "text-white",
+};
+
+const ETIQUETA_MATERIAL: Record<TipoMaterial, string> = {
+  cono: "Cono",
+  pica: "Pica",
+  maniqui: "Maniquí",
+  escalera: "Escalera de agilidad",
+  porteria: "Minipuerta",
 };
 
 function clamp(n: number, min: number, max: number) {
@@ -135,6 +164,64 @@ function PicaIcon({ className }: { className?: string }) {
   );
 }
 
+// Silueta de maniquí/muñeco de entrenamiento (los que se usan para barreras
+// de faltas o para simular a un rival estático).
+function ManiquiIcon({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" fill="currentColor" className={className}>
+      <circle cx="12" cy="4.2" r="2.4" />
+      <path d="M7.5 8.5c0-.6.5-1 1-1h7c.5 0 1 .4 1 1l-1 6.5H8.5z" />
+      <path d="M8.8 15h6.4l-.7 6a1 1 0 0 1-1 .9h-3a1 1 0 0 1-1-.9z" />
+    </svg>
+  );
+}
+
+// Cono chino / cono plano: un disco bajo, no el cono alto de tráfico.
+function ConoChinoIcon({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" fill="currentColor" className={className}>
+      <path d="M2 19c0-6 4.5-11 10-11s10 5 10 11" />
+      <ellipse cx="12" cy="19" rx="10" ry="2" opacity="0.55" />
+    </svg>
+  );
+}
+
+function EscaleraIcon({ className }: { className?: string }) {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      className={className}
+    >
+      <line x1="4" y1="2" x2="4" y2="22" />
+      <line x1="20" y1="2" x2="20" y2="22" />
+      <line x1="4" y1="6" x2="20" y2="6" />
+      <line x1="4" y1="12" x2="20" y2="12" />
+      <line x1="4" y1="18" x2="20" y2="18" />
+    </svg>
+  );
+}
+
+function PorteriaIcon({ className }: { className?: string }) {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2.2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className={className}
+    >
+      <path d="M4 21V5h16v16" />
+      <path d="M4 5 8 9M20 5 16 9" strokeWidth="1.2" opacity="0.6" />
+    </svg>
+  );
+}
+
 export function PizarraTactica({ jugadores }: { jugadores: Jugador[] }) {
   const pitchRef = useRef<HTMLDivElement>(null);
   const [posiciones, setPosiciones] = useState<Record<string, Posicion>>({});
@@ -142,6 +229,7 @@ export function PizarraTactica({ jugadores }: { jugadores: Jugador[] }) {
   const [material, setMaterial] = useState<Record<string, ElementoMaterial>>(
     {},
   );
+  const [conosChinos, setConosChinos] = useState<Record<string, ConoChino>>({});
   const [trazos, setTrazos] = useState<Trazo[]>([]);
   const [trazoActual, setTrazoActual] = useState<Trazo | null>(null);
   const [modoDibujo, setModoDibujo] = useState(false);
@@ -185,6 +273,7 @@ export function PizarraTactica({ jugadores }: { jugadores: Jugador[] }) {
     setPosiciones({});
     setFichas({});
     setMaterial({});
+    setConosChinos({});
     setTrazos([]);
     setTrazoActual(null);
     setPuntoBorrado(null);
@@ -205,13 +294,20 @@ export function PizarraTactica({ jugadores }: { jugadores: Jugador[] }) {
     setMaterial((prev) => ({ ...prev, [id]: { tipo, ...siguientePosicionSpawn() } }));
   }
 
+  function handleAñadirConoChino(color: ColorConoChino) {
+    const id = nuevoId();
+    setConosChinos((prev) => ({ ...prev, [id]: { color, ...siguientePosicionSpawn() } }));
+  }
+
   function actualizarPosicion(elemento: Elemento, pos: Posicion) {
     if (elemento.kind === "jugador") {
       setPosiciones((prev) => ({ ...prev, [elemento.id]: pos }));
     } else if (elemento.kind === "ficha") {
       setFichas((prev) => ({ ...prev, [elemento.id]: { ...prev[elemento.id], ...pos } }));
-    } else {
+    } else if (elemento.kind === "material") {
       setMaterial((prev) => ({ ...prev, [elemento.id]: { ...prev[elemento.id], ...pos } }));
+    } else {
+      setConosChinos((prev) => ({ ...prev, [elemento.id]: { ...prev[elemento.id], ...pos } }));
     }
   }
 
@@ -228,8 +324,14 @@ export function PizarraTactica({ jugadores }: { jugadores: Jugador[] }) {
         delete next[elemento.id];
         return next;
       });
-    } else {
+    } else if (elemento.kind === "material") {
       setMaterial((prev) => {
+        const next = { ...prev };
+        delete next[elemento.id];
+        return next;
+      });
+    } else {
+      setConosChinos((prev) => {
         const next = { ...prev };
         delete next[elemento.id];
         return next;
@@ -463,7 +565,7 @@ export function PizarraTactica({ jugadores }: { jugadores: Jugador[] }) {
           ))}
         </div>
 
-        <div className="flex items-center gap-1.5">
+        <div className="flex flex-wrap items-center gap-1.5">
           <span className="text-xs text-muted-foreground">Material</span>
           <Button
             type="button"
@@ -483,6 +585,46 @@ export function PizarraTactica({ jugadores }: { jugadores: Jugador[] }) {
           >
             <PicaIcon className="size-4 text-amber-600" />
           </Button>
+          <Button
+            type="button"
+            variant="outline"
+            size="icon"
+            aria-label="Añadir maniquí"
+            onClick={() => handleAñadirMaterial("maniqui")}
+          >
+            <ManiquiIcon className="size-4 text-slate-600" />
+          </Button>
+          <Button
+            type="button"
+            variant="outline"
+            size="icon"
+            aria-label="Añadir escalera de agilidad"
+            onClick={() => handleAñadirMaterial("escalera")}
+          >
+            <EscaleraIcon className="size-4 text-slate-600" />
+          </Button>
+          <Button
+            type="button"
+            variant="outline"
+            size="icon"
+            aria-label="Añadir minipuerta"
+            onClick={() => handleAñadirMaterial("porteria")}
+          >
+            <PorteriaIcon className="size-4 text-slate-600" />
+          </Button>
+          <span className="ml-1 text-xs text-muted-foreground">Chinos</span>
+          {COLORES_CONO_CHINO.map((c) => (
+            <button
+              key={c.value}
+              type="button"
+              aria-label={`Añadir ${c.label.toLowerCase()}`}
+              onClick={() => handleAñadirConoChino(c.value)}
+              className={cn(
+                "size-6 rounded-full border-2 border-white shadow ring-1 ring-black/10",
+                c.clase,
+              )}
+            />
+          ))}
         </div>
 
         <div className="flex items-center gap-1.5">
@@ -658,15 +800,30 @@ export function PizarraTactica({ jugadores }: { jugadores: Jugador[] }) {
             onPointerDown={(e) => handlePointerDown(e, { kind: "material", id })}
             onPointerMove={(e) => handlePointerMove(e, { kind: "material", id })}
             onPointerUp={(e) => handlePointerUp(e, { kind: "material", id })}
-            aria-label={m.tipo === "cono" ? "Cono" : "Pica"}
+            aria-label={ETIQUETA_MATERIAL[m.tipo]}
             className="absolute -translate-x-1/2 -translate-y-1/2 rounded-full bg-white/80 p-1 shadow"
             style={{ top: `${m.top}%`, left: `${m.left}%` }}
           >
-            {m.tipo === "cono" ? (
-              <TrafficCone className="size-5 text-orange-500" />
-            ) : (
-              <PicaIcon className="size-5 text-amber-600" />
-            )}
+            {m.tipo === "cono" && <TrafficCone className="size-5 text-orange-500" />}
+            {m.tipo === "pica" && <PicaIcon className="size-5 text-amber-600" />}
+            {m.tipo === "maniqui" && <ManiquiIcon className="size-5 text-slate-700" />}
+            {m.tipo === "escalera" && <EscaleraIcon className="size-5 text-slate-700" />}
+            {m.tipo === "porteria" && <PorteriaIcon className="size-5 text-slate-700" />}
+          </button>
+        ))}
+
+        {Object.entries(conosChinos).map(([id, c]) => (
+          <button
+            key={id}
+            type="button"
+            onPointerDown={(e) => handlePointerDown(e, { kind: "conoChino", id })}
+            onPointerMove={(e) => handlePointerMove(e, { kind: "conoChino", id })}
+            onPointerUp={(e) => handlePointerUp(e, { kind: "conoChino", id })}
+            aria-label={`Cono chino ${c.color}`}
+            className="absolute -translate-x-1/2 -translate-y-1/2 rounded-full bg-white/60 p-0.5 shadow"
+            style={{ top: `${c.top}%`, left: `${c.left}%` }}
+          >
+            <ConoChinoIcon className={cn("size-4", TEXT_CLASE_CONO_CHINO[c.color])} />
           </button>
         ))}
 

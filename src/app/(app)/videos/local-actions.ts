@@ -32,6 +32,38 @@ export async function crearVideoLocal(
   return { success: true, id };
 }
 
+export async function crearClipDesdeVideoLocal(params: {
+  videoOrigenId: string;
+  titulo: string;
+  segundoInicio: number;
+  segundoFin: number;
+}): Promise<ActionResult> {
+  const origen = await localDb.videos.get(params.videoOrigenId);
+  if (!origen) {
+    return { error: "No se encuentra el vídeo original" };
+  }
+
+  const id = crypto.randomUUID();
+  const row: LocalVideo = {
+    id,
+    titulo: params.titulo,
+    url: origen.url,
+    tipo: "clip",
+    partido_id: origen.partido_id,
+    evento_id: null,
+    segundo_inicio: params.segundoInicio,
+    segundo_fin: params.segundoFin,
+    fecha: origen.fecha,
+    notas: null,
+    created_at: new Date().toISOString(),
+  };
+
+  await localDb.videos.put(row);
+  await queueMutation("videos", "insert", id, row);
+
+  return { success: true, id };
+}
+
 export async function eliminarVideoLocal(id: string): Promise<SimpleResult> {
   await localDb.videos.delete(id);
   await queueMutation("videos", "delete", id);

@@ -51,9 +51,11 @@ function hoyISO() {
 export function VideoForm({
   partidos,
   partidoIdInicial,
+  tipoInicial,
 }: {
   partidos: PartidoOpcion[];
   partidoIdInicial?: string;
+  tipoInicial?: "partido" | "clip";
 }) {
   const router = useRouter();
   const [enviando, setEnviando] = useState(false);
@@ -70,10 +72,11 @@ export function VideoForm({
     defaultValues: {
       titulo: "",
       url: "",
-      tipo: partidoIdInicial ? "partido" : "clip",
+      tipo: tipoInicial ?? (partidoIdInicial ? "partido" : "clip"),
       partido_id: partidoIdInicial ?? "",
       evento_id: "",
       segundo_inicio: "",
+      segundo_fin: "",
       fecha: hoyISO(),
       notas: "",
     },
@@ -119,7 +122,7 @@ export function VideoForm({
     }
 
     toast.success("Vídeo añadido");
-    router.push("/videos");
+    router.push(values.tipo === "partido" ? "/videos/partidos" : "/videos/clips");
   }
 
   return (

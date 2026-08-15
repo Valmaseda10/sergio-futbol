@@ -5,6 +5,7 @@ interface GolUbicacion {
   pos_x: number;
   pos_y: number;
   a_favor: boolean;
+  rival: string;
 }
 
 export function MapaGoles({ goles }: { goles: GolUbicacion[] }) {
@@ -16,14 +17,21 @@ export function MapaGoles({ goles }: { goles: GolUbicacion[] }) {
       <div className="relative aspect-[4/3] w-full overflow-hidden rounded-md bg-pitch">
         <PitchHalfLines />
         {goles.map((g, i) => (
-          <span
+          <div
             key={i}
-            className={cn(
-              "absolute size-3 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-white shadow",
-              g.a_favor ? "bg-[#1b5e3a]" : "bg-destructive",
-            )}
+            className="absolute flex -translate-x-1/2 -translate-y-1/2 flex-col items-center gap-0.5"
             style={{ top: `${g.pos_y}%`, left: `${g.pos_x}%` }}
-          />
+          >
+            <span className="max-w-16 truncate rounded bg-black/50 px-1 text-[8px] leading-tight text-white">
+              {g.rival}
+            </span>
+            <span
+              className={cn(
+                "size-3 shrink-0 rounded-full border-2 border-white shadow",
+                g.a_favor ? "bg-[#1b5e3a]" : "bg-destructive",
+              )}
+            />
+          </div>
         ))}
       </div>
     </div>

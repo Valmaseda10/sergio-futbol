@@ -1,6 +1,7 @@
-// Duración aproximada de un partido de fútbol 11 en categoría base,
-// usada solo para estimar minutos jugados (no hay registro real de
-// sustituciones en Alineación, solo titular/suplente).
+// Duración aproximada de un partido de fútbol 11 en categoría base. Se usa
+// como minuto de fin cuando un titular no tiene un evento "sale del campo"
+// registrado (se asume que jugó el partido completo), y como minuto de fin
+// para un suplente que entró pero no tiene "sale del campo" registrado.
 export const DURACION_PARTIDO_MINUTOS = 70;
 
 export interface JugadorBase {
@@ -20,6 +21,7 @@ export interface PartidoJugado {
 }
 
 export interface EventoPartidoRow {
+  partido_id: string;
   jugador_id: string | null;
   tipo:
     | "gol"
@@ -29,6 +31,7 @@ export interface EventoPartidoRow {
     | "cambio_entra"
     | "cambio_sale"
     | "autogol";
+  minuto: number | null;
 }
 
 export interface ConvocatoriaRow {
@@ -36,6 +39,7 @@ export interface ConvocatoriaRow {
 }
 
 export interface AlineacionRow {
+  partido_id: string;
   jugador_id: string;
   titular: boolean;
 }
@@ -57,6 +61,8 @@ export interface JugadorStats {
   apellidos: string;
   dorsal: number | null;
   convocatorias: number;
+  titularidades: number;
+  suplencias: number;
   goles: number;
   asistencias: number;
   tarjetasAmarillas: number;
@@ -160,9 +166,27 @@ export function calcularStatsJugadores(
     const convocatoriasJugador = convocatorias.filter(
       (c) => c.jugador_id === j.id,
     ).length;
-    const titularias = alineaciones.filter(
-      (a) => a.jugador_id === j.id && a.titular,
-    ).length;
+    const alineacionesJugador = alineaciones.filter((a) => a.jugador_id === j.id);
+    const titularidades = alineacionesJugador.filter((a) => a.titular).length;
+    const suplencias = alineacionesJugador.filter((a) => !a.titular).length;
+
+    // Minutos reales por partido: un titular empieza en el minuto 0; un
+    // suplente solo cuenta minutos si tiene un evento "entra al campo". El
+    // fin es el evento "sale del campo" si existe, o el partido completo si
+    // no se ha registrado ningún cambio para ese jugador en ese partido.
+    let minutosJugados = 0;
+    for (const a of alineacionesJugador) {
+      const cambioEntra = eventosJugador.find(
+        (e) => e.partido_id === a.partido_id && e.tipo === "cambio_entra",
+      );
+      const cambioSale = eventosJugador.find(
+        (e) => e.partido_id === a.partido_id && e.tipo === "cambio_sale",
+      );
+      const inicio = a.titular ? 0 : (cambioEntra?.minuto ?? null);
+      if (inicio == null) continue;
+      const fin = cambioSale?.minuto ?? DURACION_PARTIDO_MINUTOS;
+      minutosJugados += Math.max(0, fin - inicio);
+    }
 
     const entrenamientosDelJugador = entrenamientos.filter(
       (e) => e.fecha >= j.fecha_alta && e.fecha <= hoyISO,
@@ -195,6 +219,8 @@ export function calcularStatsJugadores(
       apellidos: j.apellidos,
       dorsal: j.dorsal,
       convocatorias: convocatoriasJugador,
+      titularidades,
+      suplencias,
       goles: eventosJugador.filter((e) => e.tipo === "gol").length,
       asistencias: eventosJugador.filter((e) => e.tipo === "asistencia").length,
       tarjetasAmarillas: eventosJugador.filter(
@@ -202,7 +228,7 @@ export function calcularStatsJugadores(
       ).length,
       tarjetasRojas: eventosJugador.filter((e) => e.tipo === "tarjeta_roja")
         .length,
-      minutosAprox: titularias * DURACION_PARTIDO_MINUTOS,
+      minutosAprox: minutosJugados,
       pctAsistencia,
       entrenamientosTotales: totalEntrenamientos,
       entrenamientosAsistidos: totalEntrenamientos - ausencias,

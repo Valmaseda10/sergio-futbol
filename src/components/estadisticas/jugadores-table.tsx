@@ -16,11 +16,13 @@ type Columna = Exclude<keyof JugadorStats, "id" | "nombre" | "apellidos">;
 
 const COLUMNAS: { key: Columna; label: string }[] = [
   { key: "convocatorias", label: "Convoc." },
+  { key: "titularidades", label: "Titular" },
+  { key: "suplencias", label: "Suplente" },
   { key: "goles", label: "Goles" },
   { key: "asistencias", label: "Asist." },
   { key: "tarjetasAmarillas", label: "TA" },
   { key: "tarjetasRojas", label: "TR" },
-  { key: "minutosAprox", label: "Min. aprox." },
+  { key: "minutosAprox", label: "Minutos" },
   { key: "entrenamientosTotales", label: "Entrenos" },
   { key: "entrenamientosAsistidos", label: "Asistió" },
   { key: "entrenamientosPerdidos", label: "Perdió" },
@@ -87,6 +89,8 @@ export function JugadoresTable({ jugadores }: { jugadores: JugadorStats[] }) {
                 {j.nombre} {j.apellidos}
               </TableCell>
               <TableCell className="tabular-nums">{j.convocatorias}</TableCell>
+              <TableCell className="tabular-nums">{j.titularidades}</TableCell>
+              <TableCell className="tabular-nums">{j.suplencias}</TableCell>
               <TableCell className="font-heading tabular-nums">{j.goles}</TableCell>
               <TableCell className="tabular-nums">{j.asistencias}</TableCell>
               <TableCell className="tabular-nums">{j.tarjetasAmarillas}</TableCell>

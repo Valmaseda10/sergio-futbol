@@ -8,6 +8,9 @@ import { VideoForm } from "@/components/videos/video-form";
 export default function NuevoVideoPage() {
   const searchParams = useSearchParams();
   const partidoIdInicial = searchParams.get("partidoId") ?? undefined;
+  const tipoParam = searchParams.get("tipo");
+  const tipoInicial =
+    tipoParam === "partido" || tipoParam === "clip" ? tipoParam : undefined;
 
   const partidos = useLiveQuery(
     () =>
@@ -25,7 +28,11 @@ export default function NuevoVideoPage() {
   return (
     <div className="space-y-4">
       <h1 className="text-2xl font-semibold">Nuevo vídeo</h1>
-      <VideoForm partidos={partidos} partidoIdInicial={partidoIdInicial} />
+      <VideoForm
+        partidos={partidos}
+        partidoIdInicial={partidoIdInicial}
+        tipoInicial={tipoInicial}
+      />
     </div>
   );
 }

@@ -1,11 +1,12 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { useLiveQuery } from "dexie-react-hooks";
 import { toast } from "sonner";
-import { ExternalLink, Trash2, Clapperboard } from "lucide-react";
+import { ExternalLink, Trash2, Clapperboard, Scissors } from "lucide-react";
 import { eliminarVideoLocal } from "@/app/(app)/videos/local-actions";
-import { getYoutubeEmbedUrl } from "@/lib/youtube";
+import { getYoutubeEmbedUrl, getYoutubeVideoId } from "@/lib/youtube";
 import { localDb } from "@/lib/db/local-db";
 import { Button } from "@/components/ui/button";
 import {
@@ -24,10 +25,12 @@ interface VideoCardData {
   id: string;
   titulo: string;
   url: string;
+  tipo: string;
   fecha: string;
   notas: string | null;
   evento_id: string | null;
   segundo_inicio: number | null;
+  segundo_fin: number | null;
 }
 
 const TIPO_EVENTO_LABEL: Record<string, string> = {
@@ -48,7 +51,8 @@ export function VideoCard({
   rivalAsociado?: string;
 }) {
   const [borrando, setBorrando] = useState(false);
-  const embedUrl = getYoutubeEmbedUrl(video.url, video.segundo_inicio);
+  const embedUrl = getYoutubeEmbedUrl(video.url, video.segundo_inicio, video.segundo_fin);
+  const esYoutube = getYoutubeVideoId(video.url) != null;
 
   const evento = useLiveQuery(
     async () =>
@@ -102,36 +106,48 @@ export function VideoCard({
             </p>
           )}
         </div>
-        <AlertDialog>
-          <AlertDialogTrigger
-            render={
-              <Button
-                variant="ghost"
-                size="icon-sm"
-                className="shrink-0"
-                disabled={borrando}
-                aria-label="Eliminar vídeo"
-              />
-            }
-          >
-            <Trash2 className="size-4 text-destructive" />
-          </AlertDialogTrigger>
-          <AlertDialogContent>
-            <AlertDialogHeader>
-              <AlertDialogTitle>¿Eliminar &quot;{video.titulo}&quot;?</AlertDialogTitle>
-              <AlertDialogDescription>
-                Solo se borra la referencia de la app; el vídeo original no se
-                toca. Esta acción no se puede deshacer.
-              </AlertDialogDescription>
-            </AlertDialogHeader>
-            <AlertDialogFooter>
-              <AlertDialogCancel>Cancelar</AlertDialogCancel>
-              <AlertDialogAction onClick={handleDelete}>
-                Eliminar
-              </AlertDialogAction>
-            </AlertDialogFooter>
-          </AlertDialogContent>
-        </AlertDialog>
+        <div className="flex shrink-0 items-center gap-1">
+          {video.tipo === "partido" && esYoutube && (
+            <Button
+              variant="ghost"
+              size="icon-sm"
+              aria-label="Recortar clip"
+              nativeButton={false}
+              render={<Link href={`/videos/${video.id}/recortar`} />}
+            >
+              <Scissors className="size-4" />
+            </Button>
+          )}
+          <AlertDialog>
+            <AlertDialogTrigger
+              render={
+                <Button
+                  variant="ghost"
+                  size="icon-sm"
+                  disabled={borrando}
+                  aria-label="Eliminar vídeo"
+                />
+              }
+            >
+              <Trash2 className="size-4 text-destructive" />
+            </AlertDialogTrigger>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>¿Eliminar &quot;{video.titulo}&quot;?</AlertDialogTitle>
+                <AlertDialogDescription>
+                  Solo se borra la referencia de la app; el vídeo original no
+                  se toca. Esta acción no se puede deshacer.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                <AlertDialogAction onClick={handleDelete}>
+                  Eliminar
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
+        </div>
       </div>
 
       {embedUrl ? (

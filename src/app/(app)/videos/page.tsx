@@ -1,82 +1,59 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo } from "react";
 import { useLiveQuery } from "dexie-react-hooks";
-import { Plus } from "lucide-react";
+import { Film, Scissors, ChevronRight } from "lucide-react";
 import { localDb } from "@/lib/db/local-db";
-import { Button } from "@/components/ui/button";
-import { VideoCard } from "@/components/videos/video-card";
 
 export default function VideosPage() {
   const videos = useLiveQuery(() => localDb.videos.toArray(), [], []);
-  const partidos = useLiveQuery(() => localDb.partidos.toArray(), [], []);
-
-  const rivalPorPartido = useMemo(
-    () => new Map(partidos.map((p) => [p.id, p.rival])),
-    [partidos],
-  );
-
-  const ordenados = useMemo(
-    () => videos.slice().sort((a, b) => b.fecha.localeCompare(a.fecha)),
-    [videos],
-  );
-  const dePartidos = ordenados.filter((v) => v.tipo === "partido");
-  const clips = ordenados.filter((v) => v.tipo === "clip");
+  const totalPartidos = videos.filter((v) => v.tipo === "partido").length;
+  const totalClips = videos.filter((v) => v.tipo === "clip").length;
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-semibold">Vídeos</h1>
-        <Button size="sm" nativeButton={false} render={<Link href="/videos/nuevo" />}>
-          <Plus className="size-4" />
-          Nuevo
-        </Button>
+      <h1 className="text-2xl font-semibold">Vídeos</h1>
+      <p className="text-sm text-muted-foreground">
+        Elige una categoría para ver sus vídeos.
+      </p>
+
+      <div className="space-y-3">
+        <Link
+          href="/videos/partidos"
+          className="flex items-center gap-3 rounded-md border p-4 hover:bg-muted"
+        >
+          <div className="flex size-10 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary">
+            <Film className="size-5" />
+          </div>
+          <div className="min-w-0 flex-1">
+            <p className="font-medium">Partidos</p>
+            <p className="text-sm text-muted-foreground">
+              {totalPartidos === 0
+                ? "Sin vídeos todavía"
+                : `${totalPartidos} vídeo${totalPartidos === 1 ? "" : "s"}`}
+            </p>
+          </div>
+          <ChevronRight className="size-5 shrink-0 text-muted-foreground" />
+        </Link>
+
+        <Link
+          href="/videos/clips"
+          className="flex items-center gap-3 rounded-md border p-4 hover:bg-muted"
+        >
+          <div className="flex size-10 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary">
+            <Scissors className="size-5" />
+          </div>
+          <div className="min-w-0 flex-1">
+            <p className="font-medium">Clips</p>
+            <p className="text-sm text-muted-foreground">
+              {totalClips === 0
+                ? "Sin clips todavía"
+                : `${totalClips} clip${totalClips === 1 ? "" : "s"}`}
+            </p>
+          </div>
+          <ChevronRight className="size-5 shrink-0 text-muted-foreground" />
+        </Link>
       </div>
-
-      <section className="space-y-2">
-        <h2 className="text-sm font-medium text-muted-foreground">
-          Partidos
-        </h2>
-        {dePartidos.length === 0 ? (
-          <p className="py-4 text-center text-sm text-muted-foreground">
-            Todavía no hay vídeos de partidos.
-          </p>
-        ) : (
-          <div className="space-y-3">
-            {dePartidos.map((v) => (
-              <VideoCard
-                key={v.id}
-                video={v}
-                rivalAsociado={
-                  v.partido_id ? rivalPorPartido.get(v.partido_id) : undefined
-                }
-              />
-            ))}
-          </div>
-        )}
-      </section>
-
-      <section className="space-y-2">
-        <h2 className="text-sm font-medium text-muted-foreground">Clips</h2>
-        {clips.length === 0 ? (
-          <p className="py-4 text-center text-sm text-muted-foreground">
-            Todavía no hay clips.
-          </p>
-        ) : (
-          <div className="space-y-3">
-            {clips.map((v) => (
-              <VideoCard
-                key={v.id}
-                video={v}
-                rivalAsociado={
-                  v.partido_id ? rivalPorPartido.get(v.partido_id) : undefined
-                }
-              />
-            ))}
-          </div>
-        )}
-      </section>
     </div>
   );
 }

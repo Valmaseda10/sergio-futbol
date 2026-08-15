@@ -19,6 +19,7 @@ export const videoSchema = z.object({
   partido_id: z.string().trim(),
   evento_id: z.string().trim(),
   segundo_inicio: z.string().trim(),
+  segundo_fin: z.string().trim(),
   fecha: z.string().trim().min(1, "Introduce la fecha"),
   notas: z.string().trim(),
 });
@@ -33,6 +34,7 @@ export function videoFormDataToValues(formData: FormData): VideoFormValues {
     partido_id: String(formData.get("partido_id") ?? ""),
     evento_id: String(formData.get("evento_id") ?? ""),
     segundo_inicio: String(formData.get("segundo_inicio") ?? ""),
+    segundo_fin: String(formData.get("segundo_fin") ?? ""),
     fecha: String(formData.get("fecha") ?? ""),
     notas: String(formData.get("notas") ?? ""),
   };
@@ -46,6 +48,7 @@ export function toVideoInsert(values: VideoFormValues) {
     partido_id: values.partido_id || null,
     evento_id: values.evento_id || null,
     segundo_inicio: values.segundo_inicio ? Number(values.segundo_inicio) : null,
+    segundo_fin: values.segundo_fin ? Number(values.segundo_fin) : null,
     fecha: values.fecha,
     notas: values.notas || null,
   };

@@ -222,6 +222,11 @@ export default function EstadisticasPage() {
     [datosGoles],
   );
 
+  const rivalPorPartidoId = useMemo(
+    () => new Map(partidosTemporada.map((p) => [p.id, p.rival])),
+    [partidosTemporada],
+  );
+
   const golesUbicacion = useMemo(
     () =>
       eventosTemporada
@@ -235,8 +240,9 @@ export default function EstadisticasPage() {
           pos_x: e.pos_x as number,
           pos_y: e.pos_y as number,
           a_favor: e.a_favor,
+          rival: rivalPorPartidoId.get(e.partido_id) ?? "Rival",
         })),
-    [eventosTemporada],
+    [eventosTemporada, rivalPorPartidoId],
   );
 
   const golesPorMinuto = useMemo(
@@ -436,9 +442,11 @@ export default function EstadisticasPage() {
       </Card>
 
       <p className="text-xs text-muted-foreground">
-        Los minutos son una aproximación: se asume que cada titular juega el
-        partido completo ({DURACION_PARTIDO_MINUTOS} min), ya que no se
-        registran sustituciones reales.
+        Los minutos usan los eventos &quot;Entra al campo&quot; / &quot;Sale
+        del campo&quot; registrados en cada partido; si no se registra ningún
+        cambio para un jugador, se asume que el titular jugó el partido
+        completo ({DURACION_PARTIDO_MINUTOS} min) y el suplente no llegó a
+        entrar.
       </p>
     </div>
   );

@@ -14,11 +14,17 @@ export function getYoutubeVideoId(url: string): string | null {
 export function getYoutubeEmbedUrl(
   url: string,
   segundoInicio?: number | null,
+  segundoFin?: number | null,
 ): string | null {
   const id = getYoutubeVideoId(url);
   if (!id) return null;
-  const base = `https://www.youtube-nocookie.com/embed/${id}`;
-  return segundoInicio != null && segundoInicio > 0
-    ? `${base}?start=${Math.floor(segundoInicio)}`
-    : base;
+  const params = new URLSearchParams();
+  if (segundoInicio != null && segundoInicio > 0) {
+    params.set("start", String(Math.floor(segundoInicio)));
+  }
+  if (segundoFin != null && segundoFin > 0) {
+    params.set("end", String(Math.floor(segundoFin)));
+  }
+  const query = params.toString();
+  return `https://www.youtube-nocookie.com/embed/${id}${query ? `?${query}` : ""}`;
 }
