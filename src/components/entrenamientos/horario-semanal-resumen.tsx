@@ -10,6 +10,12 @@ const DIA_LABEL: Record<number, string> = Object.fromEntries(
 );
 const ORDEN_SEMANA = [1, 2, 3, 4, 5, 6, 0];
 
+function etiquetaDia(dia: number) {
+  if (dia === 6) return "Partido (sábado)";
+  if (dia === 0) return "Partido (domingo)";
+  return DIA_LABEL[dia];
+}
+
 export function HorarioSemanalResumen() {
   const horarios = useLiveQuery(
     () =>
@@ -28,10 +34,13 @@ export function HorarioSemanalResumen() {
 
   if (horarios.length === 0) return null;
 
+  const entreno = horarios.filter((h) => h.dia_semana >= 1 && h.dia_semana <= 5);
+  const partido = horarios.filter((h) => h.dia_semana === 6 || h.dia_semana === 0);
+
   return (
     <Card>
       <CardContent className="flex flex-wrap items-center gap-x-4 gap-y-2 pt-6 text-sm">
-        {horarios.map((h) => (
+        {entreno.map((h) => (
           <span key={h.id} className="flex items-baseline gap-1.5">
             <span className="font-medium">{DIA_LABEL[h.dia_semana]}</span>
             {h.hora_inicio && h.hora_fin && (
@@ -41,10 +50,23 @@ export function HorarioSemanalResumen() {
             )}
           </span>
         ))}
-        <span className="flex items-baseline gap-1.5">
-          <span className="font-medium">Partido</span>
-          <span className="text-muted-foreground">sábado o domingo</span>
-        </span>
+        {partido.length > 0 ? (
+          partido.map((h) => (
+            <span key={h.id} className="flex items-baseline gap-1.5">
+              <span className="font-medium">{etiquetaDia(h.dia_semana)}</span>
+              {h.hora_inicio && h.hora_fin && (
+                <span className="tabular-nums text-muted-foreground">
+                  {h.hora_inicio.slice(0, 5)}–{h.hora_fin.slice(0, 5)}
+                </span>
+              )}
+            </span>
+          ))
+        ) : (
+          <span className="flex items-baseline gap-1.5">
+            <span className="font-medium">Partido</span>
+            <span className="text-muted-foreground">sábado o domingo</span>
+          </span>
+        )}
       </CardContent>
     </Card>
   );

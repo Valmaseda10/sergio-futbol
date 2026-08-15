@@ -1,9 +1,10 @@
 "use client";
 
 import { useRef, useState } from "react";
-import { RotateCcw } from "lucide-react";
+import { RotateCcw, Pencil, Eraser, Undo2, TrafficCone } from "lucide-react";
 import { FORMACIONES } from "@/lib/formaciones";
 import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 import {
   Select,
   SelectContent,
@@ -25,7 +26,54 @@ interface Posicion {
   left: number;
 }
 
+type ColorFicha = "azul" | "verde" | "amarillo" | "rojo";
+type ColorTrazo = ColorFicha | "blanco";
+type TipoMaterial = "cono" | "pica";
+
+interface FichaGenerica extends Posicion {
+  color: ColorFicha;
+}
+
+interface ElementoMaterial extends Posicion {
+  tipo: TipoMaterial;
+}
+
+interface Trazo {
+  id: string;
+  color: ColorTrazo;
+  puntos: Posicion[];
+}
+
+type Elemento =
+  | { kind: "jugador"; id: string }
+  | { kind: "ficha"; id: string }
+  | { kind: "material"; id: string };
+
 const MARGEN = 5;
+
+const COLORES_FICHA: { value: ColorFicha; label: string; clase: string }[] = [
+  { value: "azul", label: "Ficha azul", clase: "bg-blue-500" },
+  { value: "verde", label: "Ficha verde", clase: "bg-green-500" },
+  { value: "amarillo", label: "Ficha amarilla", clase: "bg-yellow-400" },
+  { value: "rojo", label: "Ficha roja", clase: "bg-red-500" },
+];
+
+const COLORES_TRAZO: { value: ColorTrazo; label: string; clase: string }[] = [
+  { value: "blanco", label: "Lápiz blanco", clase: "bg-white border" },
+  ...COLORES_FICHA.map((c) => ({
+    value: c.value as ColorTrazo,
+    label: c.label.replace("Ficha", "Lápiz"),
+    clase: c.clase,
+  })),
+];
+
+const HEX_TRAZO: Record<ColorTrazo, string> = {
+  blanco: "#ffffff",
+  azul: "#3b82f6",
+  verde: "#22c55e",
+  amarillo: "#eab308",
+  rojo: "#ef4444",
+};
 
 function clamp(n: number, min: number, max: number) {
   return Math.min(max, Math.max(min, n));
@@ -35,17 +83,49 @@ function nombreFicha(j: Jugador) {
   return j.alias || j.apellidos;
 }
 
+function nuevoId() {
+  return typeof crypto !== "undefined" && "randomUUID" in crypto
+    ? crypto.randomUUID()
+    : `${Date.now()}-${Math.random()}`;
+}
+
+function PicaIcon({ className }: { className?: string }) {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className={className}
+    >
+      <line x1="12" y1="2" x2="12" y2="20" />
+      <circle cx="12" cy="21" r="1.5" fill="currentColor" stroke="none" />
+    </svg>
+  );
+}
+
 export function PizarraTactica({ jugadores }: { jugadores: Jugador[] }) {
   const pitchRef = useRef<HTMLDivElement>(null);
   const [posiciones, setPosiciones] = useState<Record<string, Posicion>>({});
+  const [fichas, setFichas] = useState<Record<string, FichaGenerica>>({});
+  const [material, setMaterial] = useState<Record<string, ElementoMaterial>>(
+    {},
+  );
+  const [trazos, setTrazos] = useState<Trazo[]>([]);
+  const [trazoActual, setTrazoActual] = useState<Trazo | null>(null);
+  const [modoDibujo, setModoDibujo] = useState(false);
+  const [colorDibujo, setColorDibujo] = useState<ColorTrazo>("blanco");
   const [formacionValue, setFormacionValue] = useState(FORMACIONES[0].value);
 
   const dragRef = useRef<{
-    jugadorId: string;
+    elemento: Elemento;
     startX: number;
     startY: number;
     moved: boolean;
   } | null>(null);
+  const dibujoIdRef = useRef<string | null>(null);
 
   const enCampo = jugadores.filter((j) => posiciones[j.id]);
   const enBanquillo = jugadores.filter((j) => !posiciones[j.id]);
@@ -64,19 +144,65 @@ export function PizarraTactica({ jugadores }: { jugadores: Jugador[] }) {
 
   function handleReiniciar() {
     setPosiciones({});
+    setFichas({});
+    setMaterial({});
+    setTrazos([]);
+    setTrazoActual(null);
   }
 
   function handleBanquilloClick(jugadorId: string) {
     setPosiciones((prev) => ({ ...prev, [jugadorId]: { top: 50, left: 50 } }));
   }
 
+  function handleAñadirFicha(color: ColorFicha) {
+    const id = nuevoId();
+    setFichas((prev) => ({ ...prev, [id]: { color, top: 50, left: 50 } }));
+  }
+
+  function handleAñadirMaterial(tipo: TipoMaterial) {
+    const id = nuevoId();
+    setMaterial((prev) => ({ ...prev, [id]: { tipo, top: 50, left: 50 } }));
+  }
+
+  function actualizarPosicion(elemento: Elemento, pos: Posicion) {
+    if (elemento.kind === "jugador") {
+      setPosiciones((prev) => ({ ...prev, [elemento.id]: pos }));
+    } else if (elemento.kind === "ficha") {
+      setFichas((prev) => ({ ...prev, [elemento.id]: { ...prev[elemento.id], ...pos } }));
+    } else {
+      setMaterial((prev) => ({ ...prev, [elemento.id]: { ...prev[elemento.id], ...pos } }));
+    }
+  }
+
+  function quitarElemento(elemento: Elemento) {
+    if (elemento.kind === "jugador") {
+      setPosiciones((prev) => {
+        const next = { ...prev };
+        delete next[elemento.id];
+        return next;
+      });
+    } else if (elemento.kind === "ficha") {
+      setFichas((prev) => {
+        const next = { ...prev };
+        delete next[elemento.id];
+        return next;
+      });
+    } else {
+      setMaterial((prev) => {
+        const next = { ...prev };
+        delete next[elemento.id];
+        return next;
+      });
+    }
+  }
+
   function handlePointerDown(
     e: React.PointerEvent<HTMLButtonElement>,
-    jugadorId: string,
+    elemento: Elemento,
   ) {
     e.currentTarget.setPointerCapture(e.pointerId);
     dragRef.current = {
-      jugadorId,
+      elemento,
       startX: e.clientX,
       startY: e.clientY,
       moved: false,
@@ -85,10 +211,15 @@ export function PizarraTactica({ jugadores }: { jugadores: Jugador[] }) {
 
   function handlePointerMove(
     e: React.PointerEvent<HTMLButtonElement>,
-    jugadorId: string,
+    elemento: Elemento,
   ) {
     const drag = dragRef.current;
-    if (!drag || drag.jugadorId !== jugadorId) return;
+    if (
+      !drag ||
+      drag.elemento.kind !== elemento.kind ||
+      drag.elemento.id !== elemento.id
+    )
+      return;
 
     const dx = e.clientX - drag.startX;
     const dy = e.clientY - drag.startY;
@@ -100,22 +231,70 @@ export function PizarraTactica({ jugadores }: { jugadores: Jugador[] }) {
     drag.moved = true;
     const left = clamp(((e.clientX - rect.left) / rect.width) * 100, MARGEN, 100 - MARGEN);
     const top = clamp(((e.clientY - rect.top) / rect.height) * 100, MARGEN, 100 - MARGEN);
-    setPosiciones((prev) => ({ ...prev, [jugadorId]: { top, left } }));
+    actualizarPosicion(elemento, { top, left });
   }
 
   function handlePointerUp(
     e: React.PointerEvent<HTMLButtonElement>,
-    jugadorId: string,
+    elemento: Elemento,
   ) {
     const drag = dragRef.current;
     dragRef.current = null;
-    if (drag && drag.jugadorId === jugadorId && !drag.moved) {
-      setPosiciones((prev) => {
-        const next = { ...prev };
-        delete next[jugadorId];
-        return next;
-      });
+    if (
+      drag &&
+      drag.elemento.kind === elemento.kind &&
+      drag.elemento.id === elemento.id &&
+      !drag.moved
+    ) {
+      quitarElemento(elemento);
     }
+  }
+
+  function puntoDesdeEvento(e: React.PointerEvent<HTMLDivElement>): Posicion | null {
+    const rect = pitchRef.current?.getBoundingClientRect();
+    if (!rect) return null;
+    return {
+      left: clamp(((e.clientX - rect.left) / rect.width) * 100, 0, 100),
+      top: clamp(((e.clientY - rect.top) / rect.height) * 100, 0, 100),
+    };
+  }
+
+  function handleDibujoPointerDown(e: React.PointerEvent<HTMLDivElement>) {
+    const punto = puntoDesdeEvento(e);
+    if (!punto) return;
+    e.currentTarget.setPointerCapture(e.pointerId);
+    const id = nuevoId();
+    dibujoIdRef.current = id;
+    setTrazoActual({ id, color: colorDibujo, puntos: [punto] });
+  }
+
+  function handleDibujoPointerMove(e: React.PointerEvent<HTMLDivElement>) {
+    if (!dibujoIdRef.current) return;
+    const punto = puntoDesdeEvento(e);
+    if (!punto) return;
+    setTrazoActual((prev) =>
+      prev ? { ...prev, puntos: [...prev.puntos, punto] } : prev,
+    );
+  }
+
+  function handleDibujoPointerUp() {
+    if (!dibujoIdRef.current) return;
+    dibujoIdRef.current = null;
+    setTrazoActual((prev) => {
+      if (prev && prev.puntos.length > 1) {
+        setTrazos((rest) => [...rest, prev]);
+      }
+      return null;
+    });
+  }
+
+  function handleDeshacerTrazo() {
+    setTrazos((prev) => prev.slice(0, -1));
+  }
+
+  function handleBorrarTrazos() {
+    setTrazos([]);
+    setTrazoActual(null);
   }
 
   return (
@@ -147,10 +326,97 @@ export function PizarraTactica({ jugadores }: { jugadores: Jugador[] }) {
         </Button>
       </div>
 
+      <div className="flex flex-wrap items-center gap-3 rounded-md border p-2">
+        <div className="flex items-center gap-1.5">
+          <span className="text-xs text-muted-foreground">Fichas</span>
+          {COLORES_FICHA.map((c) => (
+            <button
+              key={c.value}
+              type="button"
+              aria-label={`Añadir ${c.label.toLowerCase()}`}
+              onClick={() => handleAñadirFicha(c.value)}
+              className={cn(
+                "size-7 rounded-full border-2 border-white shadow ring-1 ring-black/10",
+                c.clase,
+              )}
+            />
+          ))}
+        </div>
+
+        <div className="flex items-center gap-1.5">
+          <span className="text-xs text-muted-foreground">Material</span>
+          <Button
+            type="button"
+            variant="outline"
+            size="icon"
+            aria-label="Añadir cono"
+            onClick={() => handleAñadirMaterial("cono")}
+          >
+            <TrafficCone className="size-4 text-orange-500" />
+          </Button>
+          <Button
+            type="button"
+            variant="outline"
+            size="icon"
+            aria-label="Añadir pica"
+            onClick={() => handleAñadirMaterial("pica")}
+          >
+            <PicaIcon className="size-4 text-amber-600" />
+          </Button>
+        </div>
+
+        <div className="flex items-center gap-1.5">
+          <Button
+            type="button"
+            variant={modoDibujo ? "default" : "outline"}
+            size="icon"
+            aria-label={modoDibujo ? "Desactivar lápiz" : "Activar lápiz"}
+            onClick={() => setModoDibujo((v) => !v)}
+          >
+            <Pencil className="size-4" />
+          </Button>
+          {modoDibujo &&
+            COLORES_TRAZO.map((c) => (
+              <button
+                key={c.value}
+                type="button"
+                aria-label={c.label}
+                onClick={() => setColorDibujo(c.value)}
+                className={cn(
+                  "size-6 rounded-full border-2 shadow",
+                  c.clase,
+                  colorDibujo === c.value ? "border-gold" : "border-white",
+                )}
+              />
+            ))}
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon"
+            aria-label="Deshacer último trazo"
+            disabled={trazos.length === 0}
+            onClick={handleDeshacerTrazo}
+          >
+            <Undo2 className="size-4" />
+          </Button>
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon"
+            aria-label="Borrar trazos"
+            disabled={trazos.length === 0}
+            onClick={handleBorrarTrazos}
+          >
+            <Eraser className="size-4" />
+          </Button>
+        </div>
+      </div>
+
       <p className="text-xs text-muted-foreground">
-        Toca una ficha del banquillo para sacarla al campo; mantén y arrastra
-        para moverla; toca una ficha en el campo para devolverla al
-        banquillo.
+        Toca un color o un icono de material para añadirlo al campo; mantén y
+        arrastra para moverlo; tócalo de nuevo para quitarlo. Con el lápiz
+        activado, dibuja sobre el campo para explicar la jugada o el
+        ejercicio.
       </p>
 
       <div
@@ -164,6 +430,36 @@ export function PizarraTactica({ jugadores }: { jugadores: Jugador[] }) {
         <div className="absolute inset-x-[42%] top-0 h-[3%] border-x-2 border-b-2 border-white/70" />
         <div className="absolute inset-x-[42%] bottom-0 h-[3%] border-x-2 border-t-2 border-white/70" />
 
+        <svg
+          viewBox="0 0 100 100"
+          preserveAspectRatio="none"
+          className="pointer-events-none absolute inset-0 size-full"
+        >
+          {trazos.map((t) => (
+            <polyline
+              key={t.id}
+              points={t.puntos.map((p) => `${p.left},${p.top}`).join(" ")}
+              fill="none"
+              stroke={HEX_TRAZO[t.color]}
+              strokeWidth="2.5"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              vectorEffect="non-scaling-stroke"
+            />
+          ))}
+          {trazoActual && (
+            <polyline
+              points={trazoActual.puntos.map((p) => `${p.left},${p.top}`).join(" ")}
+              fill="none"
+              stroke={HEX_TRAZO[trazoActual.color]}
+              strokeWidth="2.5"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              vectorEffect="non-scaling-stroke"
+            />
+          )}
+        </svg>
+
         {enCampo.map((j) => {
           const pos = posiciones[j.id];
           if (!pos) return null;
@@ -171,9 +467,9 @@ export function PizarraTactica({ jugadores }: { jugadores: Jugador[] }) {
             <button
               key={j.id}
               type="button"
-              onPointerDown={(e) => handlePointerDown(e, j.id)}
-              onPointerMove={(e) => handlePointerMove(e, j.id)}
-              onPointerUp={(e) => handlePointerUp(e, j.id)}
+              onPointerDown={(e) => handlePointerDown(e, { kind: "jugador", id: j.id })}
+              onPointerMove={(e) => handlePointerMove(e, { kind: "jugador", id: j.id })}
+              onPointerUp={(e) => handlePointerUp(e, { kind: "jugador", id: j.id })}
               className="absolute flex -translate-x-1/2 -translate-y-1/2 flex-col items-center gap-0.5"
               style={{ top: `${pos.top}%`, left: `${pos.left}%` }}
             >
@@ -186,6 +482,54 @@ export function PizarraTactica({ jugadores }: { jugadores: Jugador[] }) {
             </button>
           );
         })}
+
+        {Object.entries(fichas).map(([id, f]) => (
+          <button
+            key={id}
+            type="button"
+            onPointerDown={(e) => handlePointerDown(e, { kind: "ficha", id })}
+            onPointerMove={(e) => handlePointerMove(e, { kind: "ficha", id })}
+            onPointerUp={(e) => handlePointerUp(e, { kind: "ficha", id })}
+            aria-label={`Ficha ${f.color}`}
+            className="absolute -translate-x-1/2 -translate-y-1/2"
+            style={{ top: `${f.top}%`, left: `${f.left}%` }}
+          >
+            <span
+              className={cn(
+                "block size-7 rounded-full border-2 border-white shadow",
+                COLORES_FICHA.find((c) => c.value === f.color)?.clase,
+              )}
+            />
+          </button>
+        ))}
+
+        {Object.entries(material).map(([id, m]) => (
+          <button
+            key={id}
+            type="button"
+            onPointerDown={(e) => handlePointerDown(e, { kind: "material", id })}
+            onPointerMove={(e) => handlePointerMove(e, { kind: "material", id })}
+            onPointerUp={(e) => handlePointerUp(e, { kind: "material", id })}
+            aria-label={m.tipo === "cono" ? "Cono" : "Pica"}
+            className="absolute -translate-x-1/2 -translate-y-1/2 rounded-full bg-white/80 p-1 shadow"
+            style={{ top: `${m.top}%`, left: `${m.left}%` }}
+          >
+            {m.tipo === "cono" ? (
+              <TrafficCone className="size-5 text-orange-500" />
+            ) : (
+              <PicaIcon className="size-5 text-amber-600" />
+            )}
+          </button>
+        ))}
+
+        {modoDibujo && (
+          <div
+            className="absolute inset-0 z-10 cursor-crosshair touch-none"
+            onPointerDown={handleDibujoPointerDown}
+            onPointerMove={handleDibujoPointerMove}
+            onPointerUp={handleDibujoPointerUp}
+          />
+        )}
       </div>
 
       <div className="space-y-2">

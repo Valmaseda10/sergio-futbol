@@ -54,14 +54,20 @@ export function GenerarForm() {
 
   // En cuanto se carga el horario configurado en Ajustes, precarga los días
   // y el horario reales en vez de dejar los valores de respaldo de arriba.
+  // Sábado y domingo se excluyen: en Ajustes son el horario de partido, no
+  // de entrenamiento, así que no deben marcarse aquí por defecto.
   useEffect(() => {
     if (yaAplicado.current || horarios.length === 0) return;
+    const entreno = horarios.filter(
+      (h) => h.dia_semana >= 1 && h.dia_semana <= 5,
+    );
+    if (entreno.length === 0) return;
     yaAplicado.current = true;
-    const primero = horarios[0];
+    const primero = entreno[0];
     reset({
       fecha_inicio: "",
       fecha_fin: "",
-      dias: horarios.map((h) => h.dia_semana),
+      dias: entreno.map((h) => h.dia_semana),
       hora_inicio: primero.hora_inicio?.slice(0, 5) ?? "17:45",
       hora_fin: primero.hora_fin?.slice(0, 5) ?? "19:15",
       lugar: primero.lugar ?? "Área Deportiva de Puente Castro",

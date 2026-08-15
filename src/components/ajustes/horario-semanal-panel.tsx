@@ -42,6 +42,15 @@ const DIA_LABEL: Record<number, string> = Object.fromEntries(
 
 const ORDEN_SEMANA = [1, 2, 3, 4, 5, 6, 0];
 
+// Sábado y domingo no son días de entrenamiento: son las dos posibles
+// jornadas de partido, así que se etiquetan aparte para que quede claro
+// que cada uno se edita según en qué día caiga el partido esa semana.
+function etiquetaDia(dia: number) {
+  if (dia === 6) return "Partido (sábado)";
+  if (dia === 0) return "Partido (domingo)";
+  return DIA_LABEL[dia];
+}
+
 function HorarioForm({
   horario,
   diasDisponibles,
@@ -85,12 +94,12 @@ function HorarioForm({
           <Label>Día</Label>
           <Select value={String(dia)} onValueChange={(v) => setDia(Number(v))}>
             <SelectTrigger className="w-full">
-              <SelectValue>{(value) => DIA_LABEL[Number(value)]}</SelectValue>
+              <SelectValue>{(value) => etiquetaDia(Number(value))}</SelectValue>
             </SelectTrigger>
             <SelectContent>
               {(diasDisponibles ?? ORDEN_SEMANA).map((v) => (
                 <SelectItem key={v} value={String(v)}>
-                  {DIA_LABEL[v]}
+                  {etiquetaDia(v)}
                 </SelectItem>
               ))}
             </SelectContent>
@@ -163,7 +172,7 @@ export function HorarioSemanalPanel() {
         {horarios.map((h) => (
           <li key={h.id} className="flex items-center gap-3 p-3">
             <div className="min-w-0 flex-1">
-              <p className="text-sm font-medium">{DIA_LABEL[h.dia_semana]}</p>
+              <p className="text-sm font-medium">{etiquetaDia(h.dia_semana)}</p>
               <p className="truncate text-xs text-muted-foreground">
                 {h.hora_inicio && h.hora_fin
                   ? `${h.hora_inicio.slice(0, 5)} – ${h.hora_fin.slice(0, 5)}`
@@ -215,9 +224,13 @@ export function HorarioSemanalPanel() {
           </Button>
         ))}
 
-      <p className="text-xs text-muted-foreground">
-        Partido: sábado o domingo, según calendario de liga.
-      </p>
+      {!horarios.some((h) => h.dia_semana === 6 || h.dia_semana === 0) && (
+        <p className="text-xs text-muted-foreground">
+          Añade &quot;Partido (sábado)&quot; o &quot;Partido (domingo)&quot;
+          para fijar el horario del día de partido según en cuál caiga esa
+          semana.
+        </p>
+      )}
 
       <Dialog
         open={editando !== null}
@@ -226,7 +239,7 @@ export function HorarioSemanalPanel() {
         <DialogContent>
           <DialogHeader>
             <DialogTitle>
-              {editando && DIA_LABEL[editando.dia_semana]}
+              {editando && etiquetaDia(editando.dia_semana)}
             </DialogTitle>
           </DialogHeader>
           {editando && (
