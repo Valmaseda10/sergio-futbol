@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useLiveQuery } from "dexie-react-hooks";
-import { Plus, MapPin, Search } from "lucide-react";
+import { Plus, MapPin } from "lucide-react";
 import { localDb, type LocalPartido } from "@/lib/db/local-db";
 import { diaSemanaDeFecha } from "@/lib/date";
 import { cn } from "@/lib/utils";
@@ -88,18 +88,6 @@ export default function PartidosPage() {
         <Button size="sm" nativeButton={false} render={<Link href="/partidos/nuevo" />}>
           <Plus className="size-4" />
           Nuevo
-        </Button>
-      </div>
-
-      <div className="flex flex-wrap gap-2">
-        <Button
-          size="sm"
-          variant="outline"
-          nativeButton={false}
-          render={<Link href="/partidos/scouting" />}
-        >
-          <Search className="size-4" />
-          Scouting
         </Button>
       </div>
 

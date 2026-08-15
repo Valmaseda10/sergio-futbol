@@ -11,11 +11,11 @@ import {
   JUGADOR_DESTACADO_FORM_DEFAULTS,
   jugadorDestacadoSchema,
   type JugadorDestacadoFormValues,
-} from "@/lib/validations/scouting";
+} from "@/lib/validations/rivales";
 import {
   crearJugadorDestacadoLocal,
   eliminarJugadorDestacadoLocal,
-} from "@/app/(app)/partidos/scouting/local-actions";
+} from "@/app/(app)/rivales/local-actions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";

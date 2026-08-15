@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { Trash2 } from "lucide-react";
-import { eliminarRivalScoutingLocal } from "@/app/(app)/partidos/scouting/local-actions";
+import { eliminarRivalLocal } from "@/app/(app)/rivales/local-actions";
 import { Button } from "@/components/ui/button";
 import {
   AlertDialog,
@@ -18,14 +18,14 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 
-export function EliminarRivalScoutingButton({ id }: { id: string }) {
+export function EliminarRivalButton({ id }: { id: string }) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
 
   async function handleConfirm() {
     setLoading(true);
-    const result = await eliminarRivalScoutingLocal(id);
+    const result = await eliminarRivalLocal(id);
     setLoading(false);
 
     if ("error" in result) {
@@ -35,7 +35,7 @@ export function EliminarRivalScoutingButton({ id }: { id: string }) {
 
     setOpen(false);
     toast.success("Rival eliminado");
-    router.push("/partidos/scouting");
+    router.push("/rivales");
   }
 
   return (

@@ -5,9 +5,9 @@ import { useParams } from "next/navigation";
 import { useLiveQuery } from "dexie-react-hooks";
 import { localDb } from "@/lib/db/local-db";
 import { createClient } from "@/lib/supabase/client";
-import { RivalScoutingForm } from "@/components/partidos/rival-scouting-form";
+import { RivalForm } from "@/components/rivales/rival-form";
 
-export default function EditarRivalScoutingPage() {
+export default function EditarRivalPage() {
   const { id } = useParams<{ id: string }>();
   const rival = useLiveQuery(
     async () => (await localDb.rivales_scouting.get(id)) ?? null,
@@ -35,7 +35,7 @@ export default function EditarRivalScoutingPage() {
   return (
     <div className="space-y-4">
       <h1 className="text-2xl font-semibold">Editar rival</h1>
-      <RivalScoutingForm
+      <RivalForm
         rival={{
           id: rival.id,
           nombre: rival.nombre,

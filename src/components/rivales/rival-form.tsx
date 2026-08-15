@@ -10,11 +10,11 @@ import {
   RIVAL_SCOUTING_FORM_DEFAULTS,
   rivalScoutingSchema,
   type RivalScoutingFormValues,
-} from "@/lib/validations/scouting";
+} from "@/lib/validations/rivales";
 import {
-  crearRivalScoutingLocal,
-  actualizarRivalScoutingLocal,
-} from "@/app/(app)/partidos/scouting/local-actions";
+  crearRivalLocal,
+  actualizarRivalLocal,
+} from "@/app/(app)/rivales/local-actions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -26,7 +26,7 @@ function FieldError({ message }: { message?: string }) {
   return <p className="text-sm text-destructive">{message}</p>;
 }
 
-export function RivalScoutingForm({
+export function RivalForm({
   rival,
 }: {
   rival?: RivalScoutingFormValues & { id: string; fotoSignedUrl?: string | null };
@@ -56,8 +56,8 @@ export function RivalScoutingForm({
 
   async function onSubmit(values: RivalScoutingFormValues) {
     const result = rival
-      ? await actualizarRivalScoutingLocal(rival.id, values, foto)
-      : await crearRivalScoutingLocal(values, foto);
+      ? await actualizarRivalLocal(rival.id, values, foto)
+      : await crearRivalLocal(values, foto);
 
     if ("error" in result) {
       toast.error(result.error);
@@ -65,7 +65,7 @@ export function RivalScoutingForm({
     }
 
     toast.success(rival ? "Rival actualizado" : "Rival creado");
-    router.push(`/partidos/scouting/${result.id}`);
+    router.push(`/rivales/${result.id}`);
   }
 
   return (

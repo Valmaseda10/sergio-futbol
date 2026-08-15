@@ -401,6 +401,9 @@ export interface Database {
           fase_defensiva: string | null;
           abp: string | null;
           notas: string | null;
+          color_camiseta: string | null;
+          color_pantalon: string | null;
+          color_medias: string | null;
           created_at: string;
           updated_at: string;
         };
@@ -413,6 +416,9 @@ export interface Database {
           fase_defensiva?: string | null;
           abp?: string | null;
           notas?: string | null;
+          color_camiseta?: string | null;
+          color_pantalon?: string | null;
+          color_medias?: string | null;
           created_at?: string;
           updated_at?: string;
         };

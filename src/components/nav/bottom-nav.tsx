@@ -7,6 +7,7 @@ import {
   Users,
   CalendarDays,
   Trophy,
+  Swords,
   LayoutGrid,
   Video,
   BarChart3,
@@ -19,6 +20,7 @@ const NAV_ITEMS = [
   { href: "/plantilla", label: "Plantilla", icon: Users },
   { href: "/entrenamientos", label: "Entrenamientos", icon: CalendarDays },
   { href: "/partidos", label: "Partidos", icon: Trophy },
+  { href: "/rivales", label: "Rivales", icon: Swords },
   { href: "/pizarra", label: "Pizarra", icon: LayoutGrid },
   { href: "/videos", label: "Vídeos", icon: Video },
   { href: "/estadisticas", label: "Estadísticas", icon: BarChart3 },
@@ -33,22 +35,24 @@ export function BottomNav() {
       className="fixed inset-x-0 bottom-0 z-40 border-t bg-background pb-[env(safe-area-inset-bottom)] md:hidden print:hidden"
       aria-label="Navegación principal"
     >
-      <ul className="grid grid-cols-8">
+      <ul className="grid grid-cols-9">
         {NAV_ITEMS.map(({ href, label, icon: Icon }) => {
           const active = pathname.startsWith(href);
           return (
-            <li key={href}>
+            <li key={href} className="min-w-0">
               <Link
                 href={href}
                 className={cn(
-                  "flex flex-col items-center gap-1 px-1 py-2 text-center text-[10px] leading-tight",
+                  "flex min-w-0 flex-col items-center gap-0.5 px-0.5 py-2 text-center",
                   active
                     ? "text-primary"
                     : "text-muted-foreground hover:text-foreground",
                 )}
               >
-                <Icon className="size-5" />
-                {label}
+                <Icon className="size-5 shrink-0" />
+                <span className="w-full text-[8.5px] leading-[1.15] break-words hyphens-auto">
+                  {label}
+                </span>
               </Link>
             </li>
           );

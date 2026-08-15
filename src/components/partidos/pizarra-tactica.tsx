@@ -33,13 +33,14 @@ interface Posicion {
   left: number;
 }
 
-type ColorFicha = "azul" | "verde" | "amarillo" | "rojo";
+type ColorFicha = "azul" | "verde" | "amarillo" | "rojo" | "negro";
 type ColorTrazo = ColorFicha | "blanco";
 type TipoMaterial = "cono" | "pica" | "maniqui" | "escalera" | "porteria";
 type ColorConoChino = "rojo" | "azul" | "blanco";
 
 interface FichaGenerica extends Posicion {
   color: ColorFicha;
+  numero: number;
 }
 
 interface ElementoMaterial extends Posicion {
@@ -75,11 +76,12 @@ const MARGEN = 5;
 // porcentaje del campo según su tamaño real al usarla).
 const RADIO_BORRADO_PX = 18;
 
-const COLORES_FICHA: { value: ColorFicha; label: string; clase: string }[] = [
-  { value: "azul", label: "Ficha azul", clase: "bg-blue-500" },
-  { value: "verde", label: "Ficha verde", clase: "bg-green-500" },
-  { value: "amarillo", label: "Ficha amarilla", clase: "bg-yellow-400" },
-  { value: "rojo", label: "Ficha roja", clase: "bg-red-500" },
+const COLORES_FICHA: { value: ColorFicha; label: string; clase: string; texto: string }[] = [
+  { value: "azul", label: "Ficha azul", clase: "bg-blue-500", texto: "text-white" },
+  { value: "verde", label: "Ficha verde", clase: "bg-green-500", texto: "text-white" },
+  { value: "amarillo", label: "Ficha amarilla", clase: "bg-yellow-400", texto: "text-black" },
+  { value: "rojo", label: "Ficha roja", clase: "bg-red-500", texto: "text-white" },
+  { value: "negro", label: "Ficha negra", clase: "bg-neutral-900", texto: "text-white" },
 ];
 
 const COLORES_TRAZO: { value: ColorTrazo; label: string; clase: string }[] = [
@@ -97,6 +99,7 @@ const HEX_TRAZO: Record<ColorTrazo, string> = {
   verde: "#22c55e",
   amarillo: "#eab308",
   rojo: "#ef4444",
+  negro: "#171717",
 };
 
 const COLORES_CONO_CHINO: { value: ColorConoChino; label: string; clase: string }[] = [
@@ -247,6 +250,7 @@ export function PizarraTactica({ jugadores }: { jugadores: Jugador[] }) {
   const dibujoIdRef = useRef<string | null>(null);
   const borrandoActivoRef = useRef(false);
   const spawnContador = useRef(0);
+  const fichaContador = useRef(0);
 
   function siguientePosicionSpawn(): Posicion {
     const pos = POSICIONES_SPAWN[spawnContador.current % POSICIONES_SPAWN.length];
@@ -256,14 +260,6 @@ export function PizarraTactica({ jugadores }: { jugadores: Jugador[] }) {
 
   const enCampo = jugadores.filter((j) => posiciones[j.id]);
   const enBanquillo = jugadores.filter((j) => !posiciones[j.id]);
-
-  // `jugadores` ya llega ordenado por dorsal (y alfabéticamente si no hay
-  // dorsal); para los jugadores sin dorsal asignado, se usa su posición en
-  // esa lista como número de ficha, de forma que la pizarra siempre muestre
-  // un número —nunca una letra— y esos números salgan ordenados.
-  const numeroPorJugador = new Map(
-    jugadores.map((j, i) => [j.id, j.dorsal ?? i + 1]),
-  );
 
   function handleAplicarFormacion() {
     const formacion = FORMACIONES.find((f) => f.value === formacionValue);
@@ -286,6 +282,7 @@ export function PizarraTactica({ jugadores }: { jugadores: Jugador[] }) {
     setTrazoActual(null);
     setPuntoBorrado(null);
     spawnContador.current = 0;
+    fichaContador.current = 0;
   }
 
   function handleBanquilloClick(jugadorId: string) {
@@ -294,7 +291,11 @@ export function PizarraTactica({ jugadores }: { jugadores: Jugador[] }) {
 
   function handleAñadirFicha(color: ColorFicha) {
     const id = nuevoId();
-    setFichas((prev) => ({ ...prev, [id]: { color, ...siguientePosicionSpawn() } }));
+    fichaContador.current += 1;
+    setFichas((prev) => ({
+      ...prev,
+      [id]: { color, numero: fichaContador.current, ...siguientePosicionSpawn() },
+    }));
   }
 
   function handleAñadirMaterial(tipo: TipoMaterial) {
@@ -772,7 +773,7 @@ export function PizarraTactica({ jugadores }: { jugadores: Jugador[] }) {
               style={{ top: `${pos.top}%`, left: `${pos.left}%` }}
             >
               <span className="flex size-9 items-center justify-center rounded-full border-2 border-gold bg-white font-heading text-sm tabular-nums text-foreground shadow">
-                {numeroPorJugador.get(j.id)}
+                {j.dorsal ?? nombreFicha(j)[0]}
               </span>
               <span className="max-w-16 truncate rounded bg-black/40 px-1 text-[10px] text-white">
                 {nombreFicha(j)}
@@ -788,16 +789,19 @@ export function PizarraTactica({ jugadores }: { jugadores: Jugador[] }) {
             onPointerDown={(e) => handlePointerDown(e, { kind: "ficha", id })}
             onPointerMove={(e) => handlePointerMove(e, { kind: "ficha", id })}
             onPointerUp={(e) => handlePointerUp(e, { kind: "ficha", id })}
-            aria-label={`Ficha ${f.color}`}
+            aria-label={`Ficha ${f.color} ${f.numero}`}
             className="absolute -translate-x-1/2 -translate-y-1/2"
             style={{ top: `${f.top}%`, left: `${f.left}%` }}
           >
             <span
               className={cn(
-                "block size-7 rounded-full border-2 border-white shadow",
+                "flex size-7 items-center justify-center rounded-full border-2 border-white text-xs font-semibold shadow",
                 COLORES_FICHA.find((c) => c.value === f.color)?.clase,
+                COLORES_FICHA.find((c) => c.value === f.color)?.texto,
               )}
-            />
+            >
+              {f.numero}
+            </span>
           </button>
         ))}
 
@@ -871,7 +875,7 @@ export function PizarraTactica({ jugadores }: { jugadores: Jugador[] }) {
                   className="flex items-center gap-2 rounded-full border py-1 pr-3 pl-2 text-sm hover:bg-muted"
                 >
                   <span className="flex size-6 items-center justify-center rounded-full bg-primary text-[10px] font-medium text-primary-foreground">
-                    {numeroPorJugador.get(j.id)}
+                    {j.dorsal ?? nombreFicha(j)[0]}
                   </span>
                   {nombreFicha(j)}
                 </button>

@@ -3,12 +3,12 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useLiveQuery } from "dexie-react-hooks";
-import { ChevronLeft, ChevronRight, Plus } from "lucide-react";
+import { ChevronRight, Plus } from "lucide-react";
 import { localDb } from "@/lib/db/local-db";
 import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
 
-export default function ScoutingPage() {
+export default function RivalesPage() {
   const rivales = useLiveQuery(
     () =>
       localDb.rivales_scouting
@@ -43,20 +43,12 @@ export default function ScoutingPage() {
 
   return (
     <div className="space-y-4">
-      <Link
-        href="/partidos"
-        className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground"
-      >
-        <ChevronLeft className="size-4" />
-        Volver a partidos
-      </Link>
-
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-semibold">Scouting</h1>
+        <h1 className="text-2xl font-semibold">Rivales</h1>
         <Button
           size="sm"
           nativeButton={false}
-          render={<Link href="/partidos/scouting/nuevo" />}
+          render={<Link href="/rivales/nuevo" />}
         >
           <Plus className="size-4" />
           Nuevo
@@ -72,7 +64,7 @@ export default function ScoutingPage() {
           {rivales.map((r) => (
             <li key={r.id}>
               <Link
-                href={`/partidos/scouting/${r.id}`}
+                href={`/rivales/${r.id}`}
                 className="flex items-center gap-3 p-3 hover:bg-muted/50"
               >
                 {r.foto_url && fotoUrls[r.foto_url] ? (

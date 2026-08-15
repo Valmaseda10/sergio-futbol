@@ -4,13 +4,14 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useLiveQuery } from "dexie-react-hooks";
-import { ChevronLeft, Pencil, Printer } from "lucide-react";
+import { Pencil, Printer } from "lucide-react";
 import { localDb } from "@/lib/db/local-db";
 import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { EliminarRivalScoutingButton } from "@/components/partidos/eliminar-rival-scouting-button";
-import { JugadoresDestacados } from "@/components/partidos/jugadores-destacados";
+import { EliminarRivalButton } from "@/components/rivales/eliminar-rival-button";
+import { JugadoresDestacados } from "@/components/rivales/jugadores-destacados";
+import { EquipacionRival } from "@/components/rivales/equipacion-rival";
 
 function Seccion({ titulo, texto }: { titulo: string; texto: string | null }) {
   if (!texto) return null;
@@ -24,7 +25,7 @@ function Seccion({ titulo, texto }: { titulo: string; texto: string | null }) {
   );
 }
 
-export default function FichaRivalScoutingPage() {
+export default function FichaRivalPage() {
   const { id } = useParams<{ id: string }>();
   const rival = useLiveQuery(
     async () => (await localDb.rivales_scouting.get(id)) ?? null,
@@ -51,14 +52,6 @@ export default function FichaRivalScoutingPage() {
 
   return (
     <div className="space-y-4">
-      <Link
-        href="/partidos/scouting"
-        className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground print:hidden"
-      >
-        <ChevronLeft className="size-4" />
-        Volver a scouting
-      </Link>
-
       <div className="flex items-center gap-3">
         {fotoSignedUrl ? (
           // eslint-disable-next-line @next/next/no-img-element
@@ -89,9 +82,7 @@ export default function FichaRivalScoutingPage() {
           size="icon"
           className="print:hidden"
           nativeButton={false}
-          render={
-            <Link href={`/partidos/scouting/${rival.id}/editar`} aria-label="Editar" />
-          }
+          render={<Link href={`/rivales/${rival.id}/editar`} aria-label="Editar" />}
         >
           <Pencil className="size-4" />
         </Button>
@@ -104,6 +95,13 @@ export default function FichaRivalScoutingPage() {
           year: "numeric",
         })}
       </p>
+
+      <EquipacionRival
+        rivalId={rival.id}
+        colorCamiseta={rival.color_camiseta}
+        colorPantalon={rival.color_pantalon}
+        colorMedias={rival.color_medias}
+      />
 
       <Seccion titulo="Sistema de juego" texto={rival.sistema_juego} />
       <Seccion titulo="Fase ofensiva" texto={rival.fase_ofensiva} />
@@ -121,7 +119,7 @@ export default function FichaRivalScoutingPage() {
       </Card>
 
       <div className="print:hidden">
-        <EliminarRivalScoutingButton id={rival.id} />
+        <EliminarRivalButton id={rival.id} />
       </div>
     </div>
   );

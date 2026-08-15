@@ -1,7 +1,8 @@
 "use client";
 
-// Scouting de rivales: escribe primero en Dexie y encola la mutación para
-// Supabase, siguiendo el mismo patrón local-first que el resto de la app.
+// Rivales (antes "scouting" dentro de Partidos): escribe primero en Dexie y
+// encola la mutación para Supabase, siguiendo el mismo patrón local-first
+// que el resto de la app.
 
 import {
   localDb,
@@ -18,15 +19,12 @@ import {
   toJugadorDestacadoInsert,
   type RivalScoutingFormValues,
   type JugadorDestacadoFormValues,
-} from "@/lib/validations/scouting";
+} from "@/lib/validations/rivales";
 
 type ActionResult = { error: string } | { success: true; id: string };
 type SimpleResult = { error: string } | { success: true };
 
-async function subirFotoRivalScouting(
-  rivalId: string,
-  foto: File,
-): Promise<void> {
+async function subirFotoRival(rivalId: string, foto: File): Promise<void> {
   const path = `scouting/${rivalId}.${extensionDeArchivo(foto)}`;
   await subirArchivoPrivado(path, foto);
 
@@ -38,7 +36,7 @@ async function subirFotoRivalScouting(
   await localDb.rivales_scouting.update(rivalId, { foto_url: path });
 }
 
-export async function crearRivalScoutingLocal(
+export async function crearRivalLocal(
   values: RivalScoutingFormValues,
   foto?: File | null,
 ): Promise<ActionResult> {
@@ -53,6 +51,9 @@ export async function crearRivalScoutingLocal(
     id,
     ...toRivalScoutingInsert(parsed.data),
     foto_url: null,
+    color_camiseta: null,
+    color_pantalon: null,
+    color_medias: null,
     created_at: now,
     updated_at: now,
   };
@@ -62,7 +63,7 @@ export async function crearRivalScoutingLocal(
 
   if (foto && foto.size > 0) {
     try {
-      await subirFotoRivalScouting(id, foto);
+      await subirFotoRival(id, foto);
     } catch (e) {
       return {
         error:
@@ -76,7 +77,7 @@ export async function crearRivalScoutingLocal(
   return { success: true, id };
 }
 
-export async function actualizarRivalScoutingLocal(
+export async function actualizarRivalLocal(
   id: string,
   values: RivalScoutingFormValues,
   foto?: File | null,
@@ -92,7 +93,7 @@ export async function actualizarRivalScoutingLocal(
 
   if (foto && foto.size > 0) {
     try {
-      await subirFotoRivalScouting(id, foto);
+      await subirFotoRival(id, foto);
     } catch (e) {
       return {
         error:
@@ -106,9 +107,7 @@ export async function actualizarRivalScoutingLocal(
   return { success: true, id };
 }
 
-export async function eliminarRivalScoutingLocal(
-  id: string,
-): Promise<SimpleResult> {
+export async function eliminarRivalLocal(id: string): Promise<SimpleResult> {
   const destacados = await localDb.rivales_jugadores_destacados
     .where("rival_id")
     .equals(id)
@@ -127,6 +126,17 @@ export async function eliminarRivalScoutingLocal(
 
   await queueMutation("rivales_scouting", "delete", id);
 
+  return { success: true };
+}
+
+export async function actualizarEquipacionRivalLocal(
+  id: string,
+  patch: Partial<
+    Pick<LocalRivalScouting, "color_camiseta" | "color_pantalon" | "color_medias">
+  >,
+): Promise<SimpleResult> {
+  await localDb.rivales_scouting.update(id, patch);
+  await queueMutation("rivales_scouting", "update", id, patch);
   return { success: true };
 }
 
