@@ -240,6 +240,7 @@ export default function EstadisticasPage() {
           pos_x: e.pos_x as number,
           pos_y: e.pos_y as number,
           a_favor: e.a_favor,
+          tipo_gol: e.tipo_gol,
           rival: rivalPorPartidoId.get(e.partido_id) ?? "Rival",
         })),
     [eventosTemporada, rivalPorPartidoId],
@@ -421,7 +422,7 @@ export default function EstadisticasPage() {
               Todavía no hay goles con ubicación registrada.
             </p>
           ) : (
-            <MapaGoles goles={golesUbicacion} />
+            <MapaGoles goles={golesUbicacion} tipos={TIPOS_GOL} />
           )}
         </CardContent>
       </Card>
