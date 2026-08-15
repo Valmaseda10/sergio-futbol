@@ -186,18 +186,28 @@ export default function CalendarioPage() {
                       {tieneEntreno && (
                         <span
                           className={cn(
-                            "size-1 rounded-full",
-                            esSeleccionado ? "bg-primary-foreground" : "bg-primary",
+                            "flex size-3 items-center justify-center rounded-full text-[7px] font-bold leading-none",
+                            esSeleccionado
+                              ? "bg-primary-foreground text-primary"
+                              : "bg-primary text-primary-foreground",
                           )}
-                        />
+                          title="Entrenamiento"
+                        >
+                          E
+                        </span>
                       )}
                       {tienePartido && (
                         <span
                           className={cn(
-                            "size-1 rounded-full",
-                            esSeleccionado ? "bg-primary-foreground" : "bg-gold",
+                            "flex size-3 items-center justify-center rounded-full text-[7px] font-bold leading-none",
+                            esSeleccionado
+                              ? "bg-primary-foreground text-gold"
+                              : "bg-gold text-gold-foreground",
                           )}
-                        />
+                          title="Partido"
+                        >
+                          P
+                        </span>
                       )}
                     </span>
                   )}

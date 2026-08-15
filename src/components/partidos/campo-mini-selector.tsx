@@ -9,6 +9,13 @@ interface Posicion {
 
 const MARGEN = 3;
 
+// Textura de red para la portería: dos tramas diagonales cruzadas.
+const ESTILO_RED: React.CSSProperties = {
+  backgroundImage:
+    "repeating-linear-gradient(45deg, rgba(255,255,255,0.4) 0, rgba(255,255,255,0.4) 1px, transparent 1px, transparent 5px), " +
+    "repeating-linear-gradient(-45deg, rgba(255,255,255,0.4) 0, rgba(255,255,255,0.4) 1px, transparent 1px, transparent 5px)",
+};
+
 function clamp(n: number, min: number, max: number) {
   return Math.min(max, Math.max(min, n));
 }
@@ -21,7 +28,10 @@ export function PitchHalfLines() {
       <div className="absolute left-1/2 top-[32%] size-1.5 -translate-x-1/2 -translate-y-1/2 rounded-full bg-white/40" />
       <div className="absolute inset-x-0 bottom-0 h-px bg-white/40" />
       <div className="absolute left-1/2 bottom-0 size-24 -translate-x-1/2 translate-y-1/2 rounded-full border border-white/40" />
-      <div className="absolute inset-x-[45%] top-0 h-[3%] border-x-2 border-b-2 border-white/70" />
+      <div
+        className="absolute inset-x-[45%] top-0 h-[5%] border-x-2 border-t border-white/80"
+        style={ESTILO_RED}
+      />
       <div className="absolute left-0 top-0 size-3 rounded-br-full border-r border-b border-white/50" />
       <div className="absolute right-0 top-0 size-3 rounded-bl-full border-l border-b border-white/50" />
     </>

@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useLiveQuery } from "dexie-react-hooks";
-import { Plus, HeartPulse } from "lucide-react";
+import { Plus, HeartPulse, ArrowLeftRight, GalleryVerticalEnd } from "lucide-react";
 import { localDb } from "@/lib/db/local-db";
 import { Button } from "@/components/ui/button";
 import { JugadoresList } from "@/components/plantilla/jugadores-list";
@@ -29,6 +29,22 @@ export default function PlantillaPage() {
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-semibold">Plantilla</h1>
         <div className="flex gap-2">
+          <Button
+            size="sm"
+            variant="outline"
+            nativeButton={false}
+            render={<Link href="/plantilla/cartel" aria-label="Cartel de plantilla" />}
+          >
+            <GalleryVerticalEnd className="size-4" />
+          </Button>
+          <Button
+            size="sm"
+            variant="outline"
+            nativeButton={false}
+            render={<Link href="/plantilla/comparar" aria-label="Comparar jugadores" />}
+          >
+            <ArrowLeftRight className="size-4" />
+          </Button>
           <Button
             size="sm"
             variant="outline"

@@ -1,4 +1,4 @@
-import { Crest } from "@/components/branding/crest";
+import { ClubCrest } from "@/components/branding/club-crest";
 
 // Marca de agua para los informes exportados a PDF: el escudo del club muy
 // tenue, centrado en la página. Solo se pinta al imprimir (la vista en
@@ -10,7 +10,7 @@ export function PdfWatermark() {
       aria-hidden="true"
       className="pointer-events-none fixed inset-0 z-0 hidden items-center justify-center opacity-[0.07] print:flex"
     >
-      <Crest size={380} />
+      <ClubCrest size={340} />
     </div>
   );
 }

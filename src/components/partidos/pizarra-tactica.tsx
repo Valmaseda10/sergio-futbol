@@ -117,6 +117,13 @@ const TEXT_CLASE_CONO_CHINO: Record<ColorConoChino, string> = {
   blanco: "text-white",
 };
 
+// Textura de red para las porterías: dos tramas diagonales cruzadas.
+const ESTILO_RED: React.CSSProperties = {
+  backgroundImage:
+    "repeating-linear-gradient(45deg, rgba(255,255,255,0.4) 0, rgba(255,255,255,0.4) 1px, transparent 1px, transparent 5px), " +
+    "repeating-linear-gradient(-45deg, rgba(255,255,255,0.4) 0, rgba(255,255,255,0.4) 1px, transparent 1px, transparent 5px)",
+};
+
 const ETIQUETA_MATERIAL: Record<TipoMaterial, string> = {
   cono: "Cono",
   pica: "Pica",
@@ -855,9 +862,15 @@ export function PizarraTactica({ jugadores }: { jugadores: Jugador[] }) {
         <div className="absolute left-1/2 top-[12%] size-1.5 -translate-x-1/2 -translate-y-1/2 rounded-full bg-white/40" />
         <div className="absolute left-1/2 bottom-[12%] size-1.5 -translate-x-1/2 translate-y-1/2 rounded-full bg-white/40" />
 
-        {/* Portería, arriba y abajo */}
-        <div className="absolute inset-x-[46%] top-0 h-[1.2%] border-x-2 border-white/80" />
-        <div className="absolute inset-x-[46%] bottom-0 h-[1.2%] border-x-2 border-white/80" />
+        {/* Portería con red, arriba y abajo */}
+        <div
+          className="absolute inset-x-[46%] top-0 h-[3%] border-x-2 border-t border-white/80"
+          style={ESTILO_RED}
+        />
+        <div
+          className="absolute inset-x-[46%] bottom-0 h-[3%] border-x-2 border-b border-white/80"
+          style={ESTILO_RED}
+        />
 
         {/* Corners, en las 4 esquinas */}
         <div className="absolute left-0 top-0 size-3 rounded-br-full border-r border-b border-white/50" />
