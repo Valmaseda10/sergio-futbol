@@ -91,6 +91,7 @@ export function JugadoresDestacados({ rivalId }: { rivalId: string }) {
           type="button"
           size="sm"
           variant="outline"
+          className="print:hidden"
           onClick={() => setMostrarForm((v) => !v)}
         >
           <Plus className="size-4" />
@@ -101,7 +102,7 @@ export function JugadoresDestacados({ rivalId }: { rivalId: string }) {
       {mostrarForm && (
         <form
           onSubmit={handleSubmit(onSubmit)}
-          className="space-y-3 rounded-md border p-3"
+          className="space-y-3 rounded-md border p-3 print:hidden"
         >
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1">
@@ -210,7 +211,12 @@ function JugadorDestacadoRow({
         </p>
         {notas && <p className="text-xs text-muted-foreground">{notas}</p>}
       </div>
-      <button type="button" onClick={onDelete} aria-label="Eliminar jugador">
+      <button
+        type="button"
+        onClick={onDelete}
+        aria-label="Eliminar jugador"
+        className="print:hidden"
+      >
         <Trash2 className="size-4 text-muted-foreground hover:text-destructive" />
       </button>
     </div>

@@ -1,12 +1,14 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useLiveQuery } from "dexie-react-hooks";
 import { Pencil, Printer } from "lucide-react";
 import { localDb } from "@/lib/db/local-db";
 import { createClient } from "@/lib/supabase/client";
+import { calcularStatsJugadores } from "@/lib/estadisticas";
+import { temporadaActual, enTemporada } from "@/lib/temporada";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -17,6 +19,11 @@ import { AsistenciaJugador } from "@/components/plantilla/asistencia-jugador";
 import { LesionesJugador } from "@/components/plantilla/lesiones-jugador";
 import { VideosJugador } from "@/components/plantilla/videos-jugador";
 import { posicionLabel } from "@/lib/posiciones";
+
+function hoyISO() {
+  const now = new Date();
+  return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
+}
 
 function formatearFecha(fecha: string | null) {
   if (!fecha) return "—";
@@ -49,6 +56,74 @@ export default function FichaJugadorPage() {
       .createSignedUrl(jugador.foto_url, 3600)
       .then(({ data }) => setFotoSignedUrl(data?.signedUrl ?? null));
   }, [jugador?.foto_url]);
+
+  const hoy = hoyISO();
+  const temporada = temporadaActual(hoy);
+
+  const eventos = useLiveQuery(() => localDb.eventos_partido.toArray(), [], []);
+  const convocatorias = useLiveQuery(
+    () => localDb.convocatorias.filter((c) => c.convocado).toArray(),
+    [],
+    [],
+  );
+  const alineaciones = useLiveQuery(() => localDb.alineaciones.toArray(), [], []);
+  const partidos = useLiveQuery(() => localDb.partidos.toArray(), [], []);
+  const entrenamientos = useLiveQuery(
+    () => localDb.entrenamientos.toArray(),
+    [],
+    [],
+  );
+  const asistencias = useLiveQuery(
+    () => localDb.asistencias_entrenamiento.toArray(),
+    [],
+    [],
+  );
+  const estados = useLiveQuery(() => localDb.estados.toArray(), [], []);
+
+  const statsTemporada = useMemo(() => {
+    if (!jugador) return null;
+
+    const partidoIdsTemporada = new Set(
+      partidos.filter((p) => enTemporada(p.fecha, temporada)).map((p) => p.id),
+    );
+    const entrenamientosTemporada = entrenamientos.filter((e) =>
+      enTemporada(e.fecha, temporada),
+    );
+    const entrenamientoIdsTemporada = new Set(
+      entrenamientosTemporada.map((e) => e.id),
+    );
+    const nombrePorEstado = new Map(estados.map((e) => [e.id, e.nombre]));
+    const asistenciasConNombre = asistencias
+      .filter(
+        (a) => a.estado_id && entrenamientoIdsTemporada.has(a.entrenamiento_id),
+      )
+      .map((a) => ({
+        entrenamiento_id: a.entrenamiento_id,
+        jugador_id: a.jugador_id,
+        estado_nombre: nombrePorEstado.get(a.estado_id as string) ?? "",
+      }));
+
+    return calcularStatsJugadores(
+      [jugador],
+      eventos.filter((e) => partidoIdsTemporada.has(e.partido_id)),
+      convocatorias.filter((c) => partidoIdsTemporada.has(c.partido_id)),
+      alineaciones.filter((a) => partidoIdsTemporada.has(a.partido_id)),
+      entrenamientosTemporada.filter((e) => e.fecha <= hoy),
+      asistenciasConNombre,
+      hoy,
+    )[0];
+  }, [
+    jugador,
+    partidos,
+    entrenamientos,
+    estados,
+    asistencias,
+    eventos,
+    convocatorias,
+    alineaciones,
+    temporada,
+    hoy,
+  ]);
 
   if (jugador === undefined) {
     return <p className="text-sm text-muted-foreground">Cargando...</p>;
@@ -103,6 +178,39 @@ export default function FichaJugadorPage() {
           <Pencil className="size-4" />
         </Button>
       </div>
+      <p className="hidden text-xs text-muted-foreground print:block">
+        Ficha generada el{" "}
+        {new Date(`${hoy}T00:00:00`).toLocaleDateString("es-ES", {
+          day: "2-digit",
+          month: "long",
+          year: "numeric",
+        })}
+      </p>
+
+      {statsTemporada && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">Temporada {temporada}</CardTitle>
+          </CardHeader>
+          <CardContent className="grid grid-cols-4 gap-y-3 text-center">
+            {[
+              { label: "Convoc.", valor: statsTemporada.convocatorias },
+              { label: "Titular", valor: statsTemporada.titularidades },
+              { label: "Suplente", valor: statsTemporada.suplencias },
+              { label: "Minutos", valor: statsTemporada.minutosAprox },
+              { label: "Goles", valor: statsTemporada.goles },
+              { label: "Asist.", valor: statsTemporada.asistencias },
+              { label: "T. amarillas", valor: statsTemporada.tarjetasAmarillas },
+              { label: "T. rojas", valor: statsTemporada.tarjetasRojas },
+            ].map((d) => (
+              <div key={d.label}>
+                <p className="font-heading text-xl tabular-nums">{d.valor}</p>
+                <p className="text-xs text-muted-foreground">{d.label}</p>
+              </div>
+            ))}
+          </CardContent>
+        </Card>
+      )}
 
       <Card>
         <CardHeader>

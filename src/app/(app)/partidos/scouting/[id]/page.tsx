@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useLiveQuery } from "dexie-react-hooks";
-import { ChevronLeft, Pencil } from "lucide-react";
+import { ChevronLeft, Pencil, Printer } from "lucide-react";
 import { localDb } from "@/lib/db/local-db";
 import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -53,7 +53,7 @@ export default function FichaRivalScoutingPage() {
     <div className="space-y-4">
       <Link
         href="/partidos/scouting"
-        className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground"
+        className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground print:hidden"
       >
         <ChevronLeft className="size-4" />
         Volver a scouting
@@ -78,6 +78,16 @@ export default function FichaRivalScoutingPage() {
         <Button
           variant="ghost"
           size="icon"
+          className="print:hidden"
+          aria-label="Exportar a PDF"
+          onClick={() => window.print()}
+        >
+          <Printer className="size-4" />
+        </Button>
+        <Button
+          variant="ghost"
+          size="icon"
+          className="print:hidden"
           nativeButton={false}
           render={
             <Link href={`/partidos/scouting/${rival.id}/editar`} aria-label="Editar" />
@@ -86,6 +96,14 @@ export default function FichaRivalScoutingPage() {
           <Pencil className="size-4" />
         </Button>
       </div>
+      <p className="hidden text-xs text-muted-foreground print:block">
+        Informe de scouting — generado el{" "}
+        {new Date().toLocaleDateString("es-ES", {
+          day: "2-digit",
+          month: "long",
+          year: "numeric",
+        })}
+      </p>
 
       <Seccion titulo="Sistema de juego" texto={rival.sistema_juego} />
       <Seccion titulo="Fase ofensiva" texto={rival.fase_ofensiva} />
@@ -102,7 +120,9 @@ export default function FichaRivalScoutingPage() {
         </CardContent>
       </Card>
 
-      <EliminarRivalScoutingButton id={rival.id} />
+      <div className="print:hidden">
+        <EliminarRivalScoutingButton id={rival.id} />
+      </div>
     </div>
   );
 }

@@ -6,7 +6,14 @@ import { useLiveQuery } from "dexie-react-hooks";
 import { AlertTriangle, Clock, MapPin, Users as UsersIcon } from "lucide-react";
 import { localDb } from "@/lib/db/local-db";
 import { capitalizarPrimera } from "@/lib/date";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { cn } from "@/lib/utils";
+import {
+  Card,
+  CardAction,
+  CardContent,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { FechaTile } from "@/components/ui/fecha-tile";
 import { HorarioSemanalResumen } from "@/components/entrenamientos/horario-semanal-resumen";
@@ -36,6 +43,17 @@ function diasDeBaja(fechaInicio: string, hoy: string) {
   const inicio = new Date(`${fechaInicio}T00:00:00`).getTime();
   const fin = new Date(`${hoy}T00:00:00`).getTime();
   return Math.max(0, Math.round((fin - inicio) / 86_400_000));
+}
+
+function diasHasta(fechaISO: string, hoy: string) {
+  const dias = Math.round(
+    (new Date(`${fechaISO}T00:00:00`).getTime() -
+      new Date(`${hoy}T00:00:00`).getTime()) /
+      86_400_000,
+  );
+  if (dias === 0) return "Hoy";
+  if (dias === 1) return "Mañana";
+  return `En ${dias} días`;
 }
 
 export function InicioDashboard({
@@ -89,6 +107,15 @@ export function InicioDashboard({
         .filter((p) => p.fecha >= hoy)
         .sort((a, b) => a.fecha.localeCompare(b.fecha))[0] ?? null,
     [partidos, hoy],
+  );
+
+  const ultimosResultados = useMemo(
+    () =>
+      partidos
+        .filter((p) => p.resultado_favor != null && p.resultado_contra != null)
+        .sort((a, b) => a.fecha.localeCompare(b.fecha))
+        .slice(-5),
+    [partidos],
   );
 
   const lesionados = useMemo(
@@ -194,6 +221,13 @@ export function InicioDashboard({
         <Card>
           <CardHeader>
             <CardTitle className="text-base">Próximo entrenamiento</CardTitle>
+            {proximoEntrenamiento && (
+              <CardAction>
+                <Badge variant="outline">
+                  {diasHasta(proximoEntrenamiento.fecha, hoy)}
+                </Badge>
+              </CardAction>
+            )}
           </CardHeader>
           <CardContent>
             {proximoEntrenamiento ? (
@@ -233,6 +267,13 @@ export function InicioDashboard({
         <Card>
           <CardHeader>
             <CardTitle className="text-base">Próximo partido</CardTitle>
+            {proximoPartido && (
+              <CardAction>
+                <Badge variant="outline">
+                  {diasHasta(proximoPartido.fecha, hoy)}
+                </Badge>
+              </CardAction>
+            )}
           </CardHeader>
           <CardContent>
             {proximoPartido ? (
@@ -270,6 +311,38 @@ export function InicioDashboard({
           </CardContent>
         </Card>
       </div>
+
+      {ultimosResultados.length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">Últimos resultados</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="flex items-center gap-2">
+              {ultimosResultados.map((p) => {
+                const gf = p.resultado_favor as number;
+                const gc = p.resultado_contra as number;
+                const resultado = gf > gc ? "G" : gf === gc ? "E" : "P";
+                return (
+                  <Link
+                    key={p.id}
+                    href={`/partidos/${p.id}`}
+                    title={`${p.local_visitante === "local" ? "vs" : "@"} ${p.rival} · ${gf}-${gc}`}
+                    className={cn(
+                      "flex size-9 shrink-0 items-center justify-center rounded-full text-sm font-semibold text-white",
+                      resultado === "G" && "bg-pitch",
+                      resultado === "E" && "bg-muted-foreground",
+                      resultado === "P" && "bg-destructive",
+                    )}
+                  >
+                    {resultado}
+                  </Link>
+                );
+              })}
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       <HorarioSemanalResumen />
 

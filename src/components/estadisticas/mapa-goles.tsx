@@ -50,7 +50,7 @@ export function MapaGoles({
   return (
     <div className="space-y-3">
       {opciones.length > 1 && (
-        <div className="flex flex-wrap gap-1.5">
+        <div className="flex flex-wrap gap-1.5 print:hidden">
           {opciones.map((o) => {
             const activo = !excluidos.has(o.value);
             return (
