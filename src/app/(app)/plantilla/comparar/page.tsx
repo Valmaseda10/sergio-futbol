@@ -4,17 +4,11 @@ import { useMemo, useState } from "react";
 import Link from "next/link";
 import { useLiveQuery } from "dexie-react-hooks";
 import { ChevronLeft } from "lucide-react";
-import {
-  Radar,
-  RadarChart,
-  PolarGrid,
-  PolarAngleAxis,
-  PolarRadiusAxis,
-  Legend,
-  Tooltip,
-  ResponsiveContainer,
-} from "recharts";
-import { localDb, type LocalValoracionJugador } from "@/lib/db/local-db";
+import { localDb } from "@/lib/db/local-db";
+import { calcularStatsJugadores, type JugadorStats } from "@/lib/estadisticas";
+import { temporadaDeFecha } from "@/lib/temporada";
+import { useTemporadaSeleccionada } from "@/lib/hooks/use-temporada-seleccionada";
+import { cn } from "@/lib/utils";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Select,
@@ -24,11 +18,27 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 
-function nombreCorto(j: { nombre: string; apellidos: string; alias: string | null }) {
-  return j.alias || `${j.nombre} ${j.apellidos.split(" ")[0]}`;
+function hoyISO() {
+  const now = new Date();
+  return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
+}
+
+function nombreCorto(j: { nombre: string; apellidos: string }) {
+  return `${j.nombre} ${j.apellidos.split(" ")[0]}`;
+}
+
+interface FilaComparacion {
+  etiqueta: string;
+  valorA: number | null;
+  valorB: number | null;
+  sufijo?: string;
+  masEsMejor?: boolean;
 }
 
 export default function CompararJugadoresPage() {
+  const hoy = hoyISO();
+  const { temporada } = useTemporadaSeleccionada();
+
   const jugadores = useLiveQuery(
     () =>
       localDb.jugadores
@@ -38,41 +48,155 @@ export default function CompararJugadoresPage() {
     [],
     [],
   );
-  const valoraciones = useLiveQuery(
-    () => localDb.valoraciones_jugador.toArray(),
+  const partidos = useLiveQuery(() => localDb.partidos.toArray(), [], []);
+  const eventos = useLiveQuery(() => localDb.eventos_partido.toArray(), [], []);
+  const convocatorias = useLiveQuery(
+    () => localDb.convocatorias.filter((c) => c.convocado).toArray(),
     [],
     [],
+  );
+  const alineaciones = useLiveQuery(
+    () => localDb.alineaciones.toArray(),
+    [],
+    [],
+  );
+  const entrenamientos = useLiveQuery(
+    () => localDb.entrenamientos.toArray(),
+    [],
+    [],
+  );
+  const asistencias = useLiveQuery(
+    () => localDb.asistencias_entrenamiento.toArray(),
+    [],
+    [],
+  );
+  const estados = useLiveQuery(() => localDb.estados.toArray(), [], []);
+
+  const partidosTemporada = useMemo(
+    () => partidos.filter((p) => temporadaDeFecha(p.fecha) === temporada),
+    [partidos, temporada],
+  );
+  const partidoIdsTemporada = useMemo(
+    () => new Set(partidosTemporada.map((p) => p.id)),
+    [partidosTemporada],
+  );
+  const eventosTemporada = useMemo(
+    () => eventos.filter((e) => partidoIdsTemporada.has(e.partido_id)),
+    [eventos, partidoIdsTemporada],
+  );
+  const convocatoriasTemporada = useMemo(
+    () => convocatorias.filter((c) => partidoIdsTemporada.has(c.partido_id)),
+    [convocatorias, partidoIdsTemporada],
+  );
+  const alineacionesTemporada = useMemo(
+    () => alineaciones.filter((a) => partidoIdsTemporada.has(a.partido_id)),
+    [alineaciones, partidoIdsTemporada],
+  );
+  const entrenamientosTemporada = useMemo(
+    () => entrenamientos.filter((e) => temporadaDeFecha(e.fecha) === temporada),
+    [entrenamientos, temporada],
+  );
+  const entrenamientoIdsTemporada = useMemo(
+    () => new Set(entrenamientosTemporada.map((e) => e.id)),
+    [entrenamientosTemporada],
+  );
+  const asistenciasConNombre = useMemo(() => {
+    const nombrePorEstado = new Map(estados.map((e) => [e.id, e.nombre]));
+    return asistencias
+      .filter((a) => a.estado_id && entrenamientoIdsTemporada.has(a.entrenamiento_id))
+      .map((a) => ({
+        entrenamiento_id: a.entrenamiento_id,
+        jugador_id: a.jugador_id,
+        estado_nombre: nombrePorEstado.get(a.estado_id as string) ?? "",
+      }));
+  }, [asistencias, estados, entrenamientoIdsTemporada]);
+
+  const stats = useMemo(
+    () =>
+      calcularStatsJugadores(
+        jugadores,
+        eventosTemporada,
+        convocatoriasTemporada,
+        alineacionesTemporada,
+        entrenamientosTemporada,
+        asistenciasConNombre,
+        hoy,
+      ),
+    [
+      jugadores,
+      eventosTemporada,
+      convocatoriasTemporada,
+      alineacionesTemporada,
+      entrenamientosTemporada,
+      asistenciasConNombre,
+      hoy,
+    ],
+  );
+  const statsPorId = useMemo(
+    () => new Map(stats.map((s) => [s.id, s] as [string, JugadorStats])),
+    [stats],
   );
 
   const [idA, setIdA] = useState("");
   const [idB, setIdB] = useState("");
 
-  const ultimaValoracionPorJugador = useMemo(() => {
-    const map = new Map<string, LocalValoracionJugador>();
-    for (const v of valoraciones
-      .slice()
-      .sort((a, b) => a.fecha.localeCompare(b.fecha))) {
-      map.set(v.jugador_id, v);
-    }
-    return map;
-  }, [valoraciones]);
-
   const jugadorA = jugadores.find((j) => j.id === idA);
   const jugadorB = jugadores.find((j) => j.id === idB);
-  const valA = idA ? ultimaValoracionPorJugador.get(idA) : undefined;
-  const valB = idB ? ultimaValoracionPorJugador.get(idB) : undefined;
+  const statA = idA ? statsPorId.get(idA) : undefined;
+  const statB = idB ? statsPorId.get(idB) : undefined;
 
   const nombreA = jugadorA ? nombreCorto(jugadorA) : "Jugador A";
   const nombreB = jugadorB ? nombreCorto(jugadorB) : "Jugador B";
 
-  const datos = [
-    { atributo: "Técnica", [nombreA]: valA?.tecnica ?? 0, [nombreB]: valB?.tecnica ?? 0 },
-    { atributo: "Físico", [nombreA]: valA?.fisico ?? 0, [nombreB]: valB?.fisico ?? 0 },
-    { atributo: "Táctica", [nombreA]: valA?.tactica ?? 0, [nombreB]: valB?.tactica ?? 0 },
-    { atributo: "Actitud", [nombreA]: valA?.actitud ?? 0, [nombreB]: valB?.actitud ?? 0 },
-  ];
-
-  const puedeComparar = !!(idA && idB && valA && valB);
+  const filas: FilaComparacion[] =
+    statA && statB
+      ? [
+          { etiqueta: "Goles", valorA: statA.goles, valorB: statB.goles },
+          {
+            etiqueta: "Asistencias",
+            valorA: statA.asistencias,
+            valorB: statB.asistencias,
+          },
+          {
+            etiqueta: "Partidos convocado",
+            valorA: statA.convocatorias,
+            valorB: statB.convocatorias,
+          },
+          {
+            etiqueta: "Titularidades",
+            valorA: statA.titularidades,
+            valorB: statB.titularidades,
+          },
+          {
+            etiqueta: "Suplencias",
+            valorA: statA.suplencias,
+            valorB: statB.suplencias,
+          },
+          {
+            etiqueta: "Minutos jugados (aprox.)",
+            valorA: statA.minutosAprox,
+            valorB: statB.minutosAprox,
+          },
+          {
+            etiqueta: "% asistencia a entrenamientos",
+            valorA: statA.pctAsistencia,
+            valorB: statB.pctAsistencia,
+            sufijo: "%",
+          },
+          {
+            etiqueta: "Tarjetas amarillas",
+            valorA: statA.tarjetasAmarillas,
+            valorB: statB.tarjetasAmarillas,
+            masEsMejor: false,
+          },
+          {
+            etiqueta: "Tarjetas rojas",
+            valorA: statA.tarjetasRojas,
+            valorB: statB.tarjetasRojas,
+            masEsMejor: false,
+          },
+        ]
+      : [];
 
   return (
     <div className="space-y-4">
@@ -84,7 +208,12 @@ export default function CompararJugadoresPage() {
         Plantilla
       </Link>
 
-      <h1 className="text-2xl font-semibold">Comparar jugadores</h1>
+      <div>
+        <h1 className="text-2xl font-semibold">Comparar jugadores</h1>
+        <p className="text-xs text-muted-foreground">
+          Temporada {temporada.replace("-", "/")}
+        </p>
+      </div>
 
       <Card>
         <CardContent className="grid grid-cols-2 gap-3 pt-6">
@@ -128,17 +257,9 @@ export default function CompararJugadoresPage() {
         </CardContent>
       </Card>
 
-      {!idA || !idB ? (
+      {!statA || !statB ? (
         <p className="py-8 text-center text-sm text-muted-foreground">
-          Elige dos jugadores para comparar su última valoración.
-        </p>
-      ) : !valA || !valB ? (
-        <p className="py-8 text-center text-sm text-muted-foreground">
-          {!valA && !valB
-            ? `${nombreA} y ${nombreB} todavía no tienen valoraciones registradas.`
-            : !valA
-              ? `${nombreA} todavía no tiene valoraciones registradas.`
-              : `${nombreB} todavía no tiene valoraciones registradas.`}
+          Elige dos jugadores para comparar sus estadísticas de la temporada.
         </p>
       ) : (
         <Card>
@@ -147,37 +268,58 @@ export default function CompararJugadoresPage() {
               {nombreA} vs {nombreB}
             </CardTitle>
           </CardHeader>
-          <CardContent>
-            <div className="h-72 w-full">
-              <ResponsiveContainer width="100%" height="100%">
-                <RadarChart data={datos}>
-                  <PolarGrid />
-                  <PolarAngleAxis dataKey="atributo" fontSize={12} />
-                  <PolarRadiusAxis domain={[0, 10]} fontSize={10} />
-                  <Radar
-                    name={nombreA}
-                    dataKey={nombreA}
-                    stroke="var(--primary)"
-                    fill="var(--primary)"
-                    fillOpacity={0.35}
-                  />
-                  <Radar
-                    name={nombreB}
-                    dataKey={nombreB}
-                    stroke="var(--gold)"
-                    fill="var(--gold)"
-                    fillOpacity={0.35}
-                  />
-                  <Legend />
-                  <Tooltip />
-                </RadarChart>
-              </ResponsiveContainer>
-            </div>
-            {puedeComparar && (
-              <p className="mt-2 text-center text-xs text-muted-foreground">
-                Última valoración: {nombreA} ({valA.fecha}) · {nombreB} ({valB.fecha})
-              </p>
-            )}
+          <CardContent className="p-0">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b text-xs text-muted-foreground">
+                  <th className="p-3 text-left font-medium">{nombreA}</th>
+                  <th className="p-3 text-center font-medium">Estadística</th>
+                  <th className="p-3 text-right font-medium">{nombreB}</th>
+                </tr>
+              </thead>
+              <tbody>
+                {filas.map((f) => {
+                  const a = f.valorA;
+                  const b = f.valorB;
+                  const masEsMejor = f.masEsMejor ?? true;
+                  const aGana =
+                    a != null &&
+                    b != null &&
+                    a !== b &&
+                    (masEsMejor ? a > b : a < b);
+                  const bGana =
+                    a != null &&
+                    b != null &&
+                    a !== b &&
+                    (masEsMejor ? b > a : b < a);
+                  return (
+                    <tr key={f.etiqueta} className="border-b last:border-0">
+                      <td
+                        className={cn(
+                          "p-3 text-left tabular-nums",
+                          aGana && "font-semibold text-primary",
+                        )}
+                      >
+                        {a ?? "—"}
+                        {a != null && f.sufijo}
+                      </td>
+                      <td className="p-3 text-center text-xs text-muted-foreground">
+                        {f.etiqueta}
+                      </td>
+                      <td
+                        className={cn(
+                          "p-3 text-right tabular-nums",
+                          bGana && "font-semibold text-primary",
+                        )}
+                      >
+                        {b ?? "—"}
+                        {b != null && f.sufijo}
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
           </CardContent>
         </Card>
       )}

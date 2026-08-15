@@ -1,6 +1,11 @@
 // Lista cerrada de posiciones para poder agrupar la plantilla por demarcación
-// (porteros/defensas/mediocentros/delanteros) de forma fiable.
-export type Demarcacion = "portero" | "defensa" | "mediocentro" | "delantero";
+// (porteros/defensas/mediocentros/extremos/delanteros) de forma fiable.
+export type Demarcacion =
+  | "portero"
+  | "defensa"
+  | "mediocentro"
+  | "extremo"
+  | "delantero";
 
 export interface PosicionOption {
   value: string;
@@ -23,12 +28,12 @@ export const POSICIONES: PosicionOption[] = [
   {
     value: "extremo derecho",
     label: "Extremo derecho",
-    demarcacion: "delantero",
+    demarcacion: "extremo",
   },
   {
     value: "extremo izquierdo",
     label: "Extremo izquierdo",
-    demarcacion: "delantero",
+    demarcacion: "extremo",
   },
   {
     value: "delantero centro",
@@ -41,6 +46,7 @@ export const DEMARCACION_ORDEN: Demarcacion[] = [
   "portero",
   "defensa",
   "mediocentro",
+  "extremo",
   "delantero",
 ];
 
@@ -48,6 +54,7 @@ export const DEMARCACION_LABEL: Record<Demarcacion, string> = {
   portero: "Porteros",
   defensa: "Defensas",
   mediocentro: "Mediocentros",
+  extremo: "Extremos",
   delantero: "Delanteros",
 };
 

@@ -30,6 +30,7 @@ export type LocalRivalScouting = Tables["rivales_scouting"]["Row"];
 export type LocalRivalJugadorDestacado =
   Tables["rivales_jugadores_destacados"]["Row"];
 export type LocalHorarioEntrenamiento = Tables["horario_entrenamiento"]["Row"];
+export type LocalRecordatorio = Tables["recordatorios"]["Row"];
 
 export const SYNCED_TABLES = [
   "jugadores",
@@ -48,6 +49,7 @@ export const SYNCED_TABLES = [
   "rivales_scouting",
   "rivales_jugadores_destacados",
   "horario_entrenamiento",
+  "recordatorios",
 ] as const;
 
 export type SyncedTable = (typeof SYNCED_TABLES)[number];
@@ -94,6 +96,7 @@ class LocalDb extends Dexie {
   rivales_scouting!: Table<LocalRivalScouting, string>;
   rivales_jugadores_destacados!: Table<LocalRivalJugadorDestacado, string>;
   horario_entrenamiento!: Table<LocalHorarioEntrenamiento, string>;
+  recordatorios!: Table<LocalRecordatorio, string>;
   outbox!: Table<OutboxEntry, number>;
   meta!: Table<MetaEntry, string>;
 
@@ -138,6 +141,10 @@ class LocalDb extends Dexie {
 
     this.version(6).stores({
       horario_entrenamiento: "id, dia_semana",
+    });
+
+    this.version(7).stores({
+      recordatorios: "id, completado, created_at",
     });
   }
 }

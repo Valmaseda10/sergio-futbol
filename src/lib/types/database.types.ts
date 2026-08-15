@@ -527,6 +527,24 @@ export interface Database {
         >;
         Relationships: [];
       };
+      recordatorios: {
+        Row: {
+          id: string;
+          texto: string;
+          completado: boolean;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          texto: string;
+          completado?: boolean;
+          created_at?: string;
+        };
+        Update: Partial<
+          Database["public"]["Tables"]["recordatorios"]["Insert"]
+        >;
+        Relationships: [];
+      };
     };
     Views: Record<string, never>;
     Functions: {
