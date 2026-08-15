@@ -15,7 +15,7 @@ export default function AuthLayout({
               Panel del entrenador
             </p>
             <h1 className="font-heading text-3xl uppercase tracking-wide text-[#f3ece7]">
-              CYDL Infantil B
+              Infantil B 26/27
             </h1>
           </div>
         </div>

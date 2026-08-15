@@ -6,6 +6,7 @@ import { UsuariosPanel } from "@/components/ajustes/usuarios-panel";
 import { CambiarPasswordPanel } from "@/components/ajustes/cambiar-password-panel";
 import { CopiaSeguridadPanel } from "@/components/ajustes/copia-seguridad-panel";
 import { CalendarioPanel } from "@/components/ajustes/calendario-panel";
+import { TemporadaSelector } from "@/components/temporada-selector";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 export default async function AjustesPage() {
@@ -61,6 +62,20 @@ export default async function AjustesPage() {
           </CardContent>
         </Card>
       )}
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Temporada</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          <p className="text-xs text-muted-foreground">
+            Entrenamientos, partidos y estadísticas se filtran por esta
+            temporada en el resto de la app. Cámbiala aquí para editar o
+            añadir datos de otra.
+          </p>
+          <TemporadaSelector />
+        </CardContent>
+      </Card>
 
       <Card>
         <CardHeader>

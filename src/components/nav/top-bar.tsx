@@ -4,6 +4,8 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { LogOut } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
+import { useTemporadaSeleccionada } from "@/lib/hooks/use-temporada-seleccionada";
+import { temporadaCorta } from "@/lib/temporada";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Crest } from "@/components/branding/crest";
@@ -13,6 +15,7 @@ import type { Rol } from "@/lib/types/database.types";
 export function TopBar({ nombre, rol }: { nombre: string; rol: Rol }) {
   const router = useRouter();
   const supabase = createClient();
+  const { temporada } = useTemporadaSeleccionada();
 
   async function handleSignOut() {
     await supabase.auth.signOut();
@@ -26,7 +29,7 @@ export function TopBar({ nombre, rol }: { nombre: string; rol: Rol }) {
         <Crest size={30} />
         <div className="min-w-0">
           <p className="truncate font-heading text-sm uppercase tracking-wide leading-tight">
-            CYDL Infantil B
+            Infantil B {temporadaCorta(temporada)}
           </p>
           <p className="truncate text-[11px] text-[#c9bdb6]">
             Panel del entrenador

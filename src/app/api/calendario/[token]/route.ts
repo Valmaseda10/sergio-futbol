@@ -64,7 +64,7 @@ export async function GET(
     })),
   ];
 
-  const ics = construirIcs("CYDL Infantil B", eventos);
+  const ics = construirIcs("Infantil B", eventos);
 
   return new Response(ics, {
     headers: {

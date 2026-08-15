@@ -73,7 +73,7 @@ export function MapaGoles({
       )}
 
       <p className="text-xs text-muted-foreground">
-        Verde oscuro = CYDL Infantil B (a favor) · Rojo = en contra
+        Verde oscuro = Infantil B (a favor) · Rojo = en contra
       </p>
       <div className="relative aspect-[4/3] w-full overflow-hidden rounded-md bg-pitch">
         <PitchHalfLines />

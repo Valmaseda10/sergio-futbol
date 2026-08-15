@@ -1,8 +1,10 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo } from "react";
 import { useLiveQuery } from "dexie-react-hooks";
 import { localDb } from "@/lib/db/local-db";
+import { TemporadaSelector } from "@/components/temporada-selector";
+import { useTemporadaSeleccionada } from "@/lib/hooks/use-temporada-seleccionada";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ResultadosChart } from "@/components/estadisticas/resultados-chart";
 import { AsistenciaChart } from "@/components/estadisticas/asistencia-chart";
@@ -23,14 +25,7 @@ import {
   calcularStatsJugadores,
 } from "@/lib/estadisticas";
 import { TIPOS_GOL } from "@/lib/validations/gol";
-import { temporadaActual, temporadaDeFecha, temporadasDisponibles } from "@/lib/temporada";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { temporadaDeFecha } from "@/lib/temporada";
 
 function hoyISO() {
   const now = new Date();
@@ -73,18 +68,7 @@ export default function EstadisticasPage() {
   );
   const estados = useLiveQuery(() => localDb.estados.toArray(), [], []);
 
-  const temporadaHoy = temporadaActual(hoy);
-  const [temporadaSel, setTemporadaSel] = useState(temporadaHoy);
-
-  const temporadas = useMemo(() => {
-    const disponibles = temporadasDisponibles([
-      ...partidos.map((p) => p.fecha),
-      ...entrenamientos.map((e) => e.fecha),
-    ]);
-    return disponibles.includes(temporadaHoy)
-      ? disponibles
-      : [temporadaHoy, ...disponibles];
-  }, [partidos, entrenamientos, temporadaHoy]);
+  const { temporada: temporadaSel } = useTemporadaSeleccionada();
 
   const partidosTemporada = useMemo(
     () => partidos.filter((p) => temporadaDeFecha(p.fecha) === temporadaSel),
@@ -281,18 +265,7 @@ export default function EstadisticasPage() {
       <div className="flex items-center justify-between gap-3">
         <h1 className="text-2xl font-semibold">Estadísticas</h1>
         <div className="flex items-center gap-2">
-          <Select value={temporadaSel} onValueChange={(v) => v && setTemporadaSel(v)}>
-            <SelectTrigger className="w-36 print:hidden">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {temporadas.map((t) => (
-                <SelectItem key={t} value={t}>
-                  {t}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+          <TemporadaSelector className="print:hidden" />
           <Button
             variant="outline"
             size="icon"

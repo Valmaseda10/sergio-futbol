@@ -33,3 +33,12 @@ export function enTemporada(fechaISO: string, temporada: string): boolean {
   const { desde, hasta } = rangoTemporada(temporada);
   return fechaISO >= desde && fechaISO <= hasta;
 }
+
+// "2026-2027" -> "26/27", para mostrar la temporada en la marca de la app.
+export function temporadaCorta(temporada: string): string {
+  const partes = temporada.split("-");
+  if (partes.length !== 2 || !/^\d{4}$/.test(partes[0]) || !/^\d{4}$/.test(partes[1])) {
+    return temporada;
+  }
+  return `${partes[0].slice(2)}/${partes[1].slice(2)}`;
+}

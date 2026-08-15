@@ -17,13 +17,13 @@ const publicSans = Public_Sans({
 });
 
 export const metadata: Metadata = {
-  title: "CYDL Infantil B — Panel del entrenador",
+  title: "Infantil B 26/27 — Panel del entrenador",
   description: "Gestión del equipo Infantil B, temporada 2026-2027",
   manifest: "/manifest.json",
   appleWebApp: {
     capable: true,
     statusBarStyle: "black-translucent",
-    title: "CYDL Infantil B",
+    title: "Infantil B 26/27",
   },
   icons: {
     icon: [{ url: "/icon-192.png", sizes: "192x192", type: "image/png" }],

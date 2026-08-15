@@ -5,6 +5,8 @@ import { useLiveQuery } from "dexie-react-hooks";
 import { Plus, CalendarRange, MapPin } from "lucide-react";
 import { localDb, type LocalPartido } from "@/lib/db/local-db";
 import { diaSemanaDeFecha } from "@/lib/date";
+import { temporadaDeFecha } from "@/lib/temporada";
+import { useTemporadaSeleccionada } from "@/lib/hooks/use-temporada-seleccionada";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -71,12 +73,17 @@ function Fila({ p }: { p: LocalPartido }) {
 export default function PartidosPage() {
   const hoy = hoyISO();
   const partidos = useLiveQuery(() => localDb.partidos.toArray(), [], []);
+  const { temporada } = useTemporadaSeleccionada();
 
-  const proximos = partidos
+  const partidosTemporada = partidos.filter(
+    (p) => temporadaDeFecha(p.fecha) === temporada,
+  );
+
+  const proximos = partidosTemporada
     .filter((p) => p.fecha >= hoy)
     .sort((a, b) => a.fecha.localeCompare(b.fecha));
 
-  const anteriores = partidos
+  const anteriores = partidosTemporada
     .filter((p) => p.fecha < hoy)
     .sort((a, b) => b.fecha.localeCompare(a.fecha))
     .slice(0, 10);
@@ -84,7 +91,15 @@ export default function PartidosPage() {
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-semibold">Partidos</h1>
+        <div>
+          <h1 className="text-2xl font-semibold">Partidos</h1>
+          <Link
+            href="/ajustes"
+            className="text-xs text-muted-foreground hover:text-foreground"
+          >
+            Temporada {temporada.replace("-", "/")}
+          </Link>
+        </div>
         <div className="flex gap-2">
           <Button
             size="sm"

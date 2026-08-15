@@ -6,6 +6,8 @@ import { useLiveQuery } from "dexie-react-hooks";
 import { Plus, CalendarPlus, CalendarRange, MapPin, Clock } from "lucide-react";
 import { localDb, type LocalEntrenamiento } from "@/lib/db/local-db";
 import { capitalizarPrimera } from "@/lib/date";
+import { temporadaDeFecha } from "@/lib/temporada";
+import { useTemporadaSeleccionada } from "@/lib/hooks/use-temporada-seleccionada";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { FechaTile } from "@/components/ui/fecha-tile";
@@ -77,10 +79,16 @@ export default function EntrenamientosPage() {
     [],
     [],
   );
+  const { temporada } = useTemporadaSeleccionada();
+
+  const entrenamientosTemporada = useMemo(
+    () => entrenamientos.filter((e) => temporadaDeFecha(e.fecha) === temporada),
+    [entrenamientos, temporada],
+  );
 
   const meses = useMemo(() => {
     const grupos = new Map<string, LocalEntrenamiento[]>();
-    for (const e of entrenamientos) {
+    for (const e of entrenamientosTemporada) {
       const clave = claveMes(e.fecha);
       if (!grupos.has(clave)) grupos.set(clave, []);
       grupos.get(clave)!.push(e);
@@ -92,12 +100,20 @@ export default function EntrenamientosPage() {
         entrenamientos: lista.sort((a, b) => a.fecha.localeCompare(b.fecha)),
         esMesActual: clave === claveMes(hoy),
       }));
-  }, [entrenamientos, hoy]);
+  }, [entrenamientosTemporada, hoy]);
 
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-semibold">Entrenamientos</h1>
+        <div>
+          <h1 className="text-2xl font-semibold">Entrenamientos</h1>
+          <Link
+            href="/ajustes"
+            className="text-xs text-muted-foreground hover:text-foreground"
+          >
+            Temporada {temporada.replace("-", "/")}
+          </Link>
+        </div>
         <div className="flex gap-2">
           <Button
             size="sm"

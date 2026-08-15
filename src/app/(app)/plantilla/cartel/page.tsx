@@ -7,6 +7,8 @@ import { ChevronLeft, Printer } from "lucide-react";
 import { localDb } from "@/lib/db/local-db";
 import { createClient } from "@/lib/supabase/client";
 import { posicionLabel } from "@/lib/posiciones";
+import { temporadaCorta } from "@/lib/temporada";
+import { useTemporadaSeleccionada } from "@/lib/hooks/use-temporada-seleccionada";
 import { Button } from "@/components/ui/button";
 import { JugadorAvatar } from "@/components/plantilla/jugador-avatar";
 import { PdfWatermark } from "@/components/branding/pdf-watermark";
@@ -30,6 +32,9 @@ export default function CartelPlantillaPage() {
     [],
     [],
   );
+
+  const { temporada } = useTemporadaSeleccionada();
+  const nombreApp = `Infantil B ${temporadaCorta(temporada)}`;
 
   const [fotoUrls, setFotoUrls] = useState<Record<string, string>>({});
 
@@ -71,7 +76,7 @@ export default function CartelPlantillaPage() {
 
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-semibold">CYDL Infantil B</h1>
+          <h1 className="text-2xl font-semibold">{nombreApp}</h1>
           <p className="text-sm text-muted-foreground">
             Cultural y Deportiva Leonesa — {jugadores.length} jugadores
           </p>
