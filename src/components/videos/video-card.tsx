@@ -7,6 +7,7 @@ import { toast } from "sonner";
 import { ExternalLink, Trash2, Clapperboard, Scissors } from "lucide-react";
 import { eliminarVideoLocal } from "@/app/(app)/videos/local-actions";
 import { getYoutubeEmbedUrl, getYoutubeVideoId } from "@/lib/youtube";
+import { ClipPlayer } from "@/components/videos/clip-player";
 import { localDb } from "@/lib/db/local-db";
 import { Button } from "@/components/ui/button";
 import {
@@ -51,8 +52,13 @@ export function VideoCard({
   rivalAsociado?: string;
 }) {
   const [borrando, setBorrando] = useState(false);
-  const embedUrl = getYoutubeEmbedUrl(video.url, video.segundo_inicio, video.segundo_fin);
-  const esYoutube = getYoutubeVideoId(video.url) != null;
+  const youtubeId = getYoutubeVideoId(video.url);
+  const esYoutube = youtubeId != null;
+  const esClipAcotado =
+    video.tipo === "clip" && video.segundo_inicio != null && video.segundo_fin != null;
+  const embedUrl = esClipAcotado
+    ? null
+    : getYoutubeEmbedUrl(video.url, video.segundo_inicio, video.segundo_fin);
 
   const evento = useLiveQuery(
     async () =>
@@ -150,7 +156,13 @@ export function VideoCard({
         </div>
       </div>
 
-      {embedUrl ? (
+      {esClipAcotado && youtubeId ? (
+        <ClipPlayer
+          videoId={youtubeId}
+          inicio={video.segundo_inicio as number}
+          fin={video.segundo_fin as number}
+        />
+      ) : embedUrl ? (
         <div className="aspect-video w-full overflow-hidden rounded-md bg-black">
           <iframe
             src={embedUrl}
