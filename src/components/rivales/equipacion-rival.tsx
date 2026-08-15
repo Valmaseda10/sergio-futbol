@@ -25,7 +25,7 @@ function PantalonIcon({ color }: { color: string }) {
   return (
     <svg viewBox="0 0 24 24" className="size-14 sm:size-16">
       <path
-        d="M6 2H18V10L15 22H12.5L12 12L11.5 22H9L6 10V2Z"
+        d="M7 2H17V7L15 14H13L12 8L11 14H9L7 7V2Z"
         fill={color}
         stroke="rgba(0,0,0,0.25)"
         strokeWidth="0.5"

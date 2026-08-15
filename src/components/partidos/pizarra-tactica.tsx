@@ -4,6 +4,7 @@ import { useRef, useState } from "react";
 import {
   RotateCcw,
   Pencil,
+  Slash,
   Eraser,
   Trash2,
   Undo2,
@@ -236,6 +237,7 @@ export function PizarraTactica({ jugadores }: { jugadores: Jugador[] }) {
   const [trazos, setTrazos] = useState<Trazo[]>([]);
   const [trazoActual, setTrazoActual] = useState<Trazo | null>(null);
   const [modoDibujo, setModoDibujo] = useState(false);
+  const [modoLinea, setModoLinea] = useState(false);
   const [modoBorrado, setModoBorrado] = useState(false);
   const [puntoBorrado, setPuntoBorrado] = useState<PuntoBorrado | null>(null);
   const [colorDibujo, setColorDibujo] = useState<ColorTrazo>("blanco");
@@ -440,6 +442,57 @@ export function PizarraTactica({ jugadores }: { jugadores: Jugador[] }) {
     });
   }
 
+  // La línea recta se guarda como el mismo tipo de trazo que el lápiz (una
+  // polyline), pero con los puntos interpolados entre inicio y fin en vez de
+  // ir muestreando el arrastre: así queda perfectamente recta y, a la vez,
+  // la goma de borrado parcial (que solo mira los puntos guardados) puede
+  // seguir borrando cualquier tramo de la línea, no solo sus extremos.
+  function interpolarSegmento(a: Posicion, b: Posicion, pasos = 20): Posicion[] {
+    const puntos: Posicion[] = [];
+    for (let i = 0; i <= pasos; i++) {
+      const t = i / pasos;
+      puntos.push({
+        left: a.left + (b.left - a.left) * t,
+        top: a.top + (b.top - a.top) * t,
+      });
+    }
+    return puntos;
+  }
+
+  function handleLineaPointerDown(e: React.PointerEvent<HTMLDivElement>) {
+    const punto = puntoDesdeEvento(e);
+    if (!punto) return;
+    e.currentTarget.setPointerCapture(e.pointerId);
+    const id = nuevoId();
+    dibujoIdRef.current = id;
+    setTrazoActual({ id, color: colorDibujo, puntos: [punto, punto] });
+  }
+
+  function handleLineaPointerMove(e: React.PointerEvent<HTMLDivElement>) {
+    if (!dibujoIdRef.current) return;
+    const punto = puntoDesdeEvento(e);
+    if (!punto) return;
+    setTrazoActual((prev) =>
+      prev ? { ...prev, puntos: [prev.puntos[0], punto] } : prev,
+    );
+  }
+
+  function handleLineaPointerUp() {
+    if (!dibujoIdRef.current) return;
+    dibujoIdRef.current = null;
+    setTrazoActual((prev) => {
+      if (prev && prev.puntos.length > 1) {
+        const inicio = prev.puntos[0];
+        const fin = prev.puntos[prev.puntos.length - 1];
+        setTrazos((rest) => [
+          ...rest,
+          { ...prev, puntos: interpolarSegmento(inicio, fin) },
+        ]);
+      }
+      return null;
+    });
+  }
+
   function handleDeshacerTrazo() {
     setTrazos((prev) => prev.slice(0, -1));
   }
@@ -452,7 +505,22 @@ export function PizarraTactica({ jugadores }: { jugadores: Jugador[] }) {
   function handleTogglePencil() {
     setModoDibujo((prev) => {
       const siguiente = !prev;
-      if (siguiente) setModoBorrado(false);
+      if (siguiente) {
+        setModoLinea(false);
+        setModoBorrado(false);
+      }
+      return siguiente;
+    });
+    setPuntoBorrado(null);
+  }
+
+  function handleToggleLinea() {
+    setModoLinea((prev) => {
+      const siguiente = !prev;
+      if (siguiente) {
+        setModoDibujo(false);
+        setModoBorrado(false);
+      }
       return siguiente;
     });
     setPuntoBorrado(null);
@@ -461,7 +529,10 @@ export function PizarraTactica({ jugadores }: { jugadores: Jugador[] }) {
   function handleToggleGoma() {
     setModoBorrado((prev) => {
       const siguiente = !prev;
-      if (siguiente) setModoDibujo(false);
+      if (siguiente) {
+        setModoDibujo(false);
+        setModoLinea(false);
+      }
       return siguiente;
     });
     setPuntoBorrado(null);
@@ -646,7 +717,16 @@ export function PizarraTactica({ jugadores }: { jugadores: Jugador[] }) {
           >
             <Pencil className="size-4" />
           </Button>
-          {modoDibujo &&
+          <Button
+            type="button"
+            variant={modoLinea ? "default" : "outline"}
+            size="icon"
+            aria-label={modoLinea ? "Desactivar línea recta" : "Activar línea recta"}
+            onClick={handleToggleLinea}
+          >
+            <Slash className="size-4" />
+          </Button>
+          {(modoDibujo || modoLinea) &&
             COLORES_TRAZO.map((c) => (
               <button
                 key={c.value}
@@ -698,9 +778,11 @@ export function PizarraTactica({ jugadores }: { jugadores: Jugador[] }) {
       <p className="text-xs text-muted-foreground">
         Toca un color o un icono de material para añadirlo al campo; mantén y
         arrastra para moverlo; tócalo de nuevo para quitarlo. Con el lápiz
-        activado, dibuja sobre el campo para explicar la jugada o el
-        ejercicio; con la goma activada, arrastra sobre un trazo para borrar
-        solo esa parte.
+        activado, dibuja a mano alzada para explicar la jugada o el
+        ejercicio; con la línea recta activada, arrastra de un punto a otro
+        para trazar una línea perfectamente recta (encadena varias para
+        marcar un cuadrado o un rectángulo); con la goma activada, arrastra
+        sobre un trazo para borrar solo esa parte.
       </p>
 
       <div
@@ -845,6 +927,14 @@ export function PizarraTactica({ jugadores }: { jugadores: Jugador[] }) {
             onPointerDown={handleDibujoPointerDown}
             onPointerMove={handleDibujoPointerMove}
             onPointerUp={handleDibujoPointerUp}
+          />
+        )}
+        {modoLinea && (
+          <div
+            className="absolute inset-0 z-10 cursor-crosshair touch-none"
+            onPointerDown={handleLineaPointerDown}
+            onPointerMove={handleLineaPointerMove}
+            onPointerUp={handleLineaPointerUp}
           />
         )}
         {modoBorrado && (
