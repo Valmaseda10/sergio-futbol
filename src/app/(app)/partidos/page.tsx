@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useLiveQuery } from "dexie-react-hooks";
 import { Plus, MapPin, Search } from "lucide-react";
 import { localDb, type LocalPartido } from "@/lib/db/local-db";
+import { diaSemanaDeFecha } from "@/lib/date";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -48,6 +49,7 @@ function Fila({ p }: { p: LocalPartido }) {
             >
               {COMPETICION_LABEL[p.competicion]}
             </Badge>
+            <span>{diaSemanaDeFecha(p.fecha)}</span>
             {p.lugar && (
               <span className="flex items-center gap-1">
                 <MapPin className="size-3" />

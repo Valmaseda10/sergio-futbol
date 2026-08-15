@@ -89,6 +89,20 @@ function nuevoId() {
     : `${Date.now()}-${Math.random()}`;
 }
 
+// El campo es muy alto (aspect-[2/3]): si una ficha nueva apareciera en el
+// centro exacto (50%), quedaría fuera de la pantalla en móvil hasta hacer
+// scroll y parecería que el botón no hace nada. Por eso las fichas y el
+// material nuevos aparecen cerca de la parte de arriba, que es lo que se ve
+// justo debajo de la barra de herramientas, y se reparten en varias
+// posiciones para que añadir varias seguidas no las deje apiladas.
+const POSICIONES_SPAWN: Posicion[] = [
+  { top: 15, left: 25 },
+  { top: 15, left: 50 },
+  { top: 15, left: 75 },
+  { top: 26, left: 37 },
+  { top: 26, left: 63 },
+];
+
 function PicaIcon({ className }: { className?: string }) {
   return (
     <svg
@@ -126,6 +140,13 @@ export function PizarraTactica({ jugadores }: { jugadores: Jugador[] }) {
     moved: boolean;
   } | null>(null);
   const dibujoIdRef = useRef<string | null>(null);
+  const spawnContador = useRef(0);
+
+  function siguientePosicionSpawn(): Posicion {
+    const pos = POSICIONES_SPAWN[spawnContador.current % POSICIONES_SPAWN.length];
+    spawnContador.current += 1;
+    return pos;
+  }
 
   const enCampo = jugadores.filter((j) => posiciones[j.id]);
   const enBanquillo = jugadores.filter((j) => !posiciones[j.id]);
@@ -148,20 +169,21 @@ export function PizarraTactica({ jugadores }: { jugadores: Jugador[] }) {
     setMaterial({});
     setTrazos([]);
     setTrazoActual(null);
+    spawnContador.current = 0;
   }
 
   function handleBanquilloClick(jugadorId: string) {
-    setPosiciones((prev) => ({ ...prev, [jugadorId]: { top: 50, left: 50 } }));
+    setPosiciones((prev) => ({ ...prev, [jugadorId]: siguientePosicionSpawn() }));
   }
 
   function handleAñadirFicha(color: ColorFicha) {
     const id = nuevoId();
-    setFichas((prev) => ({ ...prev, [id]: { color, top: 50, left: 50 } }));
+    setFichas((prev) => ({ ...prev, [id]: { color, ...siguientePosicionSpawn() } }));
   }
 
   function handleAñadirMaterial(tipo: TipoMaterial) {
     const id = nuevoId();
-    setMaterial((prev) => ({ ...prev, [id]: { tipo, top: 50, left: 50 } }));
+    setMaterial((prev) => ({ ...prev, [id]: { tipo, ...siguientePosicionSpawn() } }));
   }
 
   function actualizarPosicion(elemento: Elemento, pos: Posicion) {

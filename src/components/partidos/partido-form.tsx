@@ -1,9 +1,10 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useRouter } from "next/navigation";
+import { useLiveQuery } from "dexie-react-hooks";
 import { toast } from "sonner";
 import { Camera } from "lucide-react";
 import {
@@ -15,6 +16,8 @@ import {
   crearPartidoLocal,
   actualizarPartidoLocal,
 } from "@/app/(app)/partidos/local-actions";
+import { localDb } from "@/lib/db/local-db";
+import { diaSemanaDeFecha } from "@/lib/date";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -63,11 +66,45 @@ export function PartidoForm({
     register,
     control,
     handleSubmit,
+    watch,
+    getValues,
+    setValue,
     formState: { errors, isSubmitting },
   } = useForm<PartidoFormValues>({
     resolver: zodResolver(partidoSchema),
     defaultValues: partido ?? PARTIDO_FORM_DEFAULTS,
   });
+
+  const fechaValue = watch("fecha");
+  const diaSemanaLabel = fechaValue ? diaSemanaDeFecha(fechaValue) : null;
+
+  // Si sábado o domingo tienen un horario de partido configurado en Ajustes,
+  // se usa para rellenar hora y lugar en cuanto se elige una fecha que caiga
+  // en ese día — solo en partidos nuevos y solo si el campo sigue vacío, para
+  // no pisar lo que el usuario ya haya escrito.
+  const horariosFinDeSemana = useLiveQuery(
+    () =>
+      localDb.horario_entrenamiento
+        .where("dia_semana")
+        .anyOf([0, 6])
+        .toArray(),
+    [],
+    [],
+  );
+
+  useEffect(() => {
+    if (partido || !fechaValue) return;
+    const dow = new Date(`${fechaValue}T00:00:00`).getDay();
+    const horario = horariosFinDeSemana.find((h) => h.dia_semana === dow);
+    if (!horario) return;
+    const actuales = getValues();
+    if (!actuales.hora && horario.hora_inicio) {
+      setValue("hora", horario.hora_inicio.slice(0, 5));
+    }
+    if (!actuales.lugar && horario.lugar) {
+      setValue("lugar", horario.lugar);
+    }
+  }, [fechaValue, horariosFinDeSemana, partido, getValues, setValue]);
 
   function handleFotoChange(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
@@ -133,6 +170,9 @@ export function PartidoForm({
             <div className="space-y-2">
               <Label htmlFor="fecha">Fecha</Label>
               <Input id="fecha" type="date" {...register("fecha")} />
+              {diaSemanaLabel && (
+                <p className="text-xs text-muted-foreground">{diaSemanaLabel}</p>
+              )}
               <FieldError message={errors.fecha?.message} />
             </div>
             <div className="space-y-2">
