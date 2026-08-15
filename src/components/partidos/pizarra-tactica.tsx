@@ -1,7 +1,14 @@
 "use client";
 
 import { useRef, useState } from "react";
-import { RotateCcw, Pencil, Eraser, Undo2, TrafficCone } from "lucide-react";
+import {
+  RotateCcw,
+  Pencil,
+  Eraser,
+  Trash2,
+  Undo2,
+  TrafficCone,
+} from "lucide-react";
 import { FORMACIONES } from "@/lib/formaciones";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -50,6 +57,9 @@ type Elemento =
   | { kind: "material"; id: string };
 
 const MARGEN = 5;
+// Radio de la goma de borrar, en píxeles de pantalla (se convierte a
+// porcentaje del campo según su tamaño real al usarla).
+const RADIO_BORRADO_PX = 18;
 
 const COLORES_FICHA: { value: ColorFicha; label: string; clase: string }[] = [
   { value: "azul", label: "Ficha azul", clase: "bg-blue-500" },
@@ -130,6 +140,7 @@ export function PizarraTactica({ jugadores }: { jugadores: Jugador[] }) {
   const [trazos, setTrazos] = useState<Trazo[]>([]);
   const [trazoActual, setTrazoActual] = useState<Trazo | null>(null);
   const [modoDibujo, setModoDibujo] = useState(false);
+  const [modoBorrado, setModoBorrado] = useState(false);
   const [colorDibujo, setColorDibujo] = useState<ColorTrazo>("blanco");
   const [formacionValue, setFormacionValue] = useState(FORMACIONES[0].value);
 
@@ -140,6 +151,7 @@ export function PizarraTactica({ jugadores }: { jugadores: Jugador[] }) {
     moved: boolean;
   } | null>(null);
   const dibujoIdRef = useRef<string | null>(null);
+  const borrandoActivoRef = useRef(false);
   const spawnContador = useRef(0);
 
   function siguientePosicionSpawn(): Posicion {
@@ -319,6 +331,75 @@ export function PizarraTactica({ jugadores }: { jugadores: Jugador[] }) {
     setTrazoActual(null);
   }
 
+  function handleTogglePencil() {
+    setModoDibujo((prev) => {
+      const siguiente = !prev;
+      if (siguiente) setModoBorrado(false);
+      return siguiente;
+    });
+  }
+
+  function handleToggleGoma() {
+    setModoBorrado((prev) => {
+      const siguiente = !prev;
+      if (siguiente) setModoDibujo(false);
+      return siguiente;
+    });
+  }
+
+  // Borra solo el trozo de trazo que toca la goma en ese punto: cada trazo se
+  // recorre punto a punto y, donde entra en el radio de borrado, se corta en
+  // dos trazos separados en vez de desaparecer entero.
+  function borrarEnPunto(punto: Posicion) {
+    const rect = pitchRef.current?.getBoundingClientRect();
+    if (!rect) return;
+    const radioX = (RADIO_BORRADO_PX / rect.width) * 100;
+    const radioY = (RADIO_BORRADO_PX / rect.height) * 100;
+
+    setTrazos((prev) => {
+      const siguiente: Trazo[] = [];
+      for (const trazo of prev) {
+        let tramo: Posicion[] = [];
+        for (const p of trazo.puntos) {
+          const dx = (p.left - punto.left) / radioX;
+          const dy = (p.top - punto.top) / radioY;
+          const dentroDelRadio = dx * dx + dy * dy <= 1;
+          if (dentroDelRadio) {
+            if (tramo.length > 1) {
+              siguiente.push({ id: nuevoId(), color: trazo.color, puntos: tramo });
+            }
+            tramo = [];
+          } else {
+            tramo.push(p);
+          }
+        }
+        if (tramo.length > 1) {
+          siguiente.push({ id: nuevoId(), color: trazo.color, puntos: tramo });
+        }
+      }
+      return siguiente;
+    });
+  }
+
+  function handleGomaPointerDown(e: React.PointerEvent<HTMLDivElement>) {
+    const punto = puntoDesdeEvento(e);
+    if (!punto) return;
+    e.currentTarget.setPointerCapture(e.pointerId);
+    borrandoActivoRef.current = true;
+    borrarEnPunto(punto);
+  }
+
+  function handleGomaPointerMove(e: React.PointerEvent<HTMLDivElement>) {
+    if (!borrandoActivoRef.current) return;
+    const punto = puntoDesdeEvento(e);
+    if (!punto) return;
+    borrarEnPunto(punto);
+  }
+
+  function handleGomaPointerUp() {
+    borrandoActivoRef.current = false;
+  }
+
   return (
     <div className="space-y-4">
       <div className="flex gap-2">
@@ -393,7 +474,7 @@ export function PizarraTactica({ jugadores }: { jugadores: Jugador[] }) {
             variant={modoDibujo ? "default" : "outline"}
             size="icon"
             aria-label={modoDibujo ? "Desactivar lápiz" : "Activar lápiz"}
-            onClick={() => setModoDibujo((v) => !v)}
+            onClick={handleTogglePencil}
           >
             <Pencil className="size-4" />
           </Button>
@@ -413,6 +494,18 @@ export function PizarraTactica({ jugadores }: { jugadores: Jugador[] }) {
             ))}
           <Button
             type="button"
+            variant={modoBorrado ? "default" : "outline"}
+            size="icon"
+            aria-label={
+              modoBorrado ? "Desactivar goma de borrar" : "Activar goma de borrar"
+            }
+            disabled={trazos.length === 0 && !modoBorrado}
+            onClick={handleToggleGoma}
+          >
+            <Eraser className="size-4" />
+          </Button>
+          <Button
+            type="button"
             variant="ghost"
             size="icon"
             aria-label="Deshacer último trazo"
@@ -425,11 +518,11 @@ export function PizarraTactica({ jugadores }: { jugadores: Jugador[] }) {
             type="button"
             variant="ghost"
             size="icon"
-            aria-label="Borrar trazos"
+            aria-label="Borrar todos los trazos"
             disabled={trazos.length === 0}
             onClick={handleBorrarTrazos}
           >
-            <Eraser className="size-4" />
+            <Trash2 className="size-4" />
           </Button>
         </div>
       </div>
@@ -438,7 +531,8 @@ export function PizarraTactica({ jugadores }: { jugadores: Jugador[] }) {
         Toca un color o un icono de material para añadirlo al campo; mantén y
         arrastra para moverlo; tócalo de nuevo para quitarlo. Con el lápiz
         activado, dibuja sobre el campo para explicar la jugada o el
-        ejercicio.
+        ejercicio; con la goma activada, arrastra sobre un trazo para borrar
+        solo esa parte.
       </p>
 
       <div
@@ -550,6 +644,14 @@ export function PizarraTactica({ jugadores }: { jugadores: Jugador[] }) {
             onPointerDown={handleDibujoPointerDown}
             onPointerMove={handleDibujoPointerMove}
             onPointerUp={handleDibujoPointerUp}
+          />
+        )}
+        {modoBorrado && (
+          <div
+            className="absolute inset-0 z-10 cursor-cell touch-none"
+            onPointerDown={handleGomaPointerDown}
+            onPointerMove={handleGomaPointerMove}
+            onPointerUp={handleGomaPointerUp}
           />
         )}
       </div>
