@@ -115,7 +115,7 @@ export default function FichaEntrenamientoPage() {
         Pasar lista
       </Button>
 
-      <AsistenciaResumen entrenamientoId={entrenamiento.id} />
+      <AsistenciaResumen entrenamientoId={entrenamiento.id} fecha={entrenamiento.fecha} />
 
       {entrenamiento.documento_url && documentoSignedUrl && (
         <Card>

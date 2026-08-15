@@ -7,8 +7,10 @@ import { Card, CardContent } from "@/components/ui/card";
 
 export function AsistenciaResumen({
   entrenamientoId,
+  fecha,
 }: {
   entrenamientoId: string;
+  fecha: string;
 }) {
   const jugadores = useLiveQuery(
     () =>
@@ -38,6 +40,22 @@ export function AsistenciaResumen({
     [],
   );
   const estados = useLiveQuery(() => localDb.estados.toArray(), [], []);
+  const lesionesActivas = useLiveQuery(
+    () =>
+      localDb.lesiones
+        .filter(
+          (l) =>
+            l.fecha_inicio <= fecha &&
+            (l.fecha_alta_real == null || l.fecha_alta_real > fecha),
+        )
+        .toArray(),
+    [fecha],
+    [],
+  );
+  const jugadoresLesionados = useMemo(
+    () => new Set(lesionesActivas.map((l) => l.jugador_id)),
+    [lesionesActivas],
+  );
 
   const { asisten, noAsisten } = useMemo(() => {
     const estadoIdPorJugador = new Map(
@@ -73,9 +91,16 @@ export function AsistenciaResumen({
           </p>
           <ul className="space-y-1">
             {asisten.map((j) => (
-              <li key={j.id} className="truncate text-muted-foreground">
-                {j.dorsal != null ? `${j.dorsal} · ` : ""}
-                {j.nombre} {j.apellidos}
+              <li key={j.id} className="flex items-center justify-between gap-2">
+                <span className="truncate text-muted-foreground">
+                  {j.dorsal != null ? `${j.dorsal} · ` : ""}
+                  {j.nombre} {j.apellidos}
+                </span>
+                {jugadoresLesionados.has(j.id) && (
+                  <span className="shrink-0 rounded-full border border-destructive px-1.5 py-0.5 text-[10px] font-medium text-destructive">
+                    Lesionado
+                  </span>
+                )}
               </li>
             ))}
           </ul>

@@ -11,7 +11,14 @@ export function getYoutubeVideoId(url: string): string | null {
   return null;
 }
 
-export function getYoutubeEmbedUrl(url: string): string | null {
+export function getYoutubeEmbedUrl(
+  url: string,
+  segundoInicio?: number | null,
+): string | null {
   const id = getYoutubeVideoId(url);
-  return id ? `https://www.youtube-nocookie.com/embed/${id}` : null;
+  if (!id) return null;
+  const base = `https://www.youtube-nocookie.com/embed/${id}`;
+  return segundoInicio != null && segundoInicio > 0
+    ? `${base}?start=${Math.floor(segundoInicio)}`
+    : base;
 }

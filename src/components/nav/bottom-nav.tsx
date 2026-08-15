@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
+  Home,
   Users,
   CalendarDays,
   Trophy,
@@ -14,6 +15,7 @@ import {
 import { cn } from "@/lib/utils";
 
 const NAV_ITEMS = [
+  { href: "/inicio", label: "Inicio", icon: Home },
   { href: "/plantilla", label: "Plantilla", icon: Users },
   { href: "/entrenamientos", label: "Entrenamientos", icon: CalendarDays },
   { href: "/partidos", label: "Partidos", icon: Trophy },
@@ -28,10 +30,10 @@ export function BottomNav() {
 
   return (
     <nav
-      className="fixed inset-x-0 bottom-0 z-40 border-t bg-background pb-[env(safe-area-inset-bottom)] md:hidden"
+      className="fixed inset-x-0 bottom-0 z-40 border-t bg-background pb-[env(safe-area-inset-bottom)] md:hidden print:hidden"
       aria-label="Navegación principal"
     >
-      <ul className="grid grid-cols-7">
+      <ul className="grid grid-cols-8">
         {NAV_ITEMS.map(({ href, label, icon: Icon }) => {
           const active = pathname.startsWith(href);
           return (
@@ -61,7 +63,7 @@ export function SideNav() {
 
   return (
     <nav
-      className="hidden w-56 shrink-0 border-r p-4 md:block"
+      className="hidden w-56 shrink-0 border-r p-4 md:block print:hidden"
       aria-label="Navegación principal"
     >
       <ul className="space-y-1">

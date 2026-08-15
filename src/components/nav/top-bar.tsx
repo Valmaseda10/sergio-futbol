@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { LogOut } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
@@ -20,8 +21,8 @@ export function TopBar({ nombre, rol }: { nombre: string; rol: Rol }) {
   }
 
   return (
-    <header className="sticky top-0 z-30 flex items-center justify-between gap-3 bg-[#1c1512] px-4 pb-2.5 pt-[max(0.625rem,env(safe-area-inset-top))] text-[#f3ece7]">
-      <div className="flex items-center gap-2.5 min-w-0">
+    <header className="sticky top-0 z-30 flex items-center justify-between gap-3 bg-[#1c1512] px-4 pb-2.5 pt-[max(0.625rem,env(safe-area-inset-top))] text-[#f3ece7] print:hidden">
+      <Link href="/inicio" className="flex min-w-0 items-center gap-2.5">
         <Crest size={30} />
         <div className="min-w-0">
           <p className="truncate font-heading text-sm uppercase tracking-wide leading-tight">
@@ -31,7 +32,7 @@ export function TopBar({ nombre, rol }: { nombre: string; rol: Rol }) {
             Cultural y Deportiva Leonesa
           </p>
         </div>
-      </div>
+      </Link>
       <div className="flex items-center gap-2 shrink-0">
         <SyncStatusBadge />
         <div className="hidden text-right sm:block">

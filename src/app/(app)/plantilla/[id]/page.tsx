@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useLiveQuery } from "dexie-react-hooks";
-import { Pencil } from "lucide-react";
+import { Pencil, Printer } from "lucide-react";
 import { localDb } from "@/lib/db/local-db";
 import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -15,6 +15,7 @@ import { BajaReactivarButton } from "@/components/plantilla/baja-reactivar-butto
 import { ValoracionesJugador } from "@/components/plantilla/valoraciones-jugador";
 import { AsistenciaJugador } from "@/components/plantilla/asistencia-jugador";
 import { LesionesJugador } from "@/components/plantilla/lesiones-jugador";
+import { VideosJugador } from "@/components/plantilla/videos-jugador";
 import { posicionLabel } from "@/lib/posiciones";
 
 function formatearFecha(fecha: string | null) {
@@ -84,6 +85,16 @@ export default function FichaJugadorPage() {
         <Button
           variant="ghost"
           size="icon"
+          className="print:hidden"
+          aria-label="Exportar a PDF"
+          onClick={() => window.print()}
+        >
+          <Printer className="size-4" />
+        </Button>
+        <Button
+          variant="ghost"
+          size="icon"
+          className="print:hidden"
           nativeButton={false}
           render={
             <Link href={`/plantilla/${jugador.id}/editar`} aria-label="Editar" />
@@ -201,11 +212,15 @@ export default function FichaJugadorPage() {
 
       <ValoracionesJugador jugadorId={jugador.id} />
 
-      <BajaReactivarButton
-        jugadorId={jugador.id}
-        activo={jugador.activo}
-        nombreCompleto={nombreCompleto}
-      />
+      <VideosJugador jugadorId={jugador.id} />
+
+      <div className="print:hidden">
+        <BajaReactivarButton
+          jugadorId={jugador.id}
+          activo={jugador.activo}
+          nombreCompleto={nombreCompleto}
+        />
+      </div>
     </div>
   );
 }

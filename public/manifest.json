@@ -2,7 +2,7 @@
   "name": "Infantil B — Cultural y Deportiva Leonesa",
   "short_name": "Infantil B",
   "description": "Gestión del equipo Infantil B, temporada 2026-2027",
-  "start_url": "/plantilla",
+  "start_url": "/inicio",
   "scope": "/",
   "display": "standalone",
   "background_color": "#f7f6f3",

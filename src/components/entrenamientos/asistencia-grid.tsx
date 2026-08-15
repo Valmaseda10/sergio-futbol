@@ -24,10 +24,12 @@ interface Estado {
 
 export function AsistenciaGrid({
   entrenamientoId,
+  fecha,
   jugadores,
   estados,
 }: {
   entrenamientoId: string;
+  fecha: string;
   jugadores: Jugador[];
   estados: Estado[];
 }) {
@@ -53,6 +55,39 @@ export function AsistenciaGrid({
       ),
     [asistenciasRows],
   );
+
+  const lesionesActivas = useLiveQuery(
+    () =>
+      localDb.lesiones
+        .filter(
+          (l) =>
+            l.fecha_inicio <= fecha &&
+            (l.fecha_alta_real == null || l.fecha_alta_real > fecha),
+        )
+        .toArray(),
+    [fecha],
+    [],
+  );
+  const jugadoresLesionados = useMemo(
+    () => new Set(lesionesActivas.map((l) => l.jugador_id)),
+    [lesionesActivas],
+  );
+  const estadoLesion = useMemo(
+    () => estados.find((e) => e.nombre === "LESIÓN"),
+    [estados],
+  );
+
+  // Pre-marca como LESIÓN a quien tenga una lesión activa ese día, solo la
+  // primera vez que se abre el parte (si ya hay una fila, no se toca: puede
+  // que el entrenador ya haya elegido otra cosa a propósito).
+  useEffect(() => {
+    if (!estadoLesion) return;
+    for (const j of jugadores) {
+      if (jugadoresLesionados.has(j.id) && asistencias[j.id] === undefined) {
+        actualizarAsistenciaLocal(entrenamientoId, j.id, estadoLesion.id);
+      }
+    }
+  }, [entrenamientoId, jugadores, jugadoresLesionados, estadoLesion, asistencias]);
 
   const { asisten, noAsisten } = useMemo(() => {
     let noAsistenCount = 0;
@@ -134,6 +169,9 @@ export function AsistenciaGrid({
                     {j.dorsal != null ? `${j.dorsal} · ` : ""}
                     {j.nombre} {j.apellidos}
                   </p>
+                  {jugadoresLesionados.has(j.id) && (
+                    <p className="text-xs text-destructive">Lesionado</p>
+                  )}
                 </div>
                 {!estadoActual && (
                   <span className="text-xs text-muted-foreground">Asiste</span>

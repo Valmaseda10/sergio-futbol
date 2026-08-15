@@ -29,6 +29,7 @@ export type LocalLesionSesion = Tables["lesion_sesiones_readaptacion"]["Row"];
 export type LocalRivalScouting = Tables["rivales_scouting"]["Row"];
 export type LocalRivalJugadorDestacado =
   Tables["rivales_jugadores_destacados"]["Row"];
+export type LocalHorarioEntrenamiento = Tables["horario_entrenamiento"]["Row"];
 
 export const SYNCED_TABLES = [
   "jugadores",
@@ -46,6 +47,7 @@ export const SYNCED_TABLES = [
   "lesion_sesiones_readaptacion",
   "rivales_scouting",
   "rivales_jugadores_destacados",
+  "horario_entrenamiento",
 ] as const;
 
 export type SyncedTable = (typeof SYNCED_TABLES)[number];
@@ -91,6 +93,7 @@ class LocalDb extends Dexie {
   lesion_sesiones_readaptacion!: Table<LocalLesionSesion, string>;
   rivales_scouting!: Table<LocalRivalScouting, string>;
   rivales_jugadores_destacados!: Table<LocalRivalJugadorDestacado, string>;
+  horario_entrenamiento!: Table<LocalHorarioEntrenamiento, string>;
   outbox!: Table<OutboxEntry, number>;
   meta!: Table<MetaEntry, string>;
 
@@ -131,6 +134,10 @@ class LocalDb extends Dexie {
     // pos_x, pos_y ahora viven ahí); se elimina la tabla independiente.
     this.version(5).stores({
       goles_partido: null,
+    });
+
+    this.version(6).stores({
+      horario_entrenamiento: "id, dia_semana",
     });
   }
 }

@@ -1,12 +1,14 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useRouter } from "next/navigation";
+import { useLiveQuery } from "dexie-react-hooks";
 import { toast } from "sonner";
 import { videoSchema, type VideoFormValues } from "@/lib/validations/video";
 import { crearVideoLocal } from "@/app/(app)/videos/local-actions";
+import { localDb } from "@/lib/db/local-db";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -31,6 +33,16 @@ const TIPO_LABEL: Record<string, string> = {
   clip: "Clip",
 };
 
+const TIPO_EVENTO_LABEL: Record<string, string> = {
+  gol: "Gol",
+  autogol: "Autogol",
+  asistencia: "Asistencia",
+  tarjeta_amarilla: "Tarjeta amarilla",
+  tarjeta_roja: "Tarjeta roja",
+  cambio_entra: "Entra al campo",
+  cambio_sale: "Sale del campo",
+};
+
 function hoyISO() {
   const now = new Date();
   return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
@@ -50,6 +62,8 @@ export function VideoForm({
     register,
     control,
     handleSubmit,
+    watch,
+    setValue,
     formState: { errors },
   } = useForm<VideoFormValues>({
     resolver: zodResolver(videoSchema),
@@ -58,12 +72,41 @@ export function VideoForm({
       url: "",
       tipo: partidoIdInicial ? "partido" : "clip",
       partido_id: partidoIdInicial ?? "",
+      evento_id: "",
+      segundo_inicio: "",
       fecha: hoyISO(),
       notas: "",
     },
   });
 
   const partidosPorId = new Map(partidos.map((p) => [p.id, p]));
+  const partidoIdSeleccionado = watch("partido_id");
+
+  const eventos = useLiveQuery(
+    () =>
+      localDb.eventos_partido
+        .where("partido_id")
+        .equals(partidoIdSeleccionado || "__ninguno__")
+        .toArray(),
+    [partidoIdSeleccionado],
+    [],
+  );
+  const jugadores = useLiveQuery(() => localDb.jugadores.toArray(), [], []);
+  const jugadoresPorId = useMemo(
+    () => new Map(jugadores.map((j) => [j.id, j])),
+    [jugadores],
+  );
+  const eventosOrdenados = useMemo(
+    () => eventos.slice().sort((a, b) => (a.minuto ?? 999) - (b.minuto ?? 999)),
+    [eventos],
+  );
+
+  function etiquetaEvento(evento: (typeof eventos)[number]) {
+    const jugador = evento.jugador_id ? jugadoresPorId.get(evento.jugador_id) : null;
+    const nombre = jugador ? jugador.alias || `${jugador.nombre} ${jugador.apellidos}` : "Rival";
+    const minuto = evento.minuto != null ? `${evento.minuto}' — ` : "";
+    return `${minuto}${TIPO_EVENTO_LABEL[evento.tipo] ?? evento.tipo} (${nombre})`;
+  }
 
   async function onSubmit(values: VideoFormValues) {
     setEnviando(true);
@@ -149,7 +192,10 @@ export function VideoForm({
               render={({ field }) => (
                 <Select
                   value={field.value}
-                  onValueChange={(v) => field.onChange(v ?? "")}
+                  onValueChange={(v) => {
+                    field.onChange(v ?? "");
+                    setValue("evento_id", "");
+                  }}
                 >
                   <SelectTrigger id="partido_id" className="w-full">
                     <SelectValue placeholder="Sin partido asociado">
@@ -171,6 +217,57 @@ export function VideoForm({
               )}
             />
           </div>
+
+          {partidoIdSeleccionado && eventosOrdenados.length > 0 && (
+            <div className="space-y-2">
+              <Label htmlFor="evento_id">Evento del partido (opcional)</Label>
+              <Controller
+                control={control}
+                name="evento_id"
+                render={({ field }) => (
+                  <Select
+                    value={field.value}
+                    onValueChange={(v) => field.onChange(v ?? "")}
+                  >
+                    <SelectTrigger id="evento_id" className="w-full">
+                      <SelectValue placeholder="Sin evento asociado">
+                        {(value) => {
+                          const evento = eventosOrdenados.find((e) => e.id === value);
+                          return evento ? etiquetaEvento(evento) : "Sin evento asociado";
+                        }}
+                      </SelectValue>
+                    </SelectTrigger>
+                    <SelectContent>
+                      {eventosOrdenados.map((evento) => (
+                        <SelectItem key={evento.id} value={evento.id}>
+                          {etiquetaEvento(evento)}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                )}
+              />
+              <p className="text-xs text-muted-foreground">
+                Para enlazar directamente a ese momento del vídeo.
+              </p>
+            </div>
+          )}
+
+          {watch("evento_id") && (
+            <div className="space-y-2">
+              <Label htmlFor="segundo_inicio">
+                Segundo del vídeo en el que ocurre (opcional)
+              </Label>
+              <Input
+                id="segundo_inicio"
+                type="number"
+                min={0}
+                inputMode="numeric"
+                placeholder="Ej: 125"
+                {...register("segundo_inicio")}
+              />
+            </div>
+          )}
 
           <div className="space-y-2">
             <Label htmlFor="notas">Notas (opcional)</Label>

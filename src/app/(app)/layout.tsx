@@ -38,7 +38,7 @@ export default async function AppLayout({
       <TopBar nombre={usuario.nombre} rol={usuario.rol} />
       <div className="flex flex-1">
         <SideNav />
-        <main className="flex-1 p-4 pb-28 md:pb-4">{children}</main>
+        <main className="flex-1 p-4 pb-28 md:pb-4 print:p-0">{children}</main>
       </div>
       <BottomNav />
     </div>

@@ -477,6 +477,8 @@ export interface Database {
           fecha: string;
           notas: string | null;
           created_at: string;
+          evento_id: string | null;
+          segundo_inicio: number | null;
         };
         Insert: {
           id?: string;
@@ -487,8 +489,32 @@ export interface Database {
           fecha?: string;
           notas?: string | null;
           created_at?: string;
+          evento_id?: string | null;
+          segundo_inicio?: number | null;
         };
         Update: Partial<Database["public"]["Tables"]["videos"]["Insert"]>;
+        Relationships: [];
+      };
+      horario_entrenamiento: {
+        Row: {
+          id: string;
+          dia_semana: number;
+          hora_inicio: string | null;
+          hora_fin: string | null;
+          lugar: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          dia_semana: number;
+          hora_inicio?: string | null;
+          hora_fin?: string | null;
+          lugar?: string | null;
+          created_at?: string;
+        };
+        Update: Partial<
+          Database["public"]["Tables"]["horario_entrenamiento"]["Insert"]
+        >;
         Relationships: [];
       };
     };

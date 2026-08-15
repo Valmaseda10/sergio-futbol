@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { useLiveQuery } from "dexie-react-hooks";
 import { localDb } from "@/lib/db/local-db";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -11,6 +11,8 @@ import { TiposGolChart } from "@/components/estadisticas/tipos-gol-chart";
 import { MapaGoles } from "@/components/estadisticas/mapa-goles";
 import { GolesIntervaloChart } from "@/components/estadisticas/goles-intervalo-chart";
 import { JugadoresTable } from "@/components/estadisticas/jugadores-table";
+import { Button } from "@/components/ui/button";
+import { Printer } from "lucide-react";
 import {
   DURACION_PARTIDO_MINUTOS,
   calcularAsistenciaEquipoPorSesion,
@@ -20,6 +22,14 @@ import {
   calcularStatsJugadores,
 } from "@/lib/estadisticas";
 import { TIPOS_GOL } from "@/lib/validations/gol";
+import { temporadaActual, temporadaDeFecha, temporadasDisponibles } from "@/lib/temporada";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 function hoyISO() {
   const now = new Date();
@@ -62,9 +72,55 @@ export default function EstadisticasPage() {
   );
   const estados = useLiveQuery(() => localDb.estados.toArray(), [], []);
 
+  const temporadaHoy = temporadaActual(hoy);
+  const [temporadaSel, setTemporadaSel] = useState(temporadaHoy);
+
+  const temporadas = useMemo(() => {
+    const disponibles = temporadasDisponibles([
+      ...partidos.map((p) => p.fecha),
+      ...entrenamientos.map((e) => e.fecha),
+    ]);
+    return disponibles.includes(temporadaHoy)
+      ? disponibles
+      : [temporadaHoy, ...disponibles];
+  }, [partidos, entrenamientos, temporadaHoy]);
+
+  const partidosTemporada = useMemo(
+    () => partidos.filter((p) => temporadaDeFecha(p.fecha) === temporadaSel),
+    [partidos, temporadaSel],
+  );
+  const partidoIdsTemporada = useMemo(
+    () => new Set(partidosTemporada.map((p) => p.id)),
+    [partidosTemporada],
+  );
+  const eventosTemporada = useMemo(
+    () => eventos.filter((e) => partidoIdsTemporada.has(e.partido_id)),
+    [eventos, partidoIdsTemporada],
+  );
+  const convocatoriasTemporada = useMemo(
+    () => convocatorias.filter((c) => partidoIdsTemporada.has(c.partido_id)),
+    [convocatorias, partidoIdsTemporada],
+  );
+  const alineacionesTemporada = useMemo(
+    () => alineaciones.filter((a) => partidoIdsTemporada.has(a.partido_id)),
+    [alineaciones, partidoIdsTemporada],
+  );
+  const entrenamientosTemporada = useMemo(
+    () => entrenamientos.filter((e) => temporadaDeFecha(e.fecha) === temporadaSel),
+    [entrenamientos, temporadaSel],
+  );
+  const entrenamientoIdsTemporada = useMemo(
+    () => new Set(entrenamientosTemporada.map((e) => e.id)),
+    [entrenamientosTemporada],
+  );
+  const asistenciasTemporada = useMemo(
+    () => asistencias.filter((a) => entrenamientoIdsTemporada.has(a.entrenamiento_id)),
+    [asistencias, entrenamientoIdsTemporada],
+  );
+
   const partidosJugados = useMemo(
     () =>
-      partidos
+      partidosTemporada
         .filter((p) => p.resultado_favor != null && p.resultado_contra != null)
         .sort((a, b) => a.fecha.localeCompare(b.fecha))
         .map((p) => ({
@@ -74,24 +130,24 @@ export default function EstadisticasPage() {
           resultado_favor: p.resultado_favor as number,
           resultado_contra: p.resultado_contra as number,
         })),
-    [partidos],
+    [partidosTemporada],
   );
 
   const entrenamientosPasados = useMemo(
-    () => entrenamientos.filter((e) => e.fecha <= hoy),
-    [entrenamientos, hoy],
+    () => entrenamientosTemporada.filter((e) => e.fecha <= hoy),
+    [entrenamientosTemporada, hoy],
   );
 
   const asistenciasConNombre = useMemo(() => {
     const nombrePorEstado = new Map(estados.map((e) => [e.id, e.nombre]));
-    return asistencias
+    return asistenciasTemporada
       .filter((a) => a.estado_id)
       .map((a) => ({
         entrenamiento_id: a.entrenamiento_id,
         jugador_id: a.jugador_id,
         estado_nombre: nombrePorEstado.get(a.estado_id as string) ?? "",
       }));
-  }, [asistencias, estados]);
+  }, [asistenciasTemporada, estados]);
 
   const resumen = useMemo(
     () => calcularResumenEquipo(partidosJugados),
@@ -112,14 +168,22 @@ export default function EstadisticasPage() {
     () =>
       calcularStatsJugadores(
         jugadores,
-        eventos,
-        convocatorias,
-        alineaciones,
+        eventosTemporada,
+        convocatoriasTemporada,
+        alineacionesTemporada,
         entrenamientosPasados,
         asistenciasConNombre,
         hoy,
       ),
-    [jugadores, eventos, convocatorias, alineaciones, entrenamientosPasados, asistenciasConNombre, hoy],
+    [
+      jugadores,
+      eventosTemporada,
+      convocatoriasTemporada,
+      alineacionesTemporada,
+      entrenamientosPasados,
+      asistenciasConNombre,
+      hoy,
+    ],
   );
 
   const goleadores = useMemo(
@@ -144,10 +208,10 @@ export default function EstadisticasPage() {
 
   const goles = useMemo(
     () =>
-      eventos
+      eventosTemporada
         .filter((e) => e.tipo_gol != null)
         .map((e) => ({ a_favor: e.a_favor, tipo_gol: e.tipo_gol as string })),
-    [eventos],
+    [eventosTemporada],
   );
   const datosGoles = useMemo(
     () => calcularGolesPorTipo(goles, TIPOS_GOL),
@@ -160,7 +224,7 @@ export default function EstadisticasPage() {
 
   const golesUbicacion = useMemo(
     () =>
-      eventos
+      eventosTemporada
         .filter(
           (e) =>
             (e.tipo === "gol" || e.tipo === "autogol") &&
@@ -172,15 +236,15 @@ export default function EstadisticasPage() {
           pos_y: e.pos_y as number,
           a_favor: e.a_favor,
         })),
-    [eventos],
+    [eventosTemporada],
   );
 
   const golesPorMinuto = useMemo(
     () =>
-      eventos
+      eventosTemporada
         .filter((e) => e.tipo === "gol" && e.minuto != null)
         .map((e) => ({ minuto: e.minuto, a_favor: e.a_favor })),
-    [eventos],
+    [eventosTemporada],
   );
   const datosIntervalos = useMemo(
     () => calcularGolesPorIntervalo(golesPorMinuto),
@@ -205,7 +269,35 @@ export default function EstadisticasPage() {
 
   return (
     <div className="space-y-4">
-      <h1 className="text-2xl font-semibold">Estadísticas</h1>
+      <div className="flex items-center justify-between gap-3">
+        <h1 className="text-2xl font-semibold">Estadísticas</h1>
+        <div className="flex items-center gap-2">
+          <Select value={temporadaSel} onValueChange={(v) => v && setTemporadaSel(v)}>
+            <SelectTrigger className="w-36 print:hidden">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {temporadas.map((t) => (
+                <SelectItem key={t} value={t}>
+                  {t}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <Button
+            variant="outline"
+            size="icon"
+            className="print:hidden"
+            aria-label="Exportar a PDF"
+            onClick={() => window.print()}
+          >
+            <Printer className="size-4" />
+          </Button>
+        </div>
+      </div>
+      <p className="hidden text-sm text-muted-foreground print:block">
+        Temporada {temporadaSel}
+      </p>
 
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
         <Card>

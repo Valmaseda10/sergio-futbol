@@ -2,7 +2,7 @@
 // Solicitudes de acceso se quedan en actions.ts / route handlers online-only:
 // requieren la service_role key, que nunca debe llegar al cliente.
 
-import { localDb, type LocalEstado } from "@/lib/db/local-db";
+import { localDb, type LocalEstado, type LocalHorarioEntrenamiento } from "@/lib/db/local-db";
 import { queueMutation } from "@/lib/db/sync";
 import { estadoSchema, type EstadoFormValues } from "@/lib/validations/estado";
 
@@ -52,5 +52,51 @@ export async function toggleActivoEstadoLocal(
 ): Promise<SimpleResult> {
   await localDb.estados.update(id, { activo });
   await queueMutation("estados", "update", id, { activo });
+  return { success: true };
+}
+
+export interface HorarioFormValues {
+  dia_semana: number;
+  hora_inicio: string;
+  hora_fin: string;
+  lugar: string;
+}
+
+export async function crearHorarioLocal(
+  values: HorarioFormValues,
+): Promise<ActionResult> {
+  const id = crypto.randomUUID();
+  const row: LocalHorarioEntrenamiento = {
+    id,
+    dia_semana: values.dia_semana,
+    hora_inicio: values.hora_inicio || null,
+    hora_fin: values.hora_fin || null,
+    lugar: values.lugar || null,
+    created_at: new Date().toISOString(),
+  };
+
+  await localDb.horario_entrenamiento.put(row);
+  await queueMutation("horario_entrenamiento", "insert", id, row);
+
+  return { success: true, id };
+}
+
+export async function actualizarHorarioLocal(
+  id: string,
+  values: Omit<HorarioFormValues, "dia_semana">,
+): Promise<SimpleResult> {
+  const patch = {
+    hora_inicio: values.hora_inicio || null,
+    hora_fin: values.hora_fin || null,
+    lugar: values.lugar || null,
+  };
+  await localDb.horario_entrenamiento.update(id, patch);
+  await queueMutation("horario_entrenamiento", "update", id, patch);
+  return { success: true };
+}
+
+export async function eliminarHorarioLocal(id: string): Promise<SimpleResult> {
+  await localDb.horario_entrenamiento.delete(id);
+  await queueMutation("horario_entrenamiento", "delete", id);
   return { success: true };
 }

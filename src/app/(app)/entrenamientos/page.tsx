@@ -9,6 +9,7 @@ import { capitalizarPrimera } from "@/lib/date";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { FechaTile } from "@/components/ui/fecha-tile";
+import { HorarioSemanalResumen } from "@/components/entrenamientos/horario-semanal-resumen";
 
 function nombreDia(fecha: string) {
   return capitalizarPrimera(
@@ -117,6 +118,8 @@ export default function EntrenamientosPage() {
           </Button>
         </div>
       </div>
+
+      <HorarioSemanalResumen />
 
       {meses.length === 0 ? (
         <p className="py-4 text-center text-sm text-muted-foreground">

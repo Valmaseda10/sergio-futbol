@@ -1,6 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { SolicitudesPanel } from "@/components/ajustes/solicitudes-panel";
 import { EstadosPanel } from "@/components/ajustes/estados-panel";
+import { HorarioSemanalPanel } from "@/components/ajustes/horario-semanal-panel";
 import { UsuariosPanel } from "@/components/ajustes/usuarios-panel";
 import { CambiarPasswordPanel } from "@/components/ajustes/cambiar-password-panel";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -58,6 +59,15 @@ export default async function AjustesPage() {
           </CardContent>
         </Card>
       )}
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Horario semanal</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <HorarioSemanalPanel />
+        </CardContent>
+      </Card>
 
       <Card>
         <CardHeader>

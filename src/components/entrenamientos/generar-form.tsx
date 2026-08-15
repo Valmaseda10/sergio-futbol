@@ -1,8 +1,10 @@
 "use client";
 
+import { useEffect, useRef } from "react";
 import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useRouter } from "next/navigation";
+import { useLiveQuery } from "dexie-react-hooks";
 import { toast } from "sonner";
 import {
   DIAS_SEMANA,
@@ -10,6 +12,7 @@ import {
   type GenerarFormValues,
 } from "@/lib/validations/entrenamiento";
 import { generarEntrenamientosLocal } from "@/app/(app)/entrenamientos/local-actions";
+import { localDb } from "@/lib/db/local-db";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -23,23 +26,47 @@ function FieldError({ message }: { message?: string }) {
 
 export function GenerarForm() {
   const router = useRouter();
+  const yaAplicado = useRef(false);
+
+  const horarios = useLiveQuery(
+    () => localDb.horario_entrenamiento.toArray(),
+    [],
+    [],
+  );
 
   const {
     register,
     control,
     handleSubmit,
+    reset,
     formState: { errors, isSubmitting },
   } = useForm<GenerarFormValues>({
     resolver: zodResolver(generarSchema),
     defaultValues: {
       fecha_inicio: "",
       fecha_fin: "",
-      dias: [2, 3, 5],
+      dias: [1, 3, 5],
       hora_inicio: "17:45",
       hora_fin: "19:15",
       lugar: "Área Deportiva de Puente Castro",
     },
   });
+
+  // En cuanto se carga el horario configurado en Ajustes, precarga los días
+  // y el horario reales en vez de dejar los valores de respaldo de arriba.
+  useEffect(() => {
+    if (yaAplicado.current || horarios.length === 0) return;
+    yaAplicado.current = true;
+    const primero = horarios[0];
+    reset({
+      fecha_inicio: "",
+      fecha_fin: "",
+      dias: horarios.map((h) => h.dia_semana),
+      hora_inicio: primero.hora_inicio?.slice(0, 5) ?? "17:45",
+      hora_fin: primero.hora_fin?.slice(0, 5) ?? "19:15",
+      lugar: primero.lugar ?? "Área Deportiva de Puente Castro",
+    });
+  }, [horarios, reset]);
 
   async function onSubmit(values: GenerarFormValues) {
     const result = await generarEntrenamientosLocal(values);

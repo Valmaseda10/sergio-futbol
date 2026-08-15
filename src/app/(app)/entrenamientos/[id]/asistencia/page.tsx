@@ -89,6 +89,7 @@ export default function AsistenciaPage() {
       </div>
       <AsistenciaGrid
         entrenamientoId={id}
+        fecha={entrenamiento.fecha}
         jugadores={jugadoresParaGrid}
         estados={estados}
       />

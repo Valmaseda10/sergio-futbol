@@ -1,10 +1,12 @@
 "use client";
 
 import { useState } from "react";
+import { useLiveQuery } from "dexie-react-hooks";
 import { toast } from "sonner";
-import { ExternalLink, Trash2 } from "lucide-react";
+import { ExternalLink, Trash2, Clapperboard } from "lucide-react";
 import { eliminarVideoLocal } from "@/app/(app)/videos/local-actions";
 import { getYoutubeEmbedUrl } from "@/lib/youtube";
+import { localDb } from "@/lib/db/local-db";
 import { Button } from "@/components/ui/button";
 import {
   AlertDialog,
@@ -24,7 +26,19 @@ interface VideoCardData {
   url: string;
   fecha: string;
   notas: string | null;
+  evento_id: string | null;
+  segundo_inicio: number | null;
 }
+
+const TIPO_EVENTO_LABEL: Record<string, string> = {
+  gol: "Gol",
+  autogol: "Autogol",
+  asistencia: "Asistencia",
+  tarjeta_amarilla: "Tarjeta amarilla",
+  tarjeta_roja: "Tarjeta roja",
+  cambio_entra: "Entra al campo",
+  cambio_sale: "Sale del campo",
+};
 
 export function VideoCard({
   video,
@@ -34,7 +48,26 @@ export function VideoCard({
   rivalAsociado?: string;
 }) {
   const [borrando, setBorrando] = useState(false);
-  const embedUrl = getYoutubeEmbedUrl(video.url);
+  const embedUrl = getYoutubeEmbedUrl(video.url, video.segundo_inicio);
+
+  const evento = useLiveQuery(
+    async () =>
+      video.evento_id ? (await localDb.eventos_partido.get(video.evento_id)) ?? null : null,
+    [video.evento_id],
+    null,
+  );
+  const jugador = useLiveQuery(
+    async () =>
+      evento?.jugador_id ? (await localDb.jugadores.get(evento.jugador_id)) ?? null : null,
+    [evento?.jugador_id],
+    null,
+  );
+
+  const etiquetaEvento = evento
+    ? `${evento.minuto != null ? `${evento.minuto}' — ` : ""}${TIPO_EVENTO_LABEL[evento.tipo] ?? evento.tipo}${
+        jugador ? ` (${jugador.alias || `${jugador.nombre} ${jugador.apellidos}`})` : evento.tipo === "gol" ? " (Rival)" : ""
+      }`
+    : null;
 
   async function handleDelete() {
     setBorrando(true);
@@ -62,6 +95,12 @@ export function VideoCard({
             })}
             {rivalAsociado ? ` · vs ${rivalAsociado}` : ""}
           </p>
+          {etiquetaEvento && (
+            <p className="mt-1 flex items-center gap-1 text-xs font-medium text-gold">
+              <Clapperboard className="size-3" />
+              {etiquetaEvento}
+            </p>
+          )}
         </div>
         <AlertDialog>
           <AlertDialogTrigger
