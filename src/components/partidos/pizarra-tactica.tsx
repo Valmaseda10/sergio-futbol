@@ -236,6 +236,7 @@ function PorteriaIcon({ className }: { className?: string }) {
 }
 
 export function PizarraTactica({ jugadores }: { jugadores: Jugador[] }) {
+  const containerRef = useRef<HTMLDivElement>(null);
   const pitchRef = useRef<HTMLDivElement>(null);
   const [posiciones, setPosiciones] = useState<Record<string, Posicion>>({});
   const [fichas, setFichas] = useState<Record<string, FichaGenerica>>({});
@@ -262,14 +263,25 @@ export function PizarraTactica({ jugadores }: { jugadores: Jugador[] }) {
   const dibujoIdRef = useRef<string | null>(null);
   const borrandoActivoRef = useRef(false);
   const spawnContador = useRef(0);
-  const fichaContador = useRef(0);
+  // Contador independiente por color: cada color de ficha empieza en 1.
+  const fichaContadores = useRef<Record<ColorFicha, number>>({
+    azul: 0,
+    verde: 0,
+    amarillo: 0,
+    rojo: 0,
+    negro: 0,
+  });
 
   // El modo pantalla completa se activa/desactiva desde el botón, pero
   // también se puede salir con Esc o el gesto del sistema; hay que escuchar
   // el evento para que el estado no se quede desincronizado en ese caso.
+  // Se pone en pantalla completa el contenedor entero (no solo el campo)
+  // para que la barra de herramientas siga visible y usable: con el
+  // Fullscreen API, solo lo que cuelga del elemento que entra en pantalla
+  // completa sigue renderizándose.
   useEffect(() => {
     function handleFullscreenChange() {
-      setPantallaCompleta(document.fullscreenElement === pitchRef.current);
+      setPantallaCompleta(document.fullscreenElement === containerRef.current);
     }
     document.addEventListener("fullscreenchange", handleFullscreenChange);
     return () =>
@@ -277,11 +289,11 @@ export function PizarraTactica({ jugadores }: { jugadores: Jugador[] }) {
   }, []);
 
   async function handleTogglePantallaCompleta() {
-    if (!pitchRef.current) return;
+    if (!containerRef.current) return;
     if (document.fullscreenElement) {
       await document.exitFullscreen();
     } else {
-      await pitchRef.current.requestFullscreen();
+      await containerRef.current.requestFullscreen();
     }
   }
 
@@ -315,7 +327,7 @@ export function PizarraTactica({ jugadores }: { jugadores: Jugador[] }) {
     setTrazoActual(null);
     setPuntoBorrado(null);
     spawnContador.current = 0;
-    fichaContador.current = 0;
+    fichaContadores.current = { azul: 0, verde: 0, amarillo: 0, rojo: 0, negro: 0 };
   }
 
   function handleBanquilloClick(jugadorId: string) {
@@ -324,10 +336,10 @@ export function PizarraTactica({ jugadores }: { jugadores: Jugador[] }) {
 
   function handleAñadirFicha(color: ColorFicha) {
     const id = nuevoId();
-    fichaContador.current += 1;
+    fichaContadores.current[color] += 1;
     setFichas((prev) => ({
       ...prev,
-      [id]: { color, numero: fichaContador.current, ...siguientePosicionSpawn() },
+      [id]: { color, numero: fichaContadores.current[color], ...siguientePosicionSpawn() },
     }));
   }
 
@@ -631,23 +643,33 @@ export function PizarraTactica({ jugadores }: { jugadores: Jugador[] }) {
   }
 
   return (
-    <div className="space-y-4">
+    <div
+      ref={containerRef}
+      className={cn(
+        "space-y-4",
+        pantallaCompleta && "overflow-y-auto bg-background p-3",
+      )}
+    >
       <div className="flex gap-2">
-        <Select value={formacionValue} onValueChange={(v) => v && setFormacionValue(v)}>
-          <SelectTrigger className="flex-1">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            {FORMACIONES.map((f) => (
-              <SelectItem key={f.value} value={f.value}>
-                {f.label}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-        <Button type="button" variant="outline" onClick={handleAplicarFormacion}>
-          Aplicar
-        </Button>
+        {!pantallaCompleta && (
+          <>
+            <Select value={formacionValue} onValueChange={(v) => v && setFormacionValue(v)}>
+              <SelectTrigger className="flex-1">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {FORMACIONES.map((f) => (
+                  <SelectItem key={f.value} value={f.value}>
+                    {f.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <Button type="button" variant="outline" onClick={handleAplicarFormacion}>
+              Aplicar
+            </Button>
+          </>
+        )}
         <Button
           type="button"
           variant="ghost"
@@ -823,27 +845,26 @@ export function PizarraTactica({ jugadores }: { jugadores: Jugador[] }) {
         </div>
       </div>
 
-      <p className="text-xs text-muted-foreground">
-        Toca un color o un icono de material para añadirlo al campo; mantén y
-        arrastra para moverlo; tócalo de nuevo para quitarlo. Con el lápiz
-        activado, dibuja a mano alzada para explicar la jugada o el
-        ejercicio; con la línea recta activada, arrastra de un punto a otro
-        para trazar una línea perfectamente recta (encadena varias para
-        marcar un cuadrado o un rectángulo); con la goma activada, arrastra
-        sobre un trazo para borrar solo esa parte.
-      </p>
+      {!pantallaCompleta && (
+        <p className="text-xs text-muted-foreground">
+          Toca un color o un icono de material para añadirlo al campo; mantén
+          y arrastra para moverlo; tócalo de nuevo para quitarlo. Con el
+          lápiz activado, dibuja a mano alzada para explicar la jugada o el
+          ejercicio; con la línea recta activada, arrastra de un punto a otro
+          para trazar una línea perfectamente recta (encadena varias para
+          marcar un cuadrado o un rectángulo); con la goma activada, arrastra
+          sobre un trazo para borrar solo esa parte.
+        </p>
+      )}
 
       <div
         ref={pitchRef}
         className={cn(
           "relative touch-none overflow-hidden rounded-lg bg-pitch",
-          pantallaCompleta ? "mx-auto" : "aspect-[2/3] w-full",
-        )}
-        style={
           pantallaCompleta
-            ? { aspectRatio: "2 / 3", height: "100vh", maxWidth: "100vw" }
-            : undefined
-        }
+            ? "mx-auto aspect-[2/3] w-full max-w-2xl"
+            : "aspect-[2/3] w-full",
+        )}
       >
         {/* Línea de medio campo y círculo central */}
         <div className="absolute inset-x-0 top-1/2 h-px bg-white/40" />
@@ -1029,33 +1050,35 @@ export function PizarraTactica({ jugadores }: { jugadores: Jugador[] }) {
         )}
       </div>
 
-      <div className="space-y-2">
-        <p className="text-sm font-medium text-muted-foreground">
-          Banquillo ({enBanquillo.length})
-        </p>
-        {enBanquillo.length === 0 ? (
-          <p className="text-sm text-muted-foreground">
-            Todos los jugadores están en el campo.
+      {!pantallaCompleta && (
+        <div className="space-y-2">
+          <p className="text-sm font-medium text-muted-foreground">
+            Banquillo ({enBanquillo.length})
           </p>
-        ) : (
-          <ul className="flex flex-wrap gap-2">
-            {enBanquillo.map((j) => (
-              <li key={j.id}>
-                <button
-                  type="button"
-                  onClick={() => handleBanquilloClick(j.id)}
-                  className="flex items-center gap-2 rounded-full border py-1 pr-3 pl-2 text-sm hover:bg-muted"
-                >
-                  <span className="flex size-6 items-center justify-center rounded-full bg-primary text-[10px] font-medium text-primary-foreground">
-                    {j.dorsal ?? nombreFicha(j)[0]}
-                  </span>
-                  {nombreFicha(j)}
-                </button>
-              </li>
-            ))}
-          </ul>
-        )}
-      </div>
+          {enBanquillo.length === 0 ? (
+            <p className="text-sm text-muted-foreground">
+              Todos los jugadores están en el campo.
+            </p>
+          ) : (
+            <ul className="flex flex-wrap gap-2">
+              {enBanquillo.map((j) => (
+                <li key={j.id}>
+                  <button
+                    type="button"
+                    onClick={() => handleBanquilloClick(j.id)}
+                    className="flex items-center gap-2 rounded-full border py-1 pr-3 pl-2 text-sm hover:bg-muted"
+                  >
+                    <span className="flex size-6 items-center justify-center rounded-full bg-primary text-[10px] font-medium text-primary-foreground">
+                      {j.dorsal ?? nombreFicha(j)[0]}
+                    </span>
+                    {nombreFicha(j)}
+                  </button>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+      )}
     </div>
   );
 }
