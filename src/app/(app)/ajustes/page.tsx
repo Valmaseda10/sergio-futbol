@@ -4,6 +4,8 @@ import { EstadosPanel } from "@/components/ajustes/estados-panel";
 import { HorarioSemanalPanel } from "@/components/ajustes/horario-semanal-panel";
 import { UsuariosPanel } from "@/components/ajustes/usuarios-panel";
 import { CambiarPasswordPanel } from "@/components/ajustes/cambiar-password-panel";
+import { CopiaSeguridadPanel } from "@/components/ajustes/copia-seguridad-panel";
+import { CalendarioPanel } from "@/components/ajustes/calendario-panel";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 export default async function AjustesPage() {
@@ -14,7 +16,7 @@ export default async function AjustesPage() {
 
   const { data: usuario } = await supabase
     .from("usuarios")
-    .select("rol")
+    .select("rol, calendario_token")
     .eq("id", user!.id)
     .single();
 
@@ -69,6 +71,17 @@ export default async function AjustesPage() {
         </CardContent>
       </Card>
 
+      {usuario?.calendario_token && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Calendario en el iPhone</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <CalendarioPanel calendarioTokenInicial={usuario.calendario_token} />
+          </CardContent>
+        </Card>
+      )}
+
       <Card>
         <CardHeader>
           <CardTitle>Estados</CardTitle>
@@ -88,6 +101,17 @@ export default async function AjustesPage() {
               usuariosIniciales={usuarios ?? []}
               currentUserId={user!.id}
             />
+          </CardContent>
+        </Card>
+      )}
+
+      {isAdmin && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Copia de seguridad</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <CopiaSeguridadPanel />
           </CardContent>
         </Card>
       )}

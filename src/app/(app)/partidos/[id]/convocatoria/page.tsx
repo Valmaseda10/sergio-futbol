@@ -56,7 +56,16 @@ export default function ConvocatoriaPage() {
         Volver al partido
       </Link>
       <h1 className="text-2xl font-semibold">Convocatoria vs {partido.rival}</h1>
-      <ConvocatoriaList partidoId={id} jugadores={jugadoresParaLista} />
+      <ConvocatoriaList
+        partidoId={id}
+        partido={{
+          rival: partido.rival,
+          fecha: partido.fecha,
+          hora: partido.hora,
+          lugar: partido.lugar,
+        }}
+        jugadores={jugadoresParaLista}
+      />
     </div>
   );
 }

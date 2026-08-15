@@ -55,6 +55,7 @@ export interface Database {
           rol: Rol;
           activo: boolean;
           created_at: string;
+          calendario_token: string;
         };
         Insert: {
           id: string;
@@ -63,6 +64,7 @@ export interface Database {
           rol: Rol;
           activo?: boolean;
           created_at?: string;
+          calendario_token?: string;
         };
         Update: Partial<Database["public"]["Tables"]["usuarios"]["Insert"]>;
         Relationships: [];

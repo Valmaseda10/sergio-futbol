@@ -8,6 +8,9 @@ const PUBLIC_PATHS = [
   "/auth",
   "/pendiente-aprobacion",
   "/api/solicitudes/registrar",
+  // El feed de calendario lo consume la app Calendario del iPhone, que no
+  // manda cookies de sesión; se autentica con el token de la propia URL.
+  "/api/calendario",
 ];
 
 function isPublicPath(pathname: string) {
