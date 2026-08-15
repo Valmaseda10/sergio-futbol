@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useMemo } from "react";
 import { useLiveQuery } from "dexie-react-hooks";
-import { Plus, CalendarPlus, MapPin, Clock } from "lucide-react";
+import { Plus, CalendarPlus, CalendarRange, MapPin, Clock } from "lucide-react";
 import { localDb, type LocalEntrenamiento } from "@/lib/db/local-db";
 import { capitalizarPrimera } from "@/lib/date";
 import { Button } from "@/components/ui/button";
@@ -99,6 +99,14 @@ export default function EntrenamientosPage() {
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-semibold">Entrenamientos</h1>
         <div className="flex gap-2">
+          <Button
+            size="sm"
+            variant="outline"
+            nativeButton={false}
+            render={<Link href="/calendario" aria-label="Ver calendario" />}
+          >
+            <CalendarRange className="size-4" />
+          </Button>
           <Button
             size="sm"
             variant="outline"

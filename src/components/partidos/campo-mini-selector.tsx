@@ -22,6 +22,8 @@ export function PitchHalfLines() {
       <div className="absolute inset-x-0 bottom-0 h-px bg-white/40" />
       <div className="absolute left-1/2 bottom-0 size-24 -translate-x-1/2 translate-y-1/2 rounded-full border border-white/40" />
       <div className="absolute inset-x-[45%] top-0 h-[3%] border-x-2 border-b-2 border-white/70" />
+      <div className="absolute left-0 top-0 size-3 rounded-br-full border-r border-b border-white/50" />
+      <div className="absolute right-0 top-0 size-3 rounded-bl-full border-l border-b border-white/50" />
     </>
   );
 }

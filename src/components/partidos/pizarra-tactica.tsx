@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   RotateCcw,
   Pencil,
@@ -9,6 +9,8 @@ import {
   Trash2,
   Undo2,
   TrafficCone,
+  Maximize,
+  Minimize,
 } from "lucide-react";
 import { FORMACIONES } from "@/lib/formaciones";
 import { Button } from "@/components/ui/button";
@@ -242,6 +244,7 @@ export function PizarraTactica({ jugadores }: { jugadores: Jugador[] }) {
   const [puntoBorrado, setPuntoBorrado] = useState<PuntoBorrado | null>(null);
   const [colorDibujo, setColorDibujo] = useState<ColorTrazo>("blanco");
   const [formacionValue, setFormacionValue] = useState(FORMACIONES[0].value);
+  const [pantallaCompleta, setPantallaCompleta] = useState(false);
 
   const dragRef = useRef<{
     elemento: Elemento;
@@ -253,6 +256,27 @@ export function PizarraTactica({ jugadores }: { jugadores: Jugador[] }) {
   const borrandoActivoRef = useRef(false);
   const spawnContador = useRef(0);
   const fichaContador = useRef(0);
+
+  // El modo pantalla completa se activa/desactiva desde el botón, pero
+  // también se puede salir con Esc o el gesto del sistema; hay que escuchar
+  // el evento para que el estado no se quede desincronizado en ese caso.
+  useEffect(() => {
+    function handleFullscreenChange() {
+      setPantallaCompleta(document.fullscreenElement === pitchRef.current);
+    }
+    document.addEventListener("fullscreenchange", handleFullscreenChange);
+    return () =>
+      document.removeEventListener("fullscreenchange", handleFullscreenChange);
+  }, []);
+
+  async function handleTogglePantallaCompleta() {
+    if (!pitchRef.current) return;
+    if (document.fullscreenElement) {
+      await document.exitFullscreen();
+    } else {
+      await pitchRef.current.requestFullscreen();
+    }
+  }
 
   function siguientePosicionSpawn(): Posicion {
     const pos = POSICIONES_SPAWN[spawnContador.current % POSICIONES_SPAWN.length];
@@ -626,6 +650,23 @@ export function PizarraTactica({ jugadores }: { jugadores: Jugador[] }) {
         >
           <RotateCcw className="size-4" />
         </Button>
+        <Button
+          type="button"
+          variant="ghost"
+          size="icon"
+          onClick={handleTogglePantallaCompleta}
+          aria-label={
+            pantallaCompleta
+              ? "Salir de pantalla completa"
+              : "Ver la pizarra en pantalla completa"
+          }
+        >
+          {pantallaCompleta ? (
+            <Minimize className="size-4" />
+          ) : (
+            <Maximize className="size-4" />
+          )}
+        </Button>
       </div>
 
       <div className="flex flex-wrap items-center gap-3 rounded-md border p-2">
@@ -787,14 +828,42 @@ export function PizarraTactica({ jugadores }: { jugadores: Jugador[] }) {
 
       <div
         ref={pitchRef}
-        className="relative aspect-[2/3] w-full touch-none overflow-hidden rounded-lg bg-pitch"
+        className={cn(
+          "relative touch-none overflow-hidden rounded-lg bg-pitch",
+          pantallaCompleta ? "mx-auto" : "aspect-[2/3] w-full",
+        )}
+        style={
+          pantallaCompleta
+            ? { aspectRatio: "2 / 3", height: "100vh", maxWidth: "100vw" }
+            : undefined
+        }
       >
+        {/* Línea de medio campo y círculo central */}
         <div className="absolute inset-x-0 top-1/2 h-px bg-white/40" />
         <div className="absolute top-1/2 left-1/2 size-16 -translate-x-1/2 -translate-y-1/2 rounded-full border border-white/40" />
-        <div className="absolute inset-x-[20%] top-0 h-[12%] border-x border-b border-white/40" />
-        <div className="absolute inset-x-[20%] bottom-0 h-[12%] border-x border-t border-white/40" />
-        <div className="absolute inset-x-[42%] top-0 h-[3%] border-x-2 border-b-2 border-white/70" />
-        <div className="absolute inset-x-[42%] bottom-0 h-[3%] border-x-2 border-t-2 border-white/70" />
+        <div className="absolute top-1/2 left-1/2 size-1.5 -translate-x-1/2 -translate-y-1/2 rounded-full bg-white/40" />
+
+        {/* Área grande, arriba y abajo */}
+        <div className="absolute inset-x-[20%] top-0 h-[16%] border-x border-b border-white/40" />
+        <div className="absolute inset-x-[20%] bottom-0 h-[16%] border-x border-t border-white/40" />
+
+        {/* Área pequeña, arriba y abajo */}
+        <div className="absolute inset-x-[38%] top-0 h-[6%] border-x border-b border-white/40" />
+        <div className="absolute inset-x-[38%] bottom-0 h-[6%] border-x border-t border-white/40" />
+
+        {/* Punto de penalti, arriba y abajo */}
+        <div className="absolute left-1/2 top-[12%] size-1.5 -translate-x-1/2 -translate-y-1/2 rounded-full bg-white/40" />
+        <div className="absolute left-1/2 bottom-[12%] size-1.5 -translate-x-1/2 translate-y-1/2 rounded-full bg-white/40" />
+
+        {/* Portería, arriba y abajo */}
+        <div className="absolute inset-x-[46%] top-0 h-[1.2%] border-x-2 border-white/80" />
+        <div className="absolute inset-x-[46%] bottom-0 h-[1.2%] border-x-2 border-white/80" />
+
+        {/* Corners, en las 4 esquinas */}
+        <div className="absolute left-0 top-0 size-3 rounded-br-full border-r border-b border-white/50" />
+        <div className="absolute right-0 top-0 size-3 rounded-bl-full border-l border-b border-white/50" />
+        <div className="absolute bottom-0 left-0 size-3 rounded-tr-full border-r border-t border-white/50" />
+        <div className="absolute right-0 bottom-0 size-3 rounded-tl-full border-l border-t border-white/50" />
 
         <svg
           viewBox="0 0 100 100"

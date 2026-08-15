@@ -18,6 +18,7 @@ import { ValoracionesJugador } from "@/components/plantilla/valoraciones-jugador
 import { AsistenciaJugador } from "@/components/plantilla/asistencia-jugador";
 import { LesionesJugador } from "@/components/plantilla/lesiones-jugador";
 import { VideosJugador } from "@/components/plantilla/videos-jugador";
+import { PdfWatermark } from "@/components/branding/pdf-watermark";
 import { posicionLabel } from "@/lib/posiciones";
 
 function hoyISO() {
@@ -137,6 +138,7 @@ export default function FichaJugadorPage() {
 
   return (
     <div className="space-y-4">
+      <PdfWatermark />
       <div className="flex items-center gap-4">
         <JugadorAvatar
           src={fotoSignedUrl}

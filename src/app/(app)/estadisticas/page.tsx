@@ -13,6 +13,7 @@ import { GolesIntervaloChart } from "@/components/estadisticas/goles-intervalo-c
 import { JugadoresTable } from "@/components/estadisticas/jugadores-table";
 import { Button } from "@/components/ui/button";
 import { Printer } from "lucide-react";
+import { PdfWatermark } from "@/components/branding/pdf-watermark";
 import {
   DURACION_PARTIDO_MINUTOS,
   calcularAsistenciaEquipoPorSesion,
@@ -276,6 +277,7 @@ export default function EstadisticasPage() {
 
   return (
     <div className="space-y-4">
+      <PdfWatermark />
       <div className="flex items-center justify-between gap-3">
         <h1 className="text-2xl font-semibold">Estadísticas</h1>
         <div className="flex items-center gap-2">

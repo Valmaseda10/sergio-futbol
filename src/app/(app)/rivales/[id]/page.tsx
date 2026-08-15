@@ -12,6 +12,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { EliminarRivalButton } from "@/components/rivales/eliminar-rival-button";
 import { JugadoresDestacados } from "@/components/rivales/jugadores-destacados";
 import { EquipacionRival } from "@/components/rivales/equipacion-rival";
+import { PdfWatermark } from "@/components/branding/pdf-watermark";
 
 function Seccion({ titulo, texto }: { titulo: string; texto: string | null }) {
   if (!texto) return null;
@@ -52,6 +53,7 @@ export default function FichaRivalPage() {
 
   return (
     <div className="space-y-4">
+      <PdfWatermark />
       <div className="flex items-center gap-3">
         {fotoSignedUrl ? (
           // eslint-disable-next-line @next/next/no-img-element

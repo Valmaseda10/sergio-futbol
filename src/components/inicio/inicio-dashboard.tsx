@@ -3,7 +3,13 @@
 import { useMemo } from "react";
 import Link from "next/link";
 import { useLiveQuery } from "dexie-react-hooks";
-import { AlertTriangle, Clock, MapPin, Users as UsersIcon } from "lucide-react";
+import {
+  AlertTriangle,
+  CalendarRange,
+  Clock,
+  MapPin,
+  Users as UsersIcon,
+} from "lucide-react";
 import { localDb } from "@/lib/db/local-db";
 import { capitalizarPrimera } from "@/lib/date";
 import { cn } from "@/lib/utils";
@@ -15,6 +21,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { FechaTile } from "@/components/ui/fecha-tile";
 import { HorarioSemanalResumen } from "@/components/entrenamientos/horario-semanal-resumen";
 
@@ -159,17 +166,28 @@ export function InicioDashboard({
 
   return (
     <div className="space-y-4">
-      <div>
-        <h1 className="text-2xl font-semibold">Hola{nombre ? `, ${nombre.split(" ")[0]}` : ""}</h1>
-        <p className="text-sm text-muted-foreground">
-          {capitalizarPrimera(
-            new Date(`${hoy}T00:00:00`).toLocaleDateString("es-ES", {
-              weekday: "long",
-              day: "2-digit",
-              month: "long",
-            }),
-          )}
-        </p>
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <h1 className="text-2xl font-semibold">Hola{nombre ? `, ${nombre.split(" ")[0]}` : ""}</h1>
+          <p className="text-sm text-muted-foreground">
+            {capitalizarPrimera(
+              new Date(`${hoy}T00:00:00`).toLocaleDateString("es-ES", {
+                weekday: "long",
+                day: "2-digit",
+                month: "long",
+              }),
+            )}
+          </p>
+        </div>
+        <Button
+          size="sm"
+          variant="outline"
+          nativeButton={false}
+          render={<Link href="/calendario" />}
+        >
+          <CalendarRange className="size-4" />
+          Calendario
+        </Button>
       </div>
 
       {hayAvisos && (
