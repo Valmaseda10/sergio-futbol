@@ -141,11 +141,20 @@
   * {
     @apply border-border outline-ring/50;
   }
+  html, body {
+    /* Evita que el gesto de "arrastrar para refrescar" de Chrome/Android
+       interrumpa el scroll normal o los arrastres de la pizarra táctica;
+       Safari/iOS no tiene este gesto, por eso nunca hizo falta. */
+    overscroll-behavior-y: contain;
+  }
   body {
     @apply bg-background text-foreground;
   }
   html {
     @apply font-sans;
+    /* Sin esto, Chrome/Android pinta un recuadro gris en cada toque de
+       botón, enlace o tarjeta; Safari/iOS no lo muestra igual. */
+    -webkit-tap-highlight-color: transparent;
   }
   h1 {
     @apply font-heading tracking-wide uppercase;
