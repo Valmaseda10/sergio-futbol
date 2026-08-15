@@ -51,6 +51,11 @@ interface Trazo {
   puntos: Posicion[];
 }
 
+interface PuntoBorrado extends Posicion {
+  radioX: number;
+  radioY: number;
+}
+
 type Elemento =
   | { kind: "jugador"; id: string }
   | { kind: "ficha"; id: string }
@@ -141,6 +146,7 @@ export function PizarraTactica({ jugadores }: { jugadores: Jugador[] }) {
   const [trazoActual, setTrazoActual] = useState<Trazo | null>(null);
   const [modoDibujo, setModoDibujo] = useState(false);
   const [modoBorrado, setModoBorrado] = useState(false);
+  const [puntoBorrado, setPuntoBorrado] = useState<PuntoBorrado | null>(null);
   const [colorDibujo, setColorDibujo] = useState<ColorTrazo>("blanco");
   const [formacionValue, setFormacionValue] = useState(FORMACIONES[0].value);
 
@@ -181,6 +187,7 @@ export function PizarraTactica({ jugadores }: { jugadores: Jugador[] }) {
     setMaterial({});
     setTrazos([]);
     setTrazoActual(null);
+    setPuntoBorrado(null);
     spawnContador.current = 0;
   }
 
@@ -337,6 +344,7 @@ export function PizarraTactica({ jugadores }: { jugadores: Jugador[] }) {
       if (siguiente) setModoBorrado(false);
       return siguiente;
     });
+    setPuntoBorrado(null);
   }
 
   function handleToggleGoma() {
@@ -345,17 +353,13 @@ export function PizarraTactica({ jugadores }: { jugadores: Jugador[] }) {
       if (siguiente) setModoDibujo(false);
       return siguiente;
     });
+    setPuntoBorrado(null);
   }
 
   // Borra solo el trozo de trazo que toca la goma en ese punto: cada trazo se
   // recorre punto a punto y, donde entra en el radio de borrado, se corta en
   // dos trazos separados en vez de desaparecer entero.
-  function borrarEnPunto(punto: Posicion) {
-    const rect = pitchRef.current?.getBoundingClientRect();
-    if (!rect) return;
-    const radioX = (RADIO_BORRADO_PX / rect.width) * 100;
-    const radioY = (RADIO_BORRADO_PX / rect.height) * 100;
-
+  function borrarEnPunto(punto: Posicion, radioX: number, radioY: number) {
     setTrazos((prev) => {
       const siguiente: Trazo[] = [];
       for (const trazo of prev) {
@@ -381,23 +385,36 @@ export function PizarraTactica({ jugadores }: { jugadores: Jugador[] }) {
     });
   }
 
+  // Actualiza a la vez el borrado real y el círculo que sigue al dedo, para
+  // que la goma se note como tal: en una tablet no hay cursor de ratón, así
+  // que sin esta marca no se ve dónde ni cuánto se está borrando.
+  function procesarBorrado(e: React.PointerEvent<HTMLDivElement>) {
+    const rect = pitchRef.current?.getBoundingClientRect();
+    if (!rect) return;
+    const punto = {
+      left: clamp(((e.clientX - rect.left) / rect.width) * 100, 0, 100),
+      top: clamp(((e.clientY - rect.top) / rect.height) * 100, 0, 100),
+    };
+    const radioX = (RADIO_BORRADO_PX / rect.width) * 100;
+    const radioY = (RADIO_BORRADO_PX / rect.height) * 100;
+    setPuntoBorrado({ ...punto, radioX, radioY });
+    borrarEnPunto(punto, radioX, radioY);
+  }
+
   function handleGomaPointerDown(e: React.PointerEvent<HTMLDivElement>) {
-    const punto = puntoDesdeEvento(e);
-    if (!punto) return;
     e.currentTarget.setPointerCapture(e.pointerId);
     borrandoActivoRef.current = true;
-    borrarEnPunto(punto);
+    procesarBorrado(e);
   }
 
   function handleGomaPointerMove(e: React.PointerEvent<HTMLDivElement>) {
     if (!borrandoActivoRef.current) return;
-    const punto = puntoDesdeEvento(e);
-    if (!punto) return;
-    borrarEnPunto(punto);
+    procesarBorrado(e);
   }
 
   function handleGomaPointerUp() {
     borrandoActivoRef.current = false;
+    setPuntoBorrado(null);
   }
 
   return (
@@ -571,6 +588,21 @@ export function PizarraTactica({ jugadores }: { jugadores: Jugador[] }) {
               strokeWidth="2.5"
               strokeLinecap="round"
               strokeLinejoin="round"
+              vectorEffect="non-scaling-stroke"
+            />
+          )}
+          {puntoBorrado && (
+            <ellipse
+              cx={puntoBorrado.left}
+              cy={puntoBorrado.top}
+              rx={puntoBorrado.radioX}
+              ry={puntoBorrado.radioY}
+              fill="white"
+              fillOpacity="0.35"
+              stroke="white"
+              strokeOpacity="0.9"
+              strokeWidth="1.5"
+              strokeDasharray="2 2"
               vectorEffect="non-scaling-stroke"
             />
           )}
