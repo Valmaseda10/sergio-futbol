@@ -26,10 +26,10 @@ export function TopBar({ nombre, rol }: { nombre: string; rol: Rol }) {
         <Crest size={30} />
         <div className="min-w-0">
           <p className="truncate font-heading text-sm uppercase tracking-wide leading-tight">
-            Infantil B
+            CYDL Infantil B
           </p>
           <p className="truncate text-[11px] text-[#c9bdb6]">
-            Cultural y Deportiva Leonesa
+            Panel del entrenador
           </p>
         </div>
       </Link>

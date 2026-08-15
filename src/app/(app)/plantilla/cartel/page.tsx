@@ -71,7 +71,7 @@ export default function CartelPlantillaPage() {
 
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-semibold">Infantil B</h1>
+          <h1 className="text-2xl font-semibold">CYDL Infantil B</h1>
           <p className="text-sm text-muted-foreground">
             Cultural y Deportiva Leonesa — {jugadores.length} jugadores
           </p>
