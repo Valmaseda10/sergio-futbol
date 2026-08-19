@@ -104,6 +104,16 @@ No adelantar fases: cada una se construye y se prueba sobre la anterior.
 - No crear páginas o endpoints que expongan datos de jugadores sin autenticación.
 - No implementar el sync offline (Fase 7) antes de tiempo — complica el resto del desarrollo si se mete pronto.
 
+## Flujo de trabajo en equipo (dos personas, dos repos)
+
+Jorge y Sergio trabajan a la vez, cada uno con su propia sesión de Claude Code, sobre el mismo remoto en GitHub (`Valmaseda10/sergio-futbol`, privado). Sin disciplina de sincronización, cada sesión solo ve su propio trabajo local:
+
+- **Al empezar a trabajar**: `git pull` antes de tocar nada, para partir del estado más reciente.
+- **Al terminar un cambio con sentido propio** (una tarea, un fix, una migración completa — no cada línea suelta): commit descriptivo en español y `git push` a `master` inmediatamente. No dejar trabajo sin subir al terminar la sesión.
+- Esta instrucción autoriza el push rutinario a `master` en este repo sin pedir confirmación cada vez. La autorización **no** cubre `git push --force` ni tocar otras ramas o remotos — eso sigue necesitando confirmación explícita.
+- Si `git push` falla porque origin tiene commits nuevos: `git pull --rebase origin master` (nunca `--force`) y reintentar. Conflictos triviales (imports, formato) se resuelven y se sigue; si el conflicto afecta a lógica real, parar y preguntar al usuario en vez de decidir solo qué versión se queda.
+- Trabajo directo sobre `master`, sin ramas — con dos personas y disciplina de pull/push no compensa la fricción de Pull Requests. Si un día vais a tocar el mismo módulo el mismo día, avisaros fuera de Claude Code antes de empezar.
+
 ## Comandos del proyecto
 
 _(Se rellenará en cuanto exista el scaffold: `npm run dev`, `npm run build`, migraciones de Supabase, etc.)_
