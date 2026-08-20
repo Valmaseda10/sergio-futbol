@@ -9,6 +9,7 @@ import {
   Trophy,
   Swords,
   LayoutGrid,
+  LayoutList,
   Video,
   BarChart3,
   Settings,
@@ -22,6 +23,7 @@ const NAV_ITEMS = [
   { href: "/partidos", label: "Partidos", icon: Trophy },
   { href: "/rivales", label: "Rivales", icon: Swords },
   { href: "/pizarra", label: "Pizarra", icon: LayoutGrid },
+  { href: "/campograma", label: "Campograma", icon: LayoutList },
   { href: "/videos", label: "Vídeos", icon: Video },
   { href: "/estadisticas", label: "Estadísticas", icon: BarChart3 },
   { href: "/ajustes", label: "Ajustes", icon: Settings },
@@ -35,7 +37,7 @@ export function BottomNav() {
       className="fixed inset-x-0 bottom-0 z-40 border-t bg-background pb-[env(safe-area-inset-bottom)] md:hidden print:hidden"
       aria-label="Navegación principal"
     >
-      <ul className="grid grid-cols-9">
+      <ul className="grid grid-cols-10">
         {NAV_ITEMS.map(({ href, label, icon: Icon }) => {
           const active = pathname.startsWith(href);
           return (

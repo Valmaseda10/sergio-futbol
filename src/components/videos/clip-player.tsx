@@ -13,10 +13,14 @@ export function ClipPlayer({
   videoId,
   inicio,
   fin,
+  autoplay,
+  onFin,
 }: {
   videoId: string;
   inicio: number;
   fin: number;
+  autoplay?: boolean;
+  onFin?: () => void;
 }) {
   const contenedorRef = useRef<HTMLDivElement>(null);
   const playerRef = useRef<YTPlayerInstance | null>(null);
@@ -39,6 +43,7 @@ export function ClipPlayer({
         playerVars: {
           start: Math.floor(inicio),
           end: Math.ceil(fin),
+          autoplay: autoplay ? 1 : 0,
           controls: 0,
           disablekb: 1,
           modestbranding: 1,
@@ -69,6 +74,7 @@ export function ClipPlayer({
           player.pauseVideo();
           player.seekTo(inicio, true);
           setProgreso(0);
+          onFin?.();
         } else {
           setProgreso(Math.min(1, (t - inicio) / duracion));
         }

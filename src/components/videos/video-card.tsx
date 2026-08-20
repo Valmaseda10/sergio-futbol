@@ -4,9 +4,9 @@ import { useState } from "react";
 import Link from "next/link";
 import { useLiveQuery } from "dexie-react-hooks";
 import { toast } from "sonner";
-import { ExternalLink, Trash2, Clapperboard, Scissors } from "lucide-react";
+import { ExternalLink, Trash2, Clapperboard, Scissors, Share2 } from "lucide-react";
 import { eliminarVideoLocal } from "@/app/(app)/videos/local-actions";
-import { getYoutubeEmbedUrl, getYoutubeVideoId } from "@/lib/youtube";
+import { getYoutubeEmbedUrl, getYoutubeVideoId, getYoutubeShareUrl } from "@/lib/youtube";
 import { ClipPlayer } from "@/components/videos/clip-player";
 import { localDb } from "@/lib/db/local-db";
 import { Button } from "@/components/ui/button";
@@ -79,6 +79,23 @@ export function VideoCard({
       }`
     : null;
 
+  async function handleCompartir() {
+    const enlace = getYoutubeShareUrl(video.url, video.segundo_inicio);
+    if (!enlace) return;
+
+    if (navigator.share) {
+      try {
+        await navigator.share({ title: video.titulo, url: enlace });
+      } catch {
+        // El usuario ha cancelado el share sheet: no es un error.
+      }
+      return;
+    }
+
+    await navigator.clipboard.writeText(enlace);
+    toast.success("Enlace copiado");
+  }
+
   async function handleDelete() {
     setBorrando(true);
     const result = await eliminarVideoLocal(video.id);
@@ -113,6 +130,16 @@ export function VideoCard({
           )}
         </div>
         <div className="flex shrink-0 items-center gap-1">
+          {esYoutube && (
+            <Button
+              variant="ghost"
+              size="icon-sm"
+              aria-label="Compartir enlace"
+              onClick={handleCompartir}
+            >
+              <Share2 className="size-4" />
+            </Button>
+          )}
           {video.tipo === "partido" && esYoutube && (
             <Button
               variant="ghost"

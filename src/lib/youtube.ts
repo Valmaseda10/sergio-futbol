@@ -29,6 +29,17 @@ export function getYoutubeEmbedUrl(
   return `https://www.youtube-nocookie.com/embed/${id}${query ? `?${query}` : ""}`;
 }
 
+// Enlace para compartir fuera de la app (WhatsApp, etc.): salta al segundo
+// de inicio del clip. YouTube no soporta un parámetro de "fin" en un enlace
+// suelto, así que quien lo abra tiene que parar a mano — el reproductor
+// propio de la app (ClipPlayer) sí respeta los dos extremos.
+export function getYoutubeShareUrl(url: string, segundoInicio?: number | null): string | null {
+  const id = getYoutubeVideoId(url);
+  if (!id) return null;
+  const t = segundoInicio != null && segundoInicio > 0 ? `?t=${Math.floor(segundoInicio)}s` : "";
+  return `https://youtu.be/${id}${t}`;
+}
+
 export function formatearDuracion(segundos: number) {
   const total = Math.max(0, Math.round(segundos));
   const m = Math.floor(total / 60);

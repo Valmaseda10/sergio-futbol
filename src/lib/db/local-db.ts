@@ -31,6 +31,10 @@ export type LocalRivalJugadorDestacado =
   Tables["rivales_jugadores_destacados"]["Row"];
 export type LocalHorarioEntrenamiento = Tables["horario_entrenamiento"]["Row"];
 export type LocalRecordatorio = Tables["recordatorios"]["Row"];
+export type LocalCampograma = Tables["campogramas"]["Row"];
+export type LocalCampogramaJugador = Tables["campograma_jugadores"]["Row"];
+export type LocalVideoSesion = Tables["videos_sesiones"]["Row"];
+export type LocalVideoSesionClip = Tables["videos_sesion_clips"]["Row"];
 
 export const SYNCED_TABLES = [
   "jugadores",
@@ -50,6 +54,10 @@ export const SYNCED_TABLES = [
   "rivales_jugadores_destacados",
   "horario_entrenamiento",
   "recordatorios",
+  "campogramas",
+  "campograma_jugadores",
+  "videos_sesiones",
+  "videos_sesion_clips",
 ] as const;
 
 export type SyncedTable = (typeof SYNCED_TABLES)[number];
@@ -63,6 +71,8 @@ export const CONFLICT_TARGETS: Partial<Record<SyncedTable, string>> = {
   asistencias_entrenamiento: "entrenamiento_id,jugador_id",
   convocatorias: "partido_id,jugador_id",
   alineaciones: "partido_id,jugador_id",
+  campograma_jugadores: "campograma_id,jugador_id",
+  videos_sesion_clips: "sesion_id,video_id",
 };
 
 export interface OutboxEntry {
@@ -97,6 +107,10 @@ class LocalDb extends Dexie {
   rivales_jugadores_destacados!: Table<LocalRivalJugadorDestacado, string>;
   horario_entrenamiento!: Table<LocalHorarioEntrenamiento, string>;
   recordatorios!: Table<LocalRecordatorio, string>;
+  campogramas!: Table<LocalCampograma, string>;
+  campograma_jugadores!: Table<LocalCampogramaJugador, string>;
+  videos_sesiones!: Table<LocalVideoSesion, string>;
+  videos_sesion_clips!: Table<LocalVideoSesionClip, string>;
   outbox!: Table<OutboxEntry, number>;
   meta!: Table<MetaEntry, string>;
 
@@ -145,6 +159,13 @@ class LocalDb extends Dexie {
 
     this.version(7).stores({
       recordatorios: "id, completado, created_at",
+    });
+
+    this.version(8).stores({
+      campogramas: "id, nombre",
+      campograma_jugadores: "id, campograma_id, jugador_id",
+      videos_sesiones: "id, titulo",
+      videos_sesion_clips: "id, sesion_id, video_id, orden",
     });
   }
 }

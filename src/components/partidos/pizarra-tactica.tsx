@@ -1,6 +1,8 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { toPng } from "html-to-image";
+import { toast } from "sonner";
 import {
   RotateCcw,
   Pencil,
@@ -11,6 +13,8 @@ import {
   TrafficCone,
   Maximize,
   Minimize,
+  ImagePlus,
+  Camera,
 } from "lucide-react";
 import { FORMACIONES } from "@/lib/formaciones";
 import { Button } from "@/components/ui/button";
@@ -57,6 +61,13 @@ interface ConoChino extends Posicion {
   color: ColorConoChino;
 }
 
+// Imágenes sueltas (una jugada de referencia, un diagrama externo...):
+// se guardan como data URL en memoria, igual que el resto de elementos, sin
+// persistencia — la pizarra entera es efímera y se exporta con "Capturar".
+interface ImagenPizarra extends Posicion {
+  dataUrl: string;
+}
+
 interface Trazo {
   id: string;
   color: ColorTrazo;
@@ -72,7 +83,8 @@ type Elemento =
   | { kind: "jugador"; id: string }
   | { kind: "ficha"; id: string }
   | { kind: "material"; id: string }
-  | { kind: "conoChino"; id: string };
+  | { kind: "conoChino"; id: string }
+  | { kind: "imagen"; id: string };
 
 const MARGEN = 5;
 // Radio de la goma de borrar, en píxeles de pantalla (se convierte a
@@ -244,6 +256,9 @@ export function PizarraTactica({ jugadores }: { jugadores: Jugador[] }) {
     {},
   );
   const [conosChinos, setConosChinos] = useState<Record<string, ConoChino>>({});
+  const [imagenes, setImagenes] = useState<Record<string, ImagenPizarra>>({});
+  const [capturando, setCapturando] = useState(false);
+  const inputImagenRef = useRef<HTMLInputElement>(null);
   const [trazos, setTrazos] = useState<Trazo[]>([]);
   const [trazoActual, setTrazoActual] = useState<Trazo | null>(null);
   const [modoDibujo, setModoDibujo] = useState(false);
@@ -323,6 +338,7 @@ export function PizarraTactica({ jugadores }: { jugadores: Jugador[] }) {
     setFichas({});
     setMaterial({});
     setConosChinos({});
+    setImagenes({});
     setTrazos([]);
     setTrazoActual(null);
     setPuntoBorrado(null);
@@ -353,6 +369,47 @@ export function PizarraTactica({ jugadores }: { jugadores: Jugador[] }) {
     setConosChinos((prev) => ({ ...prev, [id]: { color, ...siguientePosicionSpawn() } }));
   }
 
+  function handleElegirImagen() {
+    inputImagenRef.current?.click();
+  }
+
+  function handleArchivoImagen(e: React.ChangeEvent<HTMLInputElement>) {
+    const archivo = e.target.files?.[0];
+    e.target.value = "";
+    if (!archivo) return;
+    if (!archivo.type.startsWith("image/")) {
+      toast.error("Elige un archivo de imagen");
+      return;
+    }
+    const lector = new FileReader();
+    lector.onload = () => {
+      const dataUrl = lector.result;
+      if (typeof dataUrl !== "string") return;
+      const id = nuevoId();
+      setImagenes((prev) => ({
+        ...prev,
+        [id]: { dataUrl, ...siguientePosicionSpawn() },
+      }));
+    };
+    lector.readAsDataURL(archivo);
+  }
+
+  async function handleCapturar() {
+    if (!pitchRef.current) return;
+    setCapturando(true);
+    try {
+      const dataUrl = await toPng(pitchRef.current, { pixelRatio: 2 });
+      const enlace = document.createElement("a");
+      enlace.download = `pizarra-${new Date().toISOString().slice(0, 10)}.png`;
+      enlace.href = dataUrl;
+      enlace.click();
+    } catch {
+      toast.error("No se ha podido generar la captura");
+    } finally {
+      setCapturando(false);
+    }
+  }
+
   function actualizarPosicion(elemento: Elemento, pos: Posicion) {
     if (elemento.kind === "jugador") {
       setPosiciones((prev) => ({ ...prev, [elemento.id]: pos }));
@@ -360,8 +417,10 @@ export function PizarraTactica({ jugadores }: { jugadores: Jugador[] }) {
       setFichas((prev) => ({ ...prev, [elemento.id]: { ...prev[elemento.id], ...pos } }));
     } else if (elemento.kind === "material") {
       setMaterial((prev) => ({ ...prev, [elemento.id]: { ...prev[elemento.id], ...pos } }));
-    } else {
+    } else if (elemento.kind === "conoChino") {
       setConosChinos((prev) => ({ ...prev, [elemento.id]: { ...prev[elemento.id], ...pos } }));
+    } else {
+      setImagenes((prev) => ({ ...prev, [elemento.id]: { ...prev[elemento.id], ...pos } }));
     }
   }
 
@@ -384,8 +443,14 @@ export function PizarraTactica({ jugadores }: { jugadores: Jugador[] }) {
         delete next[elemento.id];
         return next;
       });
-    } else {
+    } else if (elemento.kind === "conoChino") {
       setConosChinos((prev) => {
+        const next = { ...prev };
+        delete next[elemento.id];
+        return next;
+      });
+    } else {
+      setImagenes((prev) => {
         const next = { ...prev };
         delete next[elemento.id];
         return next;
@@ -683,6 +748,16 @@ export function PizarraTactica({ jugadores }: { jugadores: Jugador[] }) {
           type="button"
           variant="ghost"
           size="icon"
+          disabled={capturando}
+          onClick={handleCapturar}
+          aria-label="Capturar la pizarra como imagen"
+        >
+          <Camera className="size-4" />
+        </Button>
+        <Button
+          type="button"
+          variant="ghost"
+          size="icon"
           onClick={handleTogglePantallaCompleta}
           aria-label={
             pantallaCompleta
@@ -762,6 +837,22 @@ export function PizarraTactica({ jugadores }: { jugadores: Jugador[] }) {
           >
             <PorteriaIcon className="size-4 text-slate-600" />
           </Button>
+          <Button
+            type="button"
+            variant="outline"
+            size="icon"
+            aria-label="Añadir imagen"
+            onClick={handleElegirImagen}
+          >
+            <ImagePlus className="size-4 text-slate-600" />
+          </Button>
+          <input
+            ref={inputImagenRef}
+            type="file"
+            accept="image/*"
+            className="hidden"
+            onChange={handleArchivoImagen}
+          />
           <span className="ml-1 text-xs text-muted-foreground">Chinos</span>
           {COLORES_CONO_CHINO.map((c) => (
             <button
@@ -998,14 +1089,14 @@ export function PizarraTactica({ jugadores }: { jugadores: Jugador[] }) {
             onPointerMove={(e) => handlePointerMove(e, { kind: "material", id })}
             onPointerUp={(e) => handlePointerUp(e, { kind: "material", id })}
             aria-label={ETIQUETA_MATERIAL[m.tipo]}
-            className="absolute -translate-x-1/2 -translate-y-1/2 rounded-full bg-white/80 p-1 shadow"
+            className="absolute -translate-x-1/2 -translate-y-1/2 drop-shadow-[0_1px_2px_rgba(0,0,0,0.6)]"
             style={{ top: `${m.top}%`, left: `${m.left}%` }}
           >
-            {m.tipo === "cono" && <TrafficCone className="size-5 text-orange-500" />}
-            {m.tipo === "pica" && <PicaIcon className="size-5 text-amber-600" />}
-            {m.tipo === "maniqui" && <ManiquiIcon className="size-5 text-slate-700" />}
-            {m.tipo === "escalera" && <EscaleraIcon className="size-5 text-slate-700" />}
-            {m.tipo === "porteria" && <PorteriaIcon className="size-5 text-slate-700" />}
+            {m.tipo === "cono" && <TrafficCone className="size-6 text-orange-500" />}
+            {m.tipo === "pica" && <PicaIcon className="size-6 text-amber-500" />}
+            {m.tipo === "maniqui" && <ManiquiIcon className="size-6 text-slate-100" />}
+            {m.tipo === "escalera" && <EscaleraIcon className="size-6 text-slate-100" />}
+            {m.tipo === "porteria" && <PorteriaIcon className="size-6 text-slate-100" />}
           </button>
         ))}
 
@@ -1017,10 +1108,31 @@ export function PizarraTactica({ jugadores }: { jugadores: Jugador[] }) {
             onPointerMove={(e) => handlePointerMove(e, { kind: "conoChino", id })}
             onPointerUp={(e) => handlePointerUp(e, { kind: "conoChino", id })}
             aria-label={`Cono chino ${c.color}`}
-            className="absolute -translate-x-1/2 -translate-y-1/2 rounded-full bg-white/60 p-0.5 shadow"
+            className="absolute -translate-x-1/2 -translate-y-1/2 drop-shadow-[0_1px_2px_rgba(0,0,0,0.6)]"
             style={{ top: `${c.top}%`, left: `${c.left}%` }}
           >
-            <ConoChinoIcon className={cn("size-4", TEXT_CLASE_CONO_CHINO[c.color])} />
+            <ConoChinoIcon className={cn("size-5", TEXT_CLASE_CONO_CHINO[c.color])} />
+          </button>
+        ))}
+
+        {Object.entries(imagenes).map(([id, img]) => (
+          <button
+            key={id}
+            type="button"
+            onPointerDown={(e) => handlePointerDown(e, { kind: "imagen", id })}
+            onPointerMove={(e) => handlePointerMove(e, { kind: "imagen", id })}
+            onPointerUp={(e) => handlePointerUp(e, { kind: "imagen", id })}
+            aria-label="Imagen"
+            className="absolute -translate-x-1/2 -translate-y-1/2 drop-shadow-[0_1px_3px_rgba(0,0,0,0.6)]"
+            style={{ top: `${img.top}%`, left: `${img.left}%` }}
+          >
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={img.dataUrl}
+              alt=""
+              className="size-16 rounded object-contain"
+              draggable={false}
+            />
           </button>
         ))}
 

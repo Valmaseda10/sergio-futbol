@@ -267,6 +267,50 @@ export interface Database {
         >;
         Relationships: [];
       };
+      campogramas: {
+        Row: {
+          id: string;
+          nombre: string;
+          notas: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          nombre: string;
+          notas?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["campogramas"]["Insert"]>;
+        Relationships: [];
+      };
+      campograma_jugadores: {
+        Row: {
+          id: string;
+          campograma_id: string;
+          jugador_id: string;
+          titular: boolean;
+          posicion_jugada: string | null;
+          pos_x: number | null;
+          pos_y: number | null;
+          orden: number | null;
+        };
+        Insert: {
+          id?: string;
+          campograma_id: string;
+          jugador_id: string;
+          titular?: boolean;
+          posicion_jugada?: string | null;
+          pos_x?: number | null;
+          pos_y?: number | null;
+          orden?: number | null;
+        };
+        Update: Partial<
+          Database["public"]["Tables"]["campograma_jugadores"]["Insert"]
+        >;
+        Relationships: [];
+      };
       eventos_partido: {
         Row: {
           id: string;
@@ -503,6 +547,42 @@ export interface Database {
           segundo_fin?: number | null;
         };
         Update: Partial<Database["public"]["Tables"]["videos"]["Insert"]>;
+        Relationships: [];
+      };
+      videos_sesiones: {
+        Row: {
+          id: string;
+          titulo: string;
+          notas: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          titulo: string;
+          notas?: string | null;
+          created_at?: string;
+        };
+        Update: Partial<
+          Database["public"]["Tables"]["videos_sesiones"]["Insert"]
+        >;
+        Relationships: [];
+      };
+      videos_sesion_clips: {
+        Row: {
+          id: string;
+          sesion_id: string;
+          video_id: string;
+          orden: number;
+        };
+        Insert: {
+          id?: string;
+          sesion_id: string;
+          video_id: string;
+          orden?: number;
+        };
+        Update: Partial<
+          Database["public"]["Tables"]["videos_sesion_clips"]["Insert"]
+        >;
         Relationships: [];
       };
       horario_entrenamiento: {
