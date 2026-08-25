@@ -76,62 +76,73 @@ export default function LoginPage() {
   }
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Iniciar sesión</CardTitle>
-        <CardDescription>
-          Acceso exclusivo para el cuerpo técnico del equipo.
-        </CardDescription>
-      </CardHeader>
-      <CardContent>
-        <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="email">Email</Label>
-            <Input
-              id="email"
-              type="email"
-              autoComplete="email"
-              {...register("email")}
-            />
-            {errors.email && (
-              <p className="text-sm text-destructive">
-                {errors.email.message}
-              </p>
-            )}
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="password">Contraseña</Label>
-            <Input
-              id="password"
-              type="password"
-              autoComplete="current-password"
-              {...register("password")}
-            />
-            {errors.password && (
-              <p className="text-sm text-destructive">
-                {errors.password.message}
-              </p>
-            )}
-          </div>
-          <Button type="submit" className="w-full" disabled={isSubmitting}>
-            {isSubmitting ? "Entrando..." : "Entrar"}
-          </Button>
-        </form>
-        <button
-          type="button"
-          onClick={handleForgotPassword}
-          disabled={sendingReset}
-          className="mt-4 block w-full text-center text-sm text-muted-foreground underline-offset-4 hover:underline"
-        >
-          ¿Olvidaste tu contraseña?
-        </button>
-      </CardContent>
-      <p className="px-6 pb-6 text-center text-sm text-muted-foreground">
-        ¿No tienes acceso todavía?{" "}
-        <Link href="/solicitar-acceso" className="font-medium underline">
-          Solicítalo aquí
-        </Link>
-      </p>
-    </Card>
+    <>
+      <div className="login-rainbow-bg fixed inset-0 -z-10" />
+      <div className="login-rainbow-border rounded-xl p-[3px]">
+        <Card className="rounded-[calc(var(--radius-xl)-3px)]">
+          <CardHeader>
+            <CardTitle className="login-rainbow-text text-2xl font-bold">
+              Iniciar sesión
+            </CardTitle>
+            <CardDescription>
+              Acceso exclusivo para el cuerpo técnico del equipo.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="email">Email</Label>
+                <Input
+                  id="email"
+                  type="email"
+                  autoComplete="email"
+                  {...register("email")}
+                />
+                {errors.email && (
+                  <p className="text-sm text-destructive">
+                    {errors.email.message}
+                  </p>
+                )}
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="password">Contraseña</Label>
+                <Input
+                  id="password"
+                  type="password"
+                  autoComplete="current-password"
+                  {...register("password")}
+                />
+                {errors.password && (
+                  <p className="text-sm text-destructive">
+                    {errors.password.message}
+                  </p>
+                )}
+              </div>
+              <Button
+                type="submit"
+                className="login-rainbow-bg w-full border-0 text-white"
+                disabled={isSubmitting}
+              >
+                {isSubmitting ? "Entrando..." : "Entrar"}
+              </Button>
+            </form>
+            <button
+              type="button"
+              onClick={handleForgotPassword}
+              disabled={sendingReset}
+              className="mt-4 block w-full text-center text-sm text-muted-foreground underline-offset-4 hover:underline"
+            >
+              ¿Olvidaste tu contraseña?
+            </button>
+          </CardContent>
+          <p className="px-6 pb-6 text-center text-sm text-muted-foreground">
+            ¿No tienes acceso todavía?{" "}
+            <Link href="/solicitar-acceso" className="font-medium underline">
+              Solicítalo aquí
+            </Link>
+          </p>
+        </Card>
+      </div>
+    </>
   );
 }
