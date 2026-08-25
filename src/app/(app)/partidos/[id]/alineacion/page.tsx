@@ -1,15 +1,18 @@
 "use client";
 
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useLiveQuery } from "dexie-react-hooks";
 import { ChevronLeft } from "lucide-react";
 import { localDb } from "@/lib/db/local-db";
+import { cn } from "@/lib/utils";
 import { AlineacionCampo } from "@/components/partidos/alineacion-campo";
+import { AlineacionFinal } from "@/components/partidos/alineacion-final";
 
 export default function AlineacionPage() {
   const { id } = useParams<{ id: string }>();
+  const [vista, setVista] = useState<"inicial" | "final">("inicial");
 
   const partido = useLiveQuery(
     async () => (await localDb.partidos.get(id)) ?? null,
@@ -32,6 +35,10 @@ export default function AlineacionPage() {
         .equals(id)
         .filter((a) => a.titular)
         .toArray(),
+    [id],
+  );
+  const eventos = useLiveQuery(
+    () => localDb.eventos_partido.where("partido_id").equals(id).toArray(),
     [id],
   );
 
@@ -63,7 +70,8 @@ export default function AlineacionPage() {
     partido === undefined ||
     convocatorias === undefined ||
     jugadores === undefined ||
-    alineaciones === undefined
+    alineaciones === undefined ||
+    eventos === undefined
   ) {
     return <p className="text-sm text-muted-foreground">Cargando...</p>;
   }
@@ -95,11 +103,48 @@ export default function AlineacionPage() {
           .
         </p>
       ) : (
-        <AlineacionCampo
-          partidoId={id}
-          convocados={convocados}
-          titularesIniciales={titularesIniciales}
-        />
+        <>
+          <div className="grid grid-cols-2 gap-2">
+            <button
+              type="button"
+              onClick={() => setVista("inicial")}
+              className={cn(
+                "rounded-md border py-2 text-sm font-medium",
+                vista === "inicial"
+                  ? "border-primary bg-primary/10 text-primary"
+                  : "text-muted-foreground",
+              )}
+            >
+              Once inicial
+            </button>
+            <button
+              type="button"
+              onClick={() => setVista("final")}
+              className={cn(
+                "rounded-md border py-2 text-sm font-medium",
+                vista === "final"
+                  ? "border-primary bg-primary/10 text-primary"
+                  : "text-muted-foreground",
+              )}
+            >
+              Once que termina
+            </button>
+          </div>
+
+          {vista === "inicial" ? (
+            <AlineacionCampo
+              partidoId={id}
+              convocados={convocados}
+              titularesIniciales={titularesIniciales}
+            />
+          ) : (
+            <AlineacionFinal
+              titularesIniciales={alineaciones}
+              eventos={eventos}
+              convocados={convocados}
+            />
+          )}
+        </>
       )}
     </div>
   );
