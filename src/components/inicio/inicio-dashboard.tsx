@@ -179,6 +179,7 @@ export function InicioDashboard({
               }),
             )}
           </p>
+          <p className="text-sm font-medium text-primary">Sergio, eres muy guapo</p>
         </div>
         <Button
           size="sm"
