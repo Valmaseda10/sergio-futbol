@@ -20,6 +20,7 @@ export type LocalEstado = Tables["estados"]["Row"];
 export type LocalPartido = Tables["partidos"]["Row"];
 export type LocalConvocatoria = Tables["convocatorias"]["Row"];
 export type LocalAlineacion = Tables["alineaciones"]["Row"];
+export type LocalAlineacionFinal = Tables["alineaciones_finales"]["Row"];
 export type LocalEventoPartido = Tables["eventos_partido"]["Row"];
 export type LocalValoracionPartido = Tables["valoraciones_partido"]["Row"];
 export type LocalValoracionJugador = Tables["valoraciones_jugador"]["Row"];
@@ -44,6 +45,7 @@ export const SYNCED_TABLES = [
   "partidos",
   "convocatorias",
   "alineaciones",
+  "alineaciones_finales",
   "eventos_partido",
   "valoraciones_partido",
   "valoraciones_jugador",
@@ -71,6 +73,7 @@ export const CONFLICT_TARGETS: Partial<Record<SyncedTable, string>> = {
   asistencias_entrenamiento: "entrenamiento_id,jugador_id",
   convocatorias: "partido_id,jugador_id",
   alineaciones: "partido_id,jugador_id",
+  alineaciones_finales: "partido_id,jugador_id",
   campograma_jugadores: "campograma_id,jugador_id",
   videos_sesion_clips: "sesion_id,video_id",
 };
@@ -97,6 +100,7 @@ class LocalDb extends Dexie {
   partidos!: Table<LocalPartido, string>;
   convocatorias!: Table<LocalConvocatoria, string>;
   alineaciones!: Table<LocalAlineacion, string>;
+  alineaciones_finales!: Table<LocalAlineacionFinal, string>;
   eventos_partido!: Table<LocalEventoPartido, string>;
   valoraciones_partido!: Table<LocalValoracionPartido, string>;
   valoraciones_jugador!: Table<LocalValoracionJugador, string>;
@@ -166,6 +170,10 @@ class LocalDb extends Dexie {
       campograma_jugadores: "id, campograma_id, jugador_id",
       videos_sesiones: "id, titulo",
       videos_sesion_clips: "id, sesion_id, video_id, orden",
+    });
+
+    this.version(9).stores({
+      alineaciones_finales: "id, partido_id, jugador_id",
     });
   }
 }

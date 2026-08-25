@@ -273,6 +273,30 @@ export interface Database {
         >;
         Relationships: [];
       };
+      alineaciones_finales: {
+        Row: {
+          id: string;
+          partido_id: string;
+          jugador_id: string;
+          titular: boolean;
+          posicion_jugada: string | null;
+          pos_x: number | null;
+          pos_y: number | null;
+        };
+        Insert: {
+          id?: string;
+          partido_id: string;
+          jugador_id: string;
+          titular?: boolean;
+          posicion_jugada?: string | null;
+          pos_x?: number | null;
+          pos_y?: number | null;
+        };
+        Update: Partial<
+          Database["public"]["Tables"]["alineaciones_finales"]["Insert"]
+        >;
+        Relationships: [];
+      };
       campogramas: {
         Row: {
           id: string;

@@ -1,11 +1,9 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { X } from "lucide-react";
 import { FORMACIONES, type Formacion } from "@/lib/formaciones";
-import { guardarAlineacionLocal } from "@/app/(app)/partidos/local-actions";
 import { createClient } from "@/lib/supabase/client";
 import { JugadorAvatar } from "@/components/plantilla/jugador-avatar";
 import { Button } from "@/components/ui/button";
@@ -87,11 +85,12 @@ function mejorFormacionInicial(pares: { jugadorId: string; label: string }[]) {
 }
 
 export function AlineacionCampo({
-  partidoId,
+  titulo,
   convocados,
   titularesIniciales,
+  onGuardar,
 }: {
-  partidoId: string;
+  titulo?: string;
   convocados: Jugador[];
   titularesIniciales: {
     jugadorId: string;
@@ -99,8 +98,16 @@ export function AlineacionCampo({
     posX?: number;
     posY?: number;
   }[];
+  onGuardar: (
+    titulares: {
+      jugadorId: string;
+      posicion: string;
+      posX?: number;
+      posY?: number;
+    }[],
+    suplentesIds: string[],
+  ) => Promise<{ error: string } | { success: true }>;
 }) {
-  const router = useRouter();
   const pitchRef = useRef<HTMLDivElement>(null);
   const paresIniciales = titularesIniciales.map((t) => ({
     jugadorId: t.jugadorId,
@@ -256,7 +263,7 @@ export function AlineacionCampo({
     });
     const suplentesIds = disponibles.map((j) => j.id);
 
-    const result = await guardarAlineacionLocal(partidoId, titulares, suplentesIds);
+    const result = await onGuardar(titulares, suplentesIds);
     setGuardando(false);
 
     if ("error" in result) {
@@ -265,7 +272,6 @@ export function AlineacionCampo({
     }
 
     toast.success("Alineación guardada");
-    router.push(`/partidos/${partidoId}`);
   }
 
   const huecoActivo = formacion.huecos.find((h) => h.id === huecoAbierto);
@@ -275,6 +281,7 @@ export function AlineacionCampo({
 
   return (
     <div className="space-y-4">
+      {titulo && <h2 className="text-base font-semibold">{titulo}</h2>}
       <Select value={formacion.value} onValueChange={handleCambiarFormacion}>
         <SelectTrigger className="w-full">
           <SelectValue />

@@ -5,6 +5,7 @@
 import {
   localDb,
   type LocalAlineacion,
+  type LocalAlineacionFinal,
   type LocalConvocatoria,
   type LocalEventoPartido,
   type LocalPartido,
@@ -250,6 +251,85 @@ export async function guardarAlineacionLocal(
       };
       await localDb.alineaciones.put(row);
       await queueMutation("alineaciones", "insert", id, row);
+    }
+  }
+
+  return { success: true };
+}
+
+/** Igual que guardarAlineacionLocal, pero para el once que termina el
+ * partido: se guarda en su propia tabla, independiente de la inicial, para
+ * poder editarla a mano sin depender de los eventos de cambio. */
+export async function guardarAlineacionFinalLocal(
+  partidoId: string,
+  titulares: {
+    jugadorId: string;
+    posicion: string;
+    posX?: number;
+    posY?: number;
+  }[],
+  suplentesIds: string[],
+): Promise<SimpleResult> {
+  const existentes = await localDb.alineaciones_finales
+    .where("partido_id")
+    .equals(partidoId)
+    .toArray();
+  const existentesPorJugador = new Map(
+    existentes.map((a) => [a.jugador_id, a]),
+  );
+
+  const deseados = new Map<
+    string,
+    { titular: boolean; posicion: string | null; posX: number | null; posY: number | null }
+  >();
+  for (const t of titulares) {
+    deseados.set(t.jugadorId, {
+      titular: true,
+      posicion: t.posicion,
+      posX: t.posX ?? null,
+      posY: t.posY ?? null,
+    });
+  }
+  for (const jugadorId of suplentesIds) {
+    deseados.set(jugadorId, {
+      titular: false,
+      posicion: null,
+      posX: null,
+      posY: null,
+    });
+  }
+
+  const aBorrar = existentes.filter((a) => !deseados.has(a.jugador_id));
+
+  await localDb.alineaciones_finales.bulkDelete(aBorrar.map((a) => a.id));
+  for (const a of aBorrar) {
+    await queueMutation("alineaciones_finales", "delete", a.id);
+  }
+
+  for (const [jugadorId, datos] of deseados) {
+    const existente = existentesPorJugador.get(jugadorId);
+    if (existente) {
+      const patch = {
+        titular: datos.titular,
+        posicion_jugada: datos.posicion,
+        pos_x: datos.posX,
+        pos_y: datos.posY,
+      };
+      await localDb.alineaciones_finales.update(existente.id, patch);
+      await queueMutation("alineaciones_finales", "update", existente.id, patch);
+    } else {
+      const id = crypto.randomUUID();
+      const row: LocalAlineacionFinal = {
+        id,
+        partido_id: partidoId,
+        jugador_id: jugadorId,
+        titular: datos.titular,
+        posicion_jugada: datos.posicion,
+        pos_x: datos.posX,
+        pos_y: datos.posY,
+      };
+      await localDb.alineaciones_finales.put(row);
+      await queueMutation("alineaciones_finales", "insert", id, row);
     }
   }
 
