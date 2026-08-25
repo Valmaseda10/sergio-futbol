@@ -166,7 +166,7 @@ export function GenerarForm() {
 
       <p className="text-sm text-muted-foreground">
         Se creará un entrenamiento por cada día seleccionado dentro del rango.
-        Los objetivos y ejercicios se quedan vacíos para rellenarlos sesión a
+        Los objetivos y las tareas se quedan vacíos para rellenarlos sesión a
         sesión. Las fechas que ya tengan un entrenamiento creado se omiten.
       </p>
 

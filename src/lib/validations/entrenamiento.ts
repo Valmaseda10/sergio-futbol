@@ -6,7 +6,10 @@ export const entrenamientoSchema = z.object({
   hora_fin: z.string().trim(),
   lugar: z.string().trim(),
   objetivos: z.string().trim(),
-  ejercicios: z.string().trim(),
+  tarea_1: z.string().trim(),
+  tarea_2: z.string().trim(),
+  tarea_3: z.string().trim(),
+  tarea_4: z.string().trim(),
   notas: z.string().trim(),
 });
 
@@ -18,7 +21,10 @@ export const ENTRENAMIENTO_FORM_DEFAULTS: EntrenamientoFormValues = {
   hora_fin: "19:15",
   lugar: "Área Deportiva de Puente Castro",
   objetivos: "",
-  ejercicios: "",
+  tarea_1: "",
+  tarea_2: "",
+  tarea_3: "",
+  tarea_4: "",
   notas: "",
 };
 
@@ -29,7 +35,10 @@ export function toEntrenamientoInsert(values: EntrenamientoFormValues) {
     hora_fin: values.hora_fin || null,
     lugar: values.lugar || null,
     objetivos: values.objetivos || null,
-    ejercicios: values.ejercicios || null,
+    tarea_1: values.tarea_1 || null,
+    tarea_2: values.tarea_2 || null,
+    tarea_3: values.tarea_3 || null,
+    tarea_4: values.tarea_4 || null,
     notas: values.notas || null,
   };
 }
@@ -43,7 +52,10 @@ export function entrenamientoFormDataToValues(
     hora_fin: String(formData.get("hora_fin") ?? ""),
     lugar: String(formData.get("lugar") ?? ""),
     objetivos: String(formData.get("objetivos") ?? ""),
-    ejercicios: String(formData.get("ejercicios") ?? ""),
+    tarea_1: String(formData.get("tarea_1") ?? ""),
+    tarea_2: String(formData.get("tarea_2") ?? ""),
+    tarea_3: String(formData.get("tarea_3") ?? ""),
+    tarea_4: String(formData.get("tarea_4") ?? ""),
     notas: String(formData.get("notas") ?? ""),
   };
 }

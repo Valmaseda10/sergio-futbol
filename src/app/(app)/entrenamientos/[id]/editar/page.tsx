@@ -49,7 +49,10 @@ export default function EditarEntrenamientoPage() {
           hora_fin: entrenamiento.hora_fin?.slice(0, 5) ?? "",
           lugar: entrenamiento.lugar ?? "",
           objetivos: entrenamiento.objetivos ?? "",
-          ejercicios: entrenamiento.ejercicios ?? "",
+          tarea_1: entrenamiento.tarea_1 ?? "",
+          tarea_2: entrenamiento.tarea_2 ?? "",
+          tarea_3: entrenamiento.tarea_3 ?? "",
+          tarea_4: entrenamiento.tarea_4 ?? "",
           notas: entrenamiento.notas ?? "",
           documentoSignedUrl,
         }}

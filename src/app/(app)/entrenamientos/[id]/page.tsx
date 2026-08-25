@@ -154,11 +154,34 @@ export default function FichaEntrenamientoPage() {
               {entrenamiento.objetivos || "Sin definir todavía."}
             </p>
           </div>
-          <div>
-            <p className="text-muted-foreground">Ejercicios</p>
-            <p className="whitespace-pre-wrap">
-              {entrenamiento.ejercicios || "Sin definir todavía."}
-            </p>
+          <div className="space-y-3">
+            <p className="text-muted-foreground">Tareas</p>
+            {[
+              entrenamiento.tarea_1,
+              entrenamiento.tarea_2,
+              entrenamiento.tarea_3,
+              entrenamiento.tarea_4,
+            ].every((t) => !t) ? (
+              <p className="whitespace-pre-wrap">Sin definir todavía.</p>
+            ) : (
+              <ol className="space-y-2">
+                {[
+                  entrenamiento.tarea_1,
+                  entrenamiento.tarea_2,
+                  entrenamiento.tarea_3,
+                  entrenamiento.tarea_4,
+                ].map((tarea, i) =>
+                  tarea ? (
+                    <li key={i} className="rounded-md border p-2">
+                      <p className="text-xs font-medium text-muted-foreground">
+                        Tarea {i + 1}
+                      </p>
+                      <p className="whitespace-pre-wrap">{tarea}</p>
+                    </li>
+                  ) : null,
+                )}
+              </ol>
+            )}
           </div>
           {entrenamiento.notas && (
             <div>

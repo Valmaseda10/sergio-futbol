@@ -153,13 +153,20 @@ export function EntrenamientoForm({
             />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="ejercicios">Ejercicios</Label>
-            <Textarea
-              id="ejercicios"
-              rows={4}
-              placeholder="Descripción de los ejercicios/tareas"
-              {...register("ejercicios")}
-            />
+            <Label htmlFor="tarea_1">Tarea 1</Label>
+            <Textarea id="tarea_1" rows={2} {...register("tarea_1")} />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="tarea_2">Tarea 2</Label>
+            <Textarea id="tarea_2" rows={2} {...register("tarea_2")} />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="tarea_3">Tarea 3</Label>
+            <Textarea id="tarea_3" rows={2} {...register("tarea_3")} />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="tarea_4">Tarea 4</Label>
+            <Textarea id="tarea_4" rows={2} {...register("tarea_4")} />
           </div>
           <div className="space-y-2">
             <Label htmlFor="notas">Notas</Label>

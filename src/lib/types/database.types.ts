@@ -145,7 +145,10 @@ export interface Database {
           hora_fin: string | null;
           lugar: string | null;
           objetivos: string | null;
-          ejercicios: string | null;
+          tarea_1: string | null;
+          tarea_2: string | null;
+          tarea_3: string | null;
+          tarea_4: string | null;
           notas: string | null;
           documento_url: string | null;
           created_at: string;
@@ -157,7 +160,10 @@ export interface Database {
           hora_fin?: string | null;
           lugar?: string | null;
           objetivos?: string | null;
-          ejercicios?: string | null;
+          tarea_1?: string | null;
+          tarea_2?: string | null;
+          tarea_3?: string | null;
+          tarea_4?: string | null;
           notas?: string | null;
           documento_url?: string | null;
           created_at?: string;
