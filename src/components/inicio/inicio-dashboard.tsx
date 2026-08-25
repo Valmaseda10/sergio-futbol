@@ -12,6 +12,7 @@ import {
 } from "lucide-react";
 import { localDb } from "@/lib/db/local-db";
 import { capitalizarPrimera } from "@/lib/date";
+import { resultadoPartido } from "@/lib/estadisticas";
 import { cn } from "@/lib/utils";
 import {
   Card,
@@ -343,7 +344,7 @@ export function InicioDashboard({
               {ultimosResultados.map((p) => {
                 const gf = p.resultado_favor as number;
                 const gc = p.resultado_contra as number;
-                const resultado = gf > gc ? "G" : gf === gc ? "E" : "P";
+                const resultado = resultadoPartido(gf, gc);
                 return (
                   <Link
                     key={p.id}
@@ -351,12 +352,12 @@ export function InicioDashboard({
                     title={`${p.local_visitante === "local" ? "vs" : "@"} ${p.rival} · ${gf}-${gc}`}
                     className={cn(
                       "flex size-9 shrink-0 items-center justify-center rounded-full text-sm font-semibold text-white",
-                      resultado === "G" && "bg-pitch",
-                      resultado === "E" && "bg-muted-foreground",
-                      resultado === "P" && "bg-destructive",
+                      resultado === "ganado" && "bg-pitch",
+                      resultado === "empatado" && "bg-gold",
+                      resultado === "perdido" && "bg-destructive",
                     )}
                   >
-                    {resultado}
+                    {resultado === "ganado" ? "G" : resultado === "empatado" ? "E" : "P"}
                   </Link>
                 );
               })}

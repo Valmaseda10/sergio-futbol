@@ -17,6 +17,7 @@ import {
 } from "lucide-react";
 import { localDb } from "@/lib/db/local-db";
 import { capitalizarPrimera } from "@/lib/date";
+import { resultadoPartido } from "@/lib/estadisticas";
 import { createClient } from "@/lib/supabase/client";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -42,6 +43,12 @@ const COMPETICION_LABEL: Record<string, string> = {
   amistoso: "Amistoso",
   copa: "Copa",
 };
+
+const RESULTADO_CLASSNAME = {
+  ganado: "text-pitch",
+  empatado: "text-gold",
+  perdido: "text-destructive",
+} as const;
 
 const COMPETICION_CLASSNAME: Record<string, string> = {
   liga: "border-transparent bg-primary text-primary-foreground",
@@ -187,7 +194,17 @@ export default function FichaPartidoPage() {
           </Badge>
         </div>
         {tieneResultado && (
-          <span className="font-heading text-3xl tabular-nums">
+          <span
+            className={cn(
+              "font-heading text-3xl tabular-nums",
+              RESULTADO_CLASSNAME[
+                resultadoPartido(
+                  partido.resultado_favor!,
+                  partido.resultado_contra!,
+                )
+              ],
+            )}
+          >
             {partido.resultado_favor} - {partido.resultado_contra}
           </span>
         )}

@@ -12,6 +12,17 @@ export interface JugadorBase {
   fecha_alta: string;
 }
 
+export type ResultadoPartido = "ganado" | "empatado" | "perdido";
+
+export function resultadoPartido(
+  favor: number,
+  contra: number,
+): ResultadoPartido {
+  if (favor > contra) return "ganado";
+  if (favor < contra) return "perdido";
+  return "empatado";
+}
+
 export interface PartidoJugado {
   id: string;
   fecha: string;
