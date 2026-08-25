@@ -23,9 +23,8 @@ export default function AlineacionPage() {
         .filter((c) => c.convocado)
         .toArray(),
     [id],
-    [],
   );
-  const jugadores = useLiveQuery(() => localDb.jugadores.toArray(), [], []);
+  const jugadores = useLiveQuery(() => localDb.jugadores.toArray(), []);
   const alineaciones = useLiveQuery(
     () =>
       localDb.alineaciones
@@ -34,12 +33,11 @@ export default function AlineacionPage() {
         .filter((a) => a.titular)
         .toArray(),
     [id],
-    [],
   );
 
   const convocados = useMemo(() => {
-    const jugadoresPorId = new Map(jugadores.map((j) => [j.id, j]));
-    return convocatorias
+    const jugadoresPorId = new Map((jugadores ?? []).map((j) => [j.id, j]));
+    return (convocatorias ?? [])
       .map((c) => jugadoresPorId.get(c.jugador_id))
       .filter((j): j is NonNullable<typeof j> => !!j)
       .map(({ foto_url, ...j }) => ({ ...j, foto_url }));
@@ -47,7 +45,7 @@ export default function AlineacionPage() {
 
   const titularesIniciales = useMemo(
     () =>
-      alineaciones.map((a) => ({
+      (alineaciones ?? []).map((a) => ({
         jugadorId: a.jugador_id,
         posicion: a.posicion_jugada ?? "",
         posX: a.pos_x ?? undefined,
@@ -56,7 +54,17 @@ export default function AlineacionPage() {
     [alineaciones],
   );
 
-  if (partido === undefined) {
+  // Las tres consultas (convocatorias, jugadores, alineaciones) resuelven de
+  // forma asíncrona e independiente: si AlineacionCampo montara antes de que
+  // "alineaciones" cargue, fijaría su estado inicial vacío y ya no se
+  // actualizaría al llegar los titulares guardados (useState solo lee su
+  // inicializador una vez). Por eso se espera a que las tres estén listas.
+  if (
+    partido === undefined ||
+    convocatorias === undefined ||
+    jugadores === undefined ||
+    alineaciones === undefined
+  ) {
     return <p className="text-sm text-muted-foreground">Cargando...</p>;
   }
 
