@@ -294,7 +294,7 @@ export function AlineacionCampo({
 
       <div
         ref={pitchRef}
-        className="relative aspect-[2/3] w-full touch-none overflow-hidden rounded-lg bg-pitch"
+        className="relative mx-auto aspect-[2/3] h-[46vh] max-h-[420px] w-auto touch-none overflow-hidden rounded-lg bg-pitch"
       >
         <div className="absolute inset-x-0 top-1/2 h-px bg-white/40" />
         <div className="absolute top-1/2 left-1/2 size-16 -translate-x-1/2 -translate-y-1/2 rounded-full border border-white/40" />
