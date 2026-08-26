@@ -14,6 +14,7 @@ import {
   Clock,
   ChevronRight,
   Video,
+  PlayCircle,
 } from "lucide-react";
 import { localDb } from "@/lib/db/local-db";
 import { capitalizarPrimera } from "@/lib/date";
@@ -217,6 +218,15 @@ export default function FichaPartidoPage() {
           <Pencil className="size-4" />
         </Button>
       </div>
+
+      <Button
+        className="w-full"
+        nativeButton={false}
+        render={<Link href={`/partidos/${id}/dia`} />}
+      >
+        <PlayCircle className="size-4" />
+        Modo día de partido
+      </Button>
 
       <ul className="divide-y rounded-md border">
         {secciones.map((s) => (
