@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Crest } from "@/components/branding/crest";
 import { SyncStatusBadge } from "@/components/sync/sync-status";
+import { BusquedaGlobal } from "@/components/nav/busqueda-global";
 import type { Rol } from "@/lib/types/database.types";
 
 export function TopBar({ nombre, rol }: { nombre: string; rol: Rol }) {
@@ -37,6 +38,7 @@ export function TopBar({ nombre, rol }: { nombre: string; rol: Rol }) {
         </div>
       </Link>
       <div className="flex items-center gap-2 shrink-0">
+        <BusquedaGlobal />
         <SyncStatusBadge />
         <div className="hidden text-right sm:block">
           <p className="text-sm font-medium leading-tight">{nombre}</p>

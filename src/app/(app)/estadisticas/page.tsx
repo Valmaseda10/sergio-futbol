@@ -13,6 +13,7 @@ import { TiposGolChart } from "@/components/estadisticas/tipos-gol-chart";
 import { MapaGoles } from "@/components/estadisticas/mapa-goles";
 import { GolesIntervaloChart } from "@/components/estadisticas/goles-intervalo-chart";
 import { JugadoresTable } from "@/components/estadisticas/jugadores-table";
+import { BalanceTemporada } from "@/components/estadisticas/balance-temporada";
 import { Button } from "@/components/ui/button";
 import { Printer } from "lucide-react";
 import { PdfWatermark } from "@/components/branding/pdf-watermark";
@@ -309,6 +310,13 @@ export default function EstadisticasPage() {
           </CardContent>
         </Card>
       </div>
+
+      <BalanceTemporada
+        temporada={temporadaSel}
+        resumen={resumen}
+        statsJugadores={statsJugadores}
+        asistenciaEquipo={asistenciaEquipo}
+      />
 
       <Card>
         <CardHeader>
