@@ -11,6 +11,15 @@ const PUBLIC_PATHS = [
   // El feed de calendario lo consume la app Calendario del iPhone, que no
   // manda cookies de sesión; se autentica con el token de la propia URL.
   "/api/calendario",
+  // Archivos de la PWA: el navegador los pide en segundo plano (para
+  // comprobar si se puede instalar, o desde el service worker) sin
+  // sesión iniciada necesariamente; el matcher de abajo no los excluye
+  // por extensión (.json/.js no están en la lista de estáticos), así
+  // que sin esto se redirigían a /login y el manifest/SW dejaban de
+  // funcionar para quien todavía no ha iniciado sesión.
+  "/manifest.json",
+  "/sw.js",
+  "/offline.html",
 ];
 
 function isPublicPath(pathname: string) {
