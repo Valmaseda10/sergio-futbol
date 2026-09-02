@@ -170,7 +170,7 @@ export function InicioDashboard({
     <div className="space-y-4">
       <div className="flex items-start justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-semibold">Hola Sergio Campos el más mejor</h1>
+          <h1 className="text-2xl font-semibold">Hola{nombre ? `, ${nombre.split(" ")[0]}` : ""}</h1>
           <p className="text-sm text-muted-foreground">
             {capitalizarPrimera(
               new Date(`${hoy}T00:00:00`).toLocaleDateString("es-ES", {
