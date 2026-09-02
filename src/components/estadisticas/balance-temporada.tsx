@@ -3,6 +3,7 @@ import {
   Trophy,
   Target,
   Clock,
+  ClockAlert,
   CalendarCheck,
   Users as UsersIcon,
 } from "lucide-react";
@@ -14,11 +15,66 @@ function nombreCorto(j: { nombre: string; apellidos: string }) {
   return `${j.nombre} ${j.apellidos}`;
 }
 
+function porApellidos(a: JugadorStats, b: JugadorStats) {
+  return a.apellidos.localeCompare(b.apellidos);
+}
+
 interface Dato {
   icon: typeof Trophy;
   etiqueta: string;
   valor: string;
   detalle?: string;
+}
+
+interface RankingItem {
+  jugador: JugadorStats;
+  valor: string;
+}
+
+function RankingLista({
+  icon: Icon,
+  titulo,
+  items,
+  vacio,
+}: {
+  icon: typeof Trophy;
+  titulo: string;
+  items: RankingItem[];
+  vacio: string;
+}) {
+  return (
+    <div className="space-y-2">
+      <p className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
+        <Icon className="size-3.5" />
+        {titulo}
+      </p>
+      {items.length === 0 ? (
+        <p className="text-sm text-muted-foreground">{vacio}</p>
+      ) : (
+        <ol className="space-y-1">
+          {items.map((it, i) => (
+            <li
+              key={it.jugador.id}
+              className="flex items-center justify-between gap-2 text-sm"
+            >
+              <span className="flex min-w-0 items-center gap-2">
+                <span className="w-4 shrink-0 text-xs tabular-nums text-muted-foreground">
+                  {i + 1}
+                </span>
+                <span className="truncate">
+                  {it.jugador.dorsal != null ? `${it.jugador.dorsal} · ` : ""}
+                  {nombreCorto(it.jugador)}
+                </span>
+              </span>
+              <span className="shrink-0 font-medium tabular-nums">
+                {it.valor}
+              </span>
+            </li>
+          ))}
+        </ol>
+      )}
+    </div>
+  );
 }
 
 export function BalanceTemporada({
@@ -42,30 +98,6 @@ export function BalanceTemporada({
       valor: `${resumen.victorias}V ${resumen.empates}E ${resumen.derrotas}D`,
       detalle: `${resumen.golesFavor}-${resumen.golesContra} (${diferencia >= 0 ? "+" : ""}${diferencia})`,
     });
-
-    const maxGoleador = statsJugadores
-      .filter((j) => j.goles > 0)
-      .sort((a, b) => b.goles - a.goles)[0];
-    if (maxGoleador) {
-      lista.push({
-        icon: Target,
-        etiqueta: "Máximo goleador",
-        valor: nombreCorto(maxGoleador),
-        detalle: `${maxGoleador.goles} gol${maxGoleador.goles === 1 ? "" : "es"}`,
-      });
-    }
-
-    const masMinutos = statsJugadores
-      .filter((j) => j.minutosAprox > 0)
-      .sort((a, b) => b.minutosAprox - a.minutosAprox)[0];
-    if (masMinutos) {
-      lista.push({
-        icon: Clock,
-        etiqueta: "Más minutos jugados",
-        valor: nombreCorto(masMinutos),
-        detalle: `${masMinutos.minutosAprox} min`,
-      });
-    }
 
     const mejorAsistencia = statsJugadores
       .filter((j) => j.pctAsistencia != null && j.entrenamientosTotales > 0)
@@ -95,6 +127,36 @@ export function BalanceTemporada({
     return lista;
   }, [resumen, statsJugadores, asistenciaEquipo]);
 
+  const maxGoleadores = useMemo<RankingItem[]>(
+    () =>
+      statsJugadores
+        .filter((j) => j.goles > 0)
+        .sort((a, b) => b.goles - a.goles || porApellidos(a, b))
+        .slice(0, 5)
+        .map((j) => ({ jugador: j, valor: `${j.goles}` })),
+    [statsJugadores],
+  );
+
+  const masMinutos = useMemo<RankingItem[]>(
+    () =>
+      statsJugadores
+        .filter((j) => j.minutosAprox > 0)
+        .sort((a, b) => b.minutosAprox - a.minutosAprox || porApellidos(a, b))
+        .slice(0, 5)
+        .map((j) => ({ jugador: j, valor: `${j.minutosAprox} min` })),
+    [statsJugadores],
+  );
+
+  const menosMinutos = useMemo<RankingItem[]>(
+    () =>
+      statsJugadores
+        .filter((j) => j.convocatorias > 0)
+        .sort((a, b) => a.minutosAprox - b.minutosAprox || porApellidos(a, b))
+        .slice(0, 5)
+        .map((j) => ({ jugador: j, valor: `${j.minutosAprox} min` })),
+    [statsJugadores],
+  );
+
   if (resumen.partidosJugados === 0) return null;
 
   return (
@@ -104,7 +166,7 @@ export function BalanceTemporada({
           Balance de la temporada {temporadaCorta(temporada)}
         </CardTitle>
       </CardHeader>
-      <CardContent>
+      <CardContent className="space-y-6">
         <dl className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           {datos.map((d) => (
             <div key={d.etiqueta} className="flex items-start gap-3">
@@ -123,6 +185,27 @@ export function BalanceTemporada({
             </div>
           ))}
         </dl>
+
+        <div className="grid grid-cols-1 gap-6 sm:grid-cols-3">
+          <RankingLista
+            icon={Target}
+            titulo="Máximos goleadores"
+            items={maxGoleadores}
+            vacio="Todavía no hay goles registrados."
+          />
+          <RankingLista
+            icon={Clock}
+            titulo="Más minutos jugados"
+            items={masMinutos}
+            vacio="Todavía no hay minutos registrados."
+          />
+          <RankingLista
+            icon={ClockAlert}
+            titulo="Menos minutos jugados"
+            items={menosMinutos}
+            vacio="Todavía no hay convocados con minutos que comparar."
+          />
+        </div>
       </CardContent>
     </Card>
   );
