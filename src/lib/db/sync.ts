@@ -230,7 +230,13 @@ export function startAutoSync() {
   void refreshPendingCount();
   window.addEventListener("online", () => void syncNow());
 
+  // Con la app abierta y conectada, sin este intervalo solo se vuelve a
+  // descargar de Supabase al recuperar conexión o al recargar la página
+  // entera: si dos personas usan la app a la vez, cada una se queda con lo
+  // suyo sin ver lo que ha cambiado la otra hasta que recarga. syncNow()
+  // sube primero lo pendiente y solo si eso funciona descarga lo nuevo, así
+  // que no arriesga sobrescribir cambios propios aún sin subir.
   setInterval(() => {
-    if (navigator.onLine) void flushOutbox();
-  }, 30_000);
+    if (navigator.onLine) void syncNow();
+  }, 45_000);
 }
