@@ -1,10 +1,19 @@
 import { Crest } from "@/components/branding/crest";
+import { clubConfig } from "@/lib/club-config";
+import { temporadaActual, temporadaCorta } from "@/lib/temporada";
+
+function hoyISO() {
+  const now = new Date();
+  return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
+}
 
 export default function AuthLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
+  const temporada = temporadaCorta(temporadaActual(hoyISO()));
+
   return (
     <div className="flex min-h-svh flex-1 flex-col items-center justify-center bg-[#1c1512] p-4">
       <div className="w-full max-w-sm space-y-6">
@@ -15,7 +24,7 @@ export default function AuthLayout({
               Panel del entrenador
             </p>
             <h1 className="font-heading text-3xl uppercase tracking-wide text-[#f3ece7]">
-              Infantil B 26/27
+              {clubConfig.nombreEquipo} {temporada}
             </h1>
           </div>
         </div>

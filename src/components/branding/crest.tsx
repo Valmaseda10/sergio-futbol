@@ -1,5 +1,7 @@
-const GRANA = "#8a1b24";
-const GOLD = "#9c7328";
+import { clubConfig } from "@/lib/club-config";
+
+const GRANA = clubConfig.colorPrimario;
+const GOLD = clubConfig.colorSecundario;
 const PAPER = "#fbf7f5";
 
 export function Crest({
@@ -35,7 +37,7 @@ export function Crest({
         fontSize={42}
         fill={PAPER}
       >
-        IB
+        {clubConfig.escudoIniciales}
       </text>
     </svg>
   );

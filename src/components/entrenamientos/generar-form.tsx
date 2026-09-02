@@ -13,6 +13,7 @@ import {
 } from "@/lib/validations/entrenamiento";
 import { generarEntrenamientosLocal } from "@/app/(app)/entrenamientos/local-actions";
 import { localDb } from "@/lib/db/local-db";
+import { clubConfig } from "@/lib/club-config";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -48,7 +49,7 @@ export function GenerarForm() {
       dias: [1, 3, 5],
       hora_inicio: "17:45",
       hora_fin: "19:15",
-      lugar: "Área Deportiva de Puente Castro",
+      lugar: clubConfig.lugarEntrenoDefecto,
     },
   });
 
@@ -70,7 +71,7 @@ export function GenerarForm() {
       dias: entreno.map((h) => h.dia_semana),
       hora_inicio: primero.hora_inicio?.slice(0, 5) ?? "17:45",
       hora_fin: primero.hora_fin?.slice(0, 5) ?? "19:15",
-      lugar: primero.lugar ?? "Área Deportiva de Puente Castro",
+      lugar: primero.lugar ?? clubConfig.lugarEntrenoDefecto,
     });
   }, [horarios, reset]);
 

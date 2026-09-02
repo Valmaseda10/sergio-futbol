@@ -1,10 +1,25 @@
 import { type NextRequest } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { construirIcs, type EventoCalendario } from "@/lib/ics";
+import { clubConfig } from "@/lib/club-config";
 
 const AVISO_MINUTOS_ANTES = 60;
 const DURACION_ENTRENAMIENTO_DEFECTO_MIN = 90;
 const DURACION_PARTIDO_MIN = 70;
+
+// Dominio usado como sufijo de los UID del calendario (solo tiene que ser
+// estable y único, no hace falta que resuelva). Se deriva de la URL pública
+// configurada para este despliegue en vez de tener un dominio fijo en el
+// código, que dejaría de ser válido en cuanto se despliegue para otro club.
+function dominioParaUid(): string {
+  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL;
+  if (!siteUrl) return "panel-entrenador.local";
+  try {
+    return new URL(siteUrl).host;
+  } catch {
+    return "panel-entrenador.local";
+  }
+}
 
 function minutosEntre(horaInicio: string, horaFin: string) {
   const [h1, m1] = horaInicio.split(":").map(Number);
@@ -40,9 +55,11 @@ export async function GET(
       .select("id, fecha, hora, rival, lugar, local_visitante, competicion"),
   ]);
 
+  const dominioUid = dominioParaUid();
+
   const eventos: EventoCalendario[] = [
     ...(entrenamientos ?? []).map((e): EventoCalendario => ({
-      uid: `entrenamiento-${e.id}@sergio-futbol.vercel.app`,
+      uid: `entrenamiento-${e.id}@${dominioUid}`,
       titulo: "Entrenamiento",
       fecha: e.fecha,
       horaInicio: e.hora_inicio,
@@ -54,7 +71,7 @@ export async function GET(
       avisoMinutosAntes: AVISO_MINUTOS_ANTES,
     })),
     ...(partidos ?? []).map((p): EventoCalendario => ({
-      uid: `partido-${p.id}@sergio-futbol.vercel.app`,
+      uid: `partido-${p.id}@${dominioUid}`,
       titulo: `${p.local_visitante === "local" ? "vs" : "@"} ${p.rival}`,
       fecha: p.fecha,
       horaInicio: p.hora,
@@ -64,12 +81,12 @@ export async function GET(
     })),
   ];
 
-  const ics = construirIcs("Infantil B", eventos);
+  const ics = construirIcs(clubConfig.nombreEquipo, eventos);
 
   return new Response(ics, {
     headers: {
       "Content-Type": "text/calendar; charset=utf-8",
-      "Content-Disposition": 'inline; filename="infantil-b.ics"',
+      "Content-Disposition": 'inline; filename="calendario.ics"',
       "Cache-Control": "no-store",
     },
   });

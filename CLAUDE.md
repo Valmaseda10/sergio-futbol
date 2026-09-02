@@ -103,6 +103,11 @@ No adelantar fases: cada una se construye y se prueba sobre la anterior.
 - No hardcodear el año de temporada en el modelo de datos (usar fechas reales) para poder reutilizar la app en temporadas futuras.
 - No crear páginas o endpoints que expongan datos de jugadores sin autenticación.
 - No implementar el sync offline (Fase 7) antes de tiempo — complica el resto del desarrollo si se mete pronto.
+- No volver a hardcodear el nombre del club/equipo, iniciales del escudo, colores o el lugar de entrenamiento por defecto en ningún componente nuevo — usar `src/lib/club-config.ts` (ver más abajo).
+
+## Reutilización para otro club
+
+La app está pensada para desplegarse una vez por club (cada uno con su propio proyecto de Vercel + Supabase), no como SaaS multi-club con una sola base de datos. Lo que identifica al club/equipo (nombre, iniciales del escudo, colores, lugar de entrenamiento por defecto) vive en `src/lib/club-config.ts`, con variables de entorno `NEXT_PUBLIC_*` documentadas ahí y en el README ("Desplegar para otro club"). Al escribir texto o colores nuevos en la interfaz, usar `clubConfig` en vez de escribir el nombre del club/equipo a mano.
 
 ## Flujo de trabajo en equipo (dos personas, dos repos)
 

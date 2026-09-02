@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { Oswald, Public_Sans } from "next/font/google";
 import { Toaster } from "@/components/ui/sonner";
 import { ServiceWorkerRegister } from "@/components/pwa/sw-register";
+import { clubConfig } from "@/lib/club-config";
 import "./globals.css";
 
 const oswald = Oswald({
@@ -17,13 +18,13 @@ const publicSans = Public_Sans({
 });
 
 export const metadata: Metadata = {
-  title: "Infantil B 26/27 — Panel del entrenador",
-  description: "Gestión del equipo Infantil B, temporada 2026-2027",
+  title: `${clubConfig.nombreEquipo} — Panel del entrenador`,
+  description: `Gestión del equipo ${clubConfig.nombreEquipo} (${clubConfig.nombreClub})`,
   manifest: "/manifest.json",
   appleWebApp: {
     capable: true,
     statusBarStyle: "black-translucent",
-    title: "Infantil B 26/27",
+    title: clubConfig.nombreEquipo,
   },
   icons: {
     icon: [{ url: "/icon-192.png", sizes: "192x192", type: "image/png" }],

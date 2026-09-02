@@ -14,8 +14,7 @@ export function CalendarioPanel({
   const [token, setToken] = useState(calendarioTokenInicial);
   const [regenerando, setRegenerando] = useState(false);
 
-  const host =
-    typeof window !== "undefined" ? window.location.host : "sergio-futbol.vercel.app";
+  const host = typeof window !== "undefined" ? window.location.host : "";
   const urlHttps = `https://${host}/api/calendario/${token}`;
   const urlWebcal = `webcal://${host}/api/calendario/${token}`;
 

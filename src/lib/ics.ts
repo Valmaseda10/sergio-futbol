@@ -73,7 +73,7 @@ export function construirIcs(
   const lineas = [
     "BEGIN:VCALENDAR",
     "VERSION:2.0",
-    "PRODID:-//Infantil B//Calendario//ES",
+    "PRODID:-//Panel del entrenador//Calendario//ES",
     "CALSCALE:GREGORIAN",
     `X-WR-CALNAME:${escaparTexto(nombreCalendario)}`,
     ...eventos.map((ev) => construirEvento(ev, dtstamp)),

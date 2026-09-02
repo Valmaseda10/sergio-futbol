@@ -93,6 +93,24 @@ Abre [http://localhost:3000](http://localhost:3000).
    - `NEXT_PUBLIC_SITE_URL` — la URL de producción, p. ej. `https://infantil-b.vercel.app`
 3. Despliega. Después del primer despliegue, añade la URL de producción `/auth/set-password` a las Redirect URLs de Supabase Auth (paso 5 de arriba).
 
+## Desplegar para otro club
+
+La app está pensada para desplegarse una vez por club (cada uno con su propio proyecto de Vercel + Supabase, siguiendo los pasos de arriba). Para adaptar el nombre, el escudo y los colores sin tocar código, añade estas variables de entorno (opcionales — sin ninguna, se usan los valores del Infantil B):
+
+| Variable | Ejemplo | Por defecto |
+| --- | --- | --- |
+| `NEXT_PUBLIC_CLUB_NOMBRE` | `Real Club Deportivo` | `Cultural y Deportiva Leonesa` |
+| `NEXT_PUBLIC_EQUIPO_NOMBRE` | `Cadete A` | `Infantil B` |
+| `NEXT_PUBLIC_ESCUDO_INICIALES` | `CA` | `IB` |
+| `NEXT_PUBLIC_COLOR_PRIMARIO` | `#1d4ed8` | `#8a1b24` |
+| `NEXT_PUBLIC_COLOR_SECUNDARIO` | `#f59e0b` | `#9c7328` |
+| `NEXT_PUBLIC_LUGAR_ENTRENO_DEFECTO` | `Ciudad Deportiva` | `Área Deportiva de Puente Castro` |
+
+Ver `src/lib/club-config.ts` para el detalle. Dos cosas que sí hay que cambiar a mano por cada club, porque son archivos binarios:
+
+- Los iconos de la PWA (`public/icon-192.png`, `public/icon-512.png`, `public/apple-touch-icon.png`) — sustitúyelos por el escudo real del club si lo tienen, o genera unos nuevos a partir del escudo genérico con los colores/iniciales de arriba.
+- Los colores del tema en `src/app/globals.css` (`:root` y `.dark`) siguen fijos en CSS — las variables de entorno solo cambian el escudo genérico y los textos; para un rediseño de color completo de la interfaz hay que editar ese archivo.
+
 ## Comandos
 
 ```bash

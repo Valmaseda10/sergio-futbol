@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { clubConfig } from "@/lib/club-config";
 
 export const entrenamientoSchema = z.object({
   fecha: z.string().trim().min(1, "Introduce la fecha"),
@@ -19,7 +20,7 @@ export const ENTRENAMIENTO_FORM_DEFAULTS: EntrenamientoFormValues = {
   fecha: "",
   hora_inicio: "17:45",
   hora_fin: "19:15",
-  lugar: "Área Deportiva de Puente Castro",
+  lugar: clubConfig.lugarEntrenoDefecto,
   objetivos: "",
   tarea_1: "",
   tarea_2: "",
