@@ -4,8 +4,10 @@ import { useRef, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useRouter } from "next/navigation";
+import { useLiveQuery } from "dexie-react-hooks";
 import { toast } from "sonner";
-import { Paperclip, FileText, ExternalLink } from "lucide-react";
+import Link from "next/link";
+import { Paperclip, FileText, ExternalLink, BookOpen } from "lucide-react";
 import {
   ENTRENAMIENTO_FORM_DEFAULTS,
   entrenamientoSchema,
@@ -15,11 +17,21 @@ import {
   crearEntrenamientoLocal,
   actualizarEntrenamientoLocal,
 } from "@/app/(app)/entrenamientos/local-actions";
+import { localDb } from "@/lib/db/local-db";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent } from "@/components/ui/card";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+
+const CAMPOS_TAREA = ["tarea_1", "tarea_2", "tarea_3", "tarea_4"] as const;
+type CampoTarea = (typeof CAMPOS_TAREA)[number];
 
 function FieldError({ message }: { message?: string }) {
   if (!message) return null;
@@ -37,15 +49,35 @@ export function EntrenamientoForm({
   const router = useRouter();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [documento, setDocumento] = useState<File | null>(null);
+  const [pickerPara, setPickerPara] = useState<CampoTarea | null>(null);
+
+  const ejercicios = useLiveQuery(
+    () =>
+      localDb.ejercicios
+        .toArray()
+        .then((rows) => rows.sort((a, b) => a.nombre.localeCompare(b.nombre))),
+    [],
+    [],
+  );
 
   const {
     register,
     handleSubmit,
+    setValue,
     formState: { errors, isSubmitting },
   } = useForm<EntrenamientoFormValues>({
     resolver: zodResolver(entrenamientoSchema),
     defaultValues: entrenamiento ?? ENTRENAMIENTO_FORM_DEFAULTS,
   });
+
+  function handleElegirEjercicio(descripcion: string, nombre: string) {
+    if (!pickerPara) return;
+    setValue(pickerPara, descripcion || nombre, {
+      shouldDirty: true,
+      shouldValidate: true,
+    });
+    setPickerPara(null);
+  }
 
   function handleDocumentoChange(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
@@ -152,22 +184,23 @@ export function EntrenamientoForm({
               {...register("objetivos")}
             />
           </div>
-          <div className="space-y-2">
-            <Label htmlFor="tarea_1">Tarea 1</Label>
-            <Textarea id="tarea_1" rows={2} {...register("tarea_1")} />
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="tarea_2">Tarea 2</Label>
-            <Textarea id="tarea_2" rows={2} {...register("tarea_2")} />
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="tarea_3">Tarea 3</Label>
-            <Textarea id="tarea_3" rows={2} {...register("tarea_3")} />
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="tarea_4">Tarea 4</Label>
-            <Textarea id="tarea_4" rows={2} {...register("tarea_4")} />
-          </div>
+          {CAMPOS_TAREA.map((campo, i) => (
+            <div key={campo} className="space-y-2">
+              <div className="flex items-center justify-between">
+                <Label htmlFor={campo}>Tarea {i + 1}</Label>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setPickerPara(campo)}
+                >
+                  <BookOpen className="size-3.5" />
+                  Elegir de la biblioteca
+                </Button>
+              </div>
+              <Textarea id={campo} rows={2} {...register(campo)} />
+            </div>
+          ))}
           <div className="space-y-2">
             <Label htmlFor="notas">Notas</Label>
             <Textarea id="notas" rows={2} {...register("notas")} />
@@ -188,6 +221,52 @@ export function EntrenamientoForm({
           Cancelar
         </Button>
       </div>
+
+      <Dialog
+        open={pickerPara !== null}
+        onOpenChange={(open) => !open && setPickerPara(null)}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Elegir ejercicio</DialogTitle>
+          </DialogHeader>
+          <div className="max-h-80 space-y-1 overflow-y-auto">
+            {ejercicios.length === 0 ? (
+              <p className="p-2 text-sm text-muted-foreground">
+                Todavía no hay ejercicios guardados.{" "}
+                <Link
+                  href="/entrenamientos/ejercicios"
+                  className="font-medium underline"
+                >
+                  Añade alguno a la biblioteca
+                </Link>
+                .
+              </p>
+            ) : (
+              ejercicios.map((ejercicio) => (
+                <button
+                  key={ejercicio.id}
+                  type="button"
+                  onClick={() =>
+                    handleElegirEjercicio(
+                      ejercicio.descripcion ?? "",
+                      ejercicio.nombre,
+                    )
+                  }
+                  className="block w-full rounded-md p-2 text-left text-sm hover:bg-muted"
+                >
+                  <p className="font-medium">{ejercicio.nombre}</p>
+                  {ejercicio.descripcion && (
+                    <p className="line-clamp-2 whitespace-pre-wrap text-xs text-muted-foreground">
+                      {ejercicio.descripcion}
+                    </p>
+                  )}
+                </button>
+              ))
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
     </form>
   );
 }

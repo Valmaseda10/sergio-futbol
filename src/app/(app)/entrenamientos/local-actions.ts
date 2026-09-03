@@ -6,6 +6,7 @@ import {
   localDb,
   type LocalAsistencia,
   type LocalEntrenamiento,
+  type LocalEjercicio,
 } from "@/lib/db/local-db";
 import { queueMutation } from "@/lib/db/sync";
 import { createClient } from "@/lib/supabase/client";
@@ -17,6 +18,10 @@ import {
   type EntrenamientoFormValues,
   type GenerarFormValues,
 } from "@/lib/validations/entrenamiento";
+import {
+  ejercicioSchema,
+  type EjercicioFormValues,
+} from "@/lib/validations/ejercicio";
 
 type ActionResult = { error: string } | { success: true; id: string };
 type SimpleResult = { error: string } | { success: true };
@@ -248,5 +253,52 @@ export async function actualizarAsistenciaLocal(
   await localDb.asistencias_entrenamiento.put(row);
   await queueMutation("asistencias_entrenamiento", "insert", id, row);
 
+  return { success: true };
+}
+
+export async function crearEjercicioLocal(
+  values: EjercicioFormValues,
+): Promise<ActionResult> {
+  const parsed = ejercicioSchema.safeParse(values);
+  if (!parsed.success) {
+    return { error: parsed.error.issues[0]?.message ?? "Datos no válidos" };
+  }
+
+  const id = crypto.randomUUID();
+  const row: LocalEjercicio = {
+    id,
+    nombre: parsed.data.nombre,
+    descripcion: parsed.data.descripcion || null,
+    created_at: new Date().toISOString(),
+  };
+
+  await localDb.ejercicios.put(row);
+  await queueMutation("ejercicios", "insert", id, row);
+
+  return { success: true, id };
+}
+
+export async function actualizarEjercicioLocal(
+  id: string,
+  values: EjercicioFormValues,
+): Promise<SimpleResult> {
+  const parsed = ejercicioSchema.safeParse(values);
+  if (!parsed.success) {
+    return { error: parsed.error.issues[0]?.message ?? "Datos no válidos" };
+  }
+
+  const patch = {
+    nombre: parsed.data.nombre,
+    descripcion: parsed.data.descripcion || null,
+  };
+  await localDb.ejercicios.update(id, patch);
+  await queueMutation("ejercicios", "update", id, patch);
+
+  return { success: true };
+}
+
+export async function eliminarEjercicioLocal(id: string): Promise<SimpleResult> {
+  await localDb.ejercicios.delete(id);
+  await queueMutation("ejercicios", "delete", id);
   return { success: true };
 }

@@ -17,6 +17,7 @@ export type LocalJugador = Tables["jugadores"]["Row"];
 export type LocalEntrenamiento = Tables["entrenamientos"]["Row"];
 export type LocalAsistencia = Tables["asistencias_entrenamiento"]["Row"];
 export type LocalEstado = Tables["estados"]["Row"];
+export type LocalEjercicio = Tables["ejercicios"]["Row"];
 export type LocalPartido = Tables["partidos"]["Row"];
 export type LocalConvocatoria = Tables["convocatorias"]["Row"];
 export type LocalAlineacion = Tables["alineaciones"]["Row"];
@@ -42,6 +43,7 @@ export const SYNCED_TABLES = [
   "entrenamientos",
   "asistencias_entrenamiento",
   "estados",
+  "ejercicios",
   "partidos",
   "convocatorias",
   "alineaciones",
@@ -97,6 +99,7 @@ class LocalDb extends Dexie {
   entrenamientos!: Table<LocalEntrenamiento, string>;
   asistencias_entrenamiento!: Table<LocalAsistencia, string>;
   estados!: Table<LocalEstado, string>;
+  ejercicios!: Table<LocalEjercicio, string>;
   partidos!: Table<LocalPartido, string>;
   convocatorias!: Table<LocalConvocatoria, string>;
   alineaciones!: Table<LocalAlineacion, string>;
@@ -174,6 +177,10 @@ class LocalDb extends Dexie {
 
     this.version(9).stores({
       alineaciones_finales: "id, partido_id, jugador_id",
+    });
+
+    this.version(10).stores({
+      ejercicios: "id, nombre",
     });
   }
 }

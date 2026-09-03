@@ -3,7 +3,14 @@
 import Link from "next/link";
 import { useMemo } from "react";
 import { useLiveQuery } from "dexie-react-hooks";
-import { Plus, CalendarPlus, CalendarRange, MapPin, Clock } from "lucide-react";
+import {
+  Plus,
+  CalendarPlus,
+  CalendarRange,
+  MapPin,
+  Clock,
+  BookOpen,
+} from "lucide-react";
 import { localDb, type LocalEntrenamiento } from "@/lib/db/local-db";
 import { capitalizarPrimera } from "@/lib/date";
 import { temporadaDeFecha } from "@/lib/temporada";
@@ -122,6 +129,19 @@ export default function EntrenamientosPage() {
             render={<Link href="/calendario" aria-label="Ver calendario" />}
           >
             <CalendarRange className="size-4" />
+          </Button>
+          <Button
+            size="sm"
+            variant="outline"
+            nativeButton={false}
+            render={
+              <Link
+                href="/entrenamientos/ejercicios"
+                aria-label="Biblioteca de ejercicios"
+              />
+            }
+          >
+            <BookOpen className="size-4" />
           </Button>
           <Button
             size="sm"

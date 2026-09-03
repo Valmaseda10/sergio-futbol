@@ -89,6 +89,22 @@ export interface Database {
         Update: Partial<Database["public"]["Tables"]["estados"]["Insert"]>;
         Relationships: [];
       };
+      ejercicios: {
+        Row: {
+          id: string;
+          nombre: string;
+          descripcion: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          nombre: string;
+          descripcion?: string | null;
+          created_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["ejercicios"]["Insert"]>;
+        Relationships: [];
+      };
       jugadores: {
         Row: {
           id: string;
