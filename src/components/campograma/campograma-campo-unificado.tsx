@@ -335,28 +335,6 @@ export function CampogramaCampoUnificado({
 
   return (
     <div className="space-y-4">
-      <div className="space-y-3 rounded-md border p-3">
-        <div className="space-y-2">
-          <Label htmlFor="nombreCampograma">Nombre</Label>
-          <Input
-            id="nombreCampograma"
-            placeholder="Ej: 1-4-3-3 base"
-            value={nombre}
-            onChange={(e) => setNombre(e.target.value)}
-          />
-        </div>
-        <div className="space-y-2">
-          <Label htmlFor="notasCampograma">Notas (opcional)</Label>
-          <Textarea
-            id="notasCampograma"
-            rows={2}
-            placeholder="Ej: para partidos fuera de casa"
-            value={notas}
-            onChange={(e) => setNotas(e.target.value)}
-          />
-        </div>
-      </div>
-
       <div className="grid gap-3 sm:grid-cols-2">
         <div className="space-y-1.5">
           <p className="text-xs font-medium text-muted-foreground">Nuestra formación</p>
@@ -454,6 +432,28 @@ export function CampogramaCampoUnificado({
             </button>
           );
         })}
+      </div>
+
+      <div className="space-y-3 rounded-md border p-3">
+        <div className="space-y-2">
+          <Label htmlFor="nombreCampograma">Nombre</Label>
+          <Input
+            id="nombreCampograma"
+            placeholder="Ej: 1-4-3-3 base"
+            value={nombre}
+            onChange={(e) => setNombre(e.target.value)}
+          />
+        </div>
+        <div className="space-y-2">
+          <Label htmlFor="notasCampograma">Notas (opcional)</Label>
+          <Textarea
+            id="notasCampograma"
+            rows={2}
+            placeholder="Ej: para partidos fuera de casa"
+            value={notas}
+            onChange={(e) => setNotas(e.target.value)}
+          />
+        </div>
       </div>
 
       <div className="space-y-2">
