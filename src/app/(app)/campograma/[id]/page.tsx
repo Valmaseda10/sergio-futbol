@@ -8,11 +8,11 @@ import { toast } from "sonner";
 import { ChevronLeft, Trash2 } from "lucide-react";
 import { localDb } from "@/lib/db/local-db";
 import { eliminarCampogramaLocal } from "@/app/(app)/campograma/local-actions";
-import { CampogramaEditor, type CampogramaInicial } from "@/components/campograma/campograma-editor";
+import type { CampogramaInicial } from "@/components/campograma/campograma-editor";
 import {
-  CampogramaRivalCampo,
+  CampogramaCampoUnificado,
   type CampogramaRivalInicial,
-} from "@/components/campograma/campograma-rival-campo";
+} from "@/components/campograma/campograma-campo-unificado";
 import { Button } from "@/components/ui/button";
 import {
   AlertDialog,
@@ -155,13 +155,14 @@ export default function EditarCampogramaPage() {
       </div>
       <h1 className="text-2xl font-semibold">{campograma.nombre}</h1>
 
-      <div className="grid gap-8 sm:grid-cols-2">
-        <div className="space-y-4">
-          <h2 className="text-base font-semibold">Nuestra alineación</h2>
-          {inicial && <CampogramaEditor jugadores={jugadores} inicial={inicial} />}
-        </div>
-        <CampogramaRivalCampo campogramaId={id} inicial={inicialRival} />
-      </div>
+      {inicial && (
+        <CampogramaCampoUnificado
+          campogramaId={id}
+          jugadores={jugadores}
+          inicial={inicial}
+          inicialRival={inicialRival}
+        />
+      )}
     </div>
   );
 }
