@@ -13,6 +13,51 @@ export interface Formacion {
   huecos: HuecoFormacion[];
 }
 
+/** Reparte una lista de {id, etiqueta de posición} en los huecos de una
+ * formación, emparejando por etiqueta (p. ej. "Central" con "Central").
+ * Se usa tanto para el once propio como para el del rival en un campograma:
+ * cualquier identificador vale como "id", no hace falta que sea un jugador
+ * real de la plantilla. */
+export function remapearAFormacion(
+  pares: { id: string; label: string }[],
+  formacion: Formacion,
+): Record<string, string> {
+  const restantes = [...pares];
+  const resultado: Record<string, string> = {};
+
+  for (const hueco of formacion.huecos) {
+    const idx = restantes.findIndex((p) => p.label === hueco.label);
+    if (idx !== -1) {
+      resultado[hueco.id] = restantes[idx].id;
+      restantes.splice(idx, 1);
+    }
+  }
+
+  return resultado;
+}
+
+/** De entre las formaciones disponibles, la que mejor encaja con las
+ * etiquetas de posición ya guardadas (la que consigue emparejar a más
+ * gente en sus huecos). */
+export function mejorFormacionInicial(
+  pares: { id: string; label: string }[],
+): Formacion {
+  if (pares.length === 0) return FORMACIONES[0];
+
+  let mejor = FORMACIONES[0];
+  let mejorPuntuacion = -1;
+
+  for (const formacion of FORMACIONES) {
+    const asignados = Object.keys(remapearAFormacion(pares, formacion)).length;
+    if (asignados > mejorPuntuacion) {
+      mejorPuntuacion = asignados;
+      mejor = formacion;
+    }
+  }
+
+  return mejor;
+}
+
 export const FORMACIONES: Formacion[] = [
   {
     value: "1-4-4-2",

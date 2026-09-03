@@ -357,6 +357,32 @@ export interface Database {
         >;
         Relationships: [];
       };
+      campograma_rivales: {
+        Row: {
+          id: string;
+          campograma_id: string;
+          nombre: string;
+          dorsal: number | null;
+          posicion_jugada: string | null;
+          pos_x: number | null;
+          pos_y: number | null;
+          orden: number | null;
+        };
+        Insert: {
+          id?: string;
+          campograma_id: string;
+          nombre: string;
+          dorsal?: number | null;
+          posicion_jugada?: string | null;
+          pos_x?: number | null;
+          pos_y?: number | null;
+          orden?: number | null;
+        };
+        Update: Partial<
+          Database["public"]["Tables"]["campograma_rivales"]["Insert"]
+        >;
+        Relationships: [];
+      };
       eventos_partido: {
         Row: {
           id: string;

@@ -8,6 +8,7 @@ import {
   localDb,
   type LocalCampograma,
   type LocalCampogramaJugador,
+  type LocalCampogramaRival,
 } from "@/lib/db/local-db";
 import { queueMutation } from "@/lib/db/sync";
 
@@ -119,23 +120,70 @@ export async function guardarCampogramaLocal(params: {
   return { success: true, id };
 }
 
-export async function eliminarCampogramaLocal(id: string): Promise<SimpleResult> {
-  const jugadores = await localDb.campograma_jugadores
+export interface RivalTitularGuardar {
+  nombre: string;
+  dorsal: number | null;
+  posicion: string | null;
+  posX: number;
+  posY: number;
+}
+
+/** Alineación del rival dentro de un campograma: como no hay una fila real
+ * de jugador con la que emparejar cada hueco (los rivales no están en
+ * `jugadores`), se guarda reemplazando todo el conjunto cada vez en vez de
+ * comparar fila a fila con lo existente. */
+export async function guardarCampogramaRivalLocal(
+  campogramaId: string,
+  titulares: RivalTitularGuardar[],
+): Promise<SimpleResult> {
+  const existentes = await localDb.campograma_rivales
     .where("campograma_id")
-    .equals(id)
+    .equals(campogramaId)
     .toArray();
+
+  await localDb.campograma_rivales.bulkDelete(existentes.map((c) => c.id));
+  for (const c of existentes) {
+    await queueMutation("campograma_rivales", "delete", c.id);
+  }
+
+  for (let i = 0; i < titulares.length; i++) {
+    const t = titulares[i];
+    const filaId = crypto.randomUUID();
+    const row: LocalCampogramaRival = {
+      id: filaId,
+      campograma_id: campogramaId,
+      nombre: t.nombre,
+      dorsal: t.dorsal,
+      posicion_jugada: t.posicion,
+      pos_x: t.posX,
+      pos_y: t.posY,
+      orden: i,
+    };
+    await localDb.campograma_rivales.put(row);
+    await queueMutation("campograma_rivales", "insert", filaId, row);
+  }
+
+  return { success: true };
+}
+
+export async function eliminarCampogramaLocal(id: string): Promise<SimpleResult> {
+  const [jugadores, rivales] = await Promise.all([
+    localDb.campograma_jugadores.where("campograma_id").equals(id).toArray(),
+    localDb.campograma_rivales.where("campograma_id").equals(id).toArray(),
+  ]);
 
   await localDb.transaction(
     "rw",
-    [localDb.campogramas, localDb.campograma_jugadores],
+    [localDb.campogramas, localDb.campograma_jugadores, localDb.campograma_rivales],
     async () => {
       await localDb.campogramas.delete(id);
       await localDb.campograma_jugadores.bulkDelete(jugadores.map((j) => j.id));
+      await localDb.campograma_rivales.bulkDelete(rivales.map((r) => r.id));
     },
   );
 
-  // Los jugadores del campograma se borran en cascada en Supabase; solo
-  // hace falta encolar el borrado del campograma en sí.
+  // Los jugadores y rivales del campograma se borran en cascada en
+  // Supabase; solo hace falta encolar el borrado del campograma en sí.
   await queueMutation("campogramas", "delete", id);
 
   return { success: true };

@@ -9,6 +9,10 @@ import { ChevronLeft, Trash2 } from "lucide-react";
 import { localDb } from "@/lib/db/local-db";
 import { eliminarCampogramaLocal } from "@/app/(app)/campograma/local-actions";
 import { CampogramaEditor, type CampogramaInicial } from "@/components/campograma/campograma-editor";
+import {
+  CampogramaRivalCampo,
+  type CampogramaRivalInicial,
+} from "@/components/campograma/campograma-rival-campo";
 import { Button } from "@/components/ui/button";
 import {
   AlertDialog,
@@ -33,6 +37,11 @@ export default function EditarCampogramaPage() {
   );
   const filas = useLiveQuery(
     () => localDb.campograma_jugadores.where("campograma_id").equals(id).toArray(),
+    [id],
+    [],
+  );
+  const filasRival = useLiveQuery(
+    () => localDb.campograma_rivales.where("campograma_id").equals(id).toArray(),
     [id],
     [],
   );
@@ -75,6 +84,22 @@ export default function EditarCampogramaPage() {
         .map((f) => f.jugador_id),
     };
   }, [campograma, filas]);
+
+  const inicialRival: CampogramaRivalInicial = useMemo(
+    () => ({
+      titulares: filasRival
+        .filter((f) => f.pos_x != null && f.pos_y != null)
+        .sort((a, b) => (a.orden ?? 0) - (b.orden ?? 0))
+        .map((f) => ({
+          nombre: f.nombre,
+          dorsal: f.dorsal,
+          posicion: f.posicion_jugada,
+          left: f.pos_x as number,
+          top: f.pos_y as number,
+        })),
+    }),
+    [filasRival],
+  );
 
   async function handleEliminar() {
     setBorrando(true);
@@ -129,7 +154,14 @@ export default function EditarCampogramaPage() {
         </AlertDialog>
       </div>
       <h1 className="text-2xl font-semibold">{campograma.nombre}</h1>
-      {inicial && <CampogramaEditor jugadores={jugadores} inicial={inicial} />}
+
+      <div className="grid gap-8 sm:grid-cols-2">
+        <div className="space-y-4">
+          <h2 className="text-base font-semibold">Nuestra alineación</h2>
+          {inicial && <CampogramaEditor jugadores={jugadores} inicial={inicial} />}
+        </div>
+        <CampogramaRivalCampo campogramaId={id} inicial={inicialRival} />
+      </div>
     </div>
   );
 }

@@ -3,7 +3,12 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 import { X } from "lucide-react";
-import { FORMACIONES, type Formacion } from "@/lib/formaciones";
+import {
+  FORMACIONES,
+  mejorFormacionInicial,
+  remapearAFormacion,
+  type Formacion,
+} from "@/lib/formaciones";
 import { createClient } from "@/lib/supabase/client";
 import { JugadorAvatar } from "@/components/plantilla/jugador-avatar";
 import { Button } from "@/components/ui/button";
@@ -49,41 +54,6 @@ function nombreCompleto(j: Jugador) {
   return j.alias ? `${j.alias} (${j.nombre} ${j.apellidos})` : `${j.nombre} ${j.apellidos}`;
 }
 
-function remapearAFormacion(
-  pares: { jugadorId: string; label: string }[],
-  formacion: Formacion,
-) {
-  const restantes = [...pares];
-  const resultado: Record<string, string> = {};
-
-  for (const hueco of formacion.huecos) {
-    const idx = restantes.findIndex((p) => p.label === hueco.label);
-    if (idx !== -1) {
-      resultado[hueco.id] = restantes[idx].jugadorId;
-      restantes.splice(idx, 1);
-    }
-  }
-
-  return resultado;
-}
-
-function mejorFormacionInicial(pares: { jugadorId: string; label: string }[]) {
-  if (pares.length === 0) return FORMACIONES[0];
-
-  let mejor = FORMACIONES[0];
-  let mejorPuntuacion = -1;
-
-  for (const formacion of FORMACIONES) {
-    const asignados = Object.keys(remapearAFormacion(pares, formacion)).length;
-    if (asignados > mejorPuntuacion) {
-      mejorPuntuacion = asignados;
-      mejor = formacion;
-    }
-  }
-
-  return mejor;
-}
-
 export function AlineacionCampo({
   titulo,
   convocados,
@@ -110,7 +80,7 @@ export function AlineacionCampo({
 }) {
   const pitchRef = useRef<HTMLDivElement>(null);
   const paresIniciales = titularesIniciales.map((t) => ({
-    jugadorId: t.jugadorId,
+    id: t.jugadorId,
     label: t.posicion,
   }));
 
@@ -180,7 +150,7 @@ export function AlineacionCampo({
 
     const paresActuales = Object.entries(asignaciones).map(
       ([huecoId, jugadorId]) => ({
-        jugadorId,
+        id: jugadorId,
         label: formacion.huecos.find((h) => h.id === huecoId)?.label ?? "",
       }),
     );
