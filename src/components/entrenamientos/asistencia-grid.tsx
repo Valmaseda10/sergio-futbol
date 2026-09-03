@@ -46,14 +46,19 @@ export function AsistenciaGrid({
     [],
   );
 
+  // Al navegar de un parte a otro sin recargar la página, useLiveQuery puede
+  // devolver por un instante las filas del entrenamiento ANTERIOR mientras
+  // resuelve la consulta nueva (misma jugador_id, así que sin este filtro se
+  // verían — y hasta se guardarían de más, vía el useEffect de abajo—
+  // marcas IA/LESIÓN de la sesión pasada aplicadas a la sesión nueva).
   const asistencias = useMemo(
     () =>
       Object.fromEntries(
         asistenciasRows
-          .filter((a) => a.estado_id)
+          .filter((a) => a.entrenamiento_id === entrenamientoId && a.estado_id)
           .map((a) => [a.jugador_id, a.estado_id as string]),
       ),
-    [asistenciasRows],
+    [asistenciasRows, entrenamientoId],
   );
 
   const lesionesActivas = useLiveQuery(

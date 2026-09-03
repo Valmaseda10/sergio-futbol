@@ -1,8 +1,30 @@
 import { z } from "zod";
 import { clubConfig } from "@/lib/club-config";
 
+// Los inputs nativos <input type="date"> a veces dejan pasar un valor mal
+// formado si se teclea dígito a dígito muy rápido en vez de usar el selector
+// (sobre todo en móvil): un "13-12-2026" a medio escribir puede colar un año
+// como "1333". Aquí se comprueba que el año sea razonable para no arrastrar
+// ese tipo de fecha rota hasta la base de datos.
+function fechaRazonable(mensajeVacio: string) {
+  return z
+    .string()
+    .trim()
+    .min(1, mensajeVacio)
+    .refine((v) => /^\d{4}-\d{2}-\d{2}$/.test(v), {
+      message: "Formato de fecha no válido",
+    })
+    .refine(
+      (v) => {
+        const año = Number(v.slice(0, 4));
+        return año >= 2020 && año <= 2099;
+      },
+      { message: "Revisa el año de la fecha, no parece correcto" },
+    );
+}
+
 export const entrenamientoSchema = z.object({
-  fecha: z.string().trim().min(1, "Introduce la fecha"),
+  fecha: fechaRazonable("Introduce la fecha"),
   hora_inicio: z.string().trim(),
   hora_fin: z.string().trim(),
   lugar: z.string().trim(),
@@ -73,8 +95,8 @@ export const DIAS_SEMANA = [
 
 export const generarSchema = z
   .object({
-    fecha_inicio: z.string().trim().min(1, "Introduce la fecha de inicio"),
-    fecha_fin: z.string().trim().min(1, "Introduce la fecha de fin"),
+    fecha_inicio: fechaRazonable("Introduce la fecha de inicio"),
+    fecha_fin: fechaRazonable("Introduce la fecha de fin"),
     dias: z.array(z.number()).min(1, "Selecciona al menos un día"),
     hora_inicio: z.string().trim(),
     hora_fin: z.string().trim(),
