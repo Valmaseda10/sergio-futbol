@@ -1,20 +1,16 @@
 "use client";
 
 // Campograma con las dos alineaciones sobre el mismo campo: nuestro equipo
-// (fichas doradas, ataca hacia arriba) y el rival (fichas rojas, reflejado
-// verticalmente para simular que defiende el lado contrario), para poder
-// compararlas de un vistazo en vez de en dos campos separados.
+// (fichas doradas, elegidas de la plantilla, ataca hacia arriba) y el rival
+// (fichas rojas genéricas, numeradas, igual que en la Pizarra: se añaden con
+// un toque y se colocan a mano, sin formación ni nombre — reflejadas
+// verticalmente para simular que defienden el lado contrario).
 
 import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { ArrowDown, ArrowUp, Save, Trash2, X } from "lucide-react";
-import {
-  FORMACIONES,
-  mejorFormacionInicial,
-  remapearAFormacion,
-  type Formacion,
-} from "@/lib/formaciones";
+import { ArrowDown, ArrowUp, Plus, Save, X } from "lucide-react";
+import { FORMACIONES } from "@/lib/formaciones";
 import {
   guardarCampogramaLocal,
   guardarCampogramaRivalLocal,
@@ -33,12 +29,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
 
 interface Jugador {
   id: string;
@@ -53,9 +43,8 @@ interface Posicion {
   left: number;
 }
 
-interface EntradaRival {
-  nombre: string;
-  dorsal: number | null;
+interface FichaRival extends Posicion {
+  numero: number;
 }
 
 const MARGEN = 5;
@@ -66,6 +55,17 @@ const POSICIONES_SPAWN: Posicion[] = [
   { top: 15, left: 75 },
   { top: 26, left: 37 },
   { top: 26, left: 63 },
+];
+
+// Las fichas rival nuevas aparecen más abajo en su propia orientación (por
+// tanto, reflejadas, cerca del centro del campo compartido) para que se vean
+// sin tapar de entrada la portería propia.
+const POSICIONES_SPAWN_RIVAL: Posicion[] = [
+  { top: 70, left: 25 },
+  { top: 70, left: 50 },
+  { top: 70, left: 75 },
+  { top: 60, left: 37 },
+  { top: 60, left: 63 },
 ];
 
 function clamp(n: number, min: number, max: number) {
@@ -238,109 +238,56 @@ export function CampogramaCampoUnificado({
   }
 
   // --- Rival ---
-  // Cada jugador rival se identifica con un id sintético (no existe una fila
-  // real en `jugadores`, son de otro equipo), generado una sola vez al
-  // montar a partir de lo ya guardado.
-  const [entradasIniciales] = useState<Record<string, EntradaRival>>(() => {
-    const mapa: Record<string, EntradaRival> = {};
-    (inicialRival?.titulares ?? []).forEach((t) => {
-      mapa[crypto.randomUUID()] = { nombre: t.nombre, dorsal: t.dorsal };
-    });
-    return mapa;
-  });
-  const paresIniciales = Object.entries(entradasIniciales).map(([id], i) => ({
-    id,
-    label: inicialRival?.titulares[i]?.posicion ?? "",
-  }));
-
-  const [entradasRival, setEntradasRival] = useState<Record<string, EntradaRival>>(entradasIniciales);
-  const [formacionRival, setFormacionRival] = useState<Formacion>(() =>
-    mejorFormacionInicial(paresIniciales),
-  );
-  const [asignacionesRival, setAsignacionesRival] = useState<Record<string, string>>(() =>
-    remapearAFormacion(paresIniciales, mejorFormacionInicial(paresIniciales)),
-  );
-  const [posicionesRival, setPosicionesRival] = useState<Record<string, Posicion>>(() => {
-    const mapa: Record<string, Posicion> = {};
-    const ids = Object.keys(entradasIniciales);
+  // Fichas genéricas rojas numeradas, igual que en la Pizarra: no hacen
+  // falta nombre ni formación, solo colocarlas donde se quiera.
+  const [fichasRival, setFichasRival] = useState<Record<string, FichaRival>>(() => {
+    const mapa: Record<string, FichaRival> = {};
     (inicialRival?.titulares ?? []).forEach((t, i) => {
-      const id = ids[i];
-      if (id) mapa[id] = { left: t.left, top: t.top };
+      mapa[crypto.randomUUID()] = { top: t.top, left: t.left, numero: t.dorsal ?? i + 1 };
     });
     return mapa;
   });
-  const [huecoRivalAbierto, setHuecoRivalAbierto] = useState<string | null>(null);
-  const [nombreRivalForm, setNombreRivalForm] = useState("");
-  const [dorsalRivalForm, setDorsalRivalForm] = useState("");
   const [guardandoRival, setGuardandoRival] = useState(false);
 
-  const dragRivalRef = useRef<{
-    huecoId: string;
-    entryId: string;
-    startX: number;
-    startY: number;
-    moved: boolean;
-  } | null>(null);
+  const dragRivalRef = useRef<{ id: string; startX: number; startY: number; moved: boolean } | null>(
+    null,
+  );
+  const spawnRivalContador = useRef(0);
+  const numeroRivalContador = useRef(
+    Object.values(fichasRival).reduce((max, f) => Math.max(max, f.numero), 0),
+  );
 
-  function abrirHuecoRival(huecoId: string) {
-    const entryId = asignacionesRival[huecoId];
-    const entrada = entryId ? entradasRival[entryId] : undefined;
-    setNombreRivalForm(entrada?.nombre ?? "");
-    setDorsalRivalForm(entrada?.dorsal != null ? String(entrada.dorsal) : "");
-    setHuecoRivalAbierto(huecoId);
+  function siguientePosicionSpawnRival(): Posicion {
+    const pos = POSICIONES_SPAWN_RIVAL[spawnRivalContador.current % POSICIONES_SPAWN_RIVAL.length];
+    spawnRivalContador.current += 1;
+    return pos;
   }
 
-  function handleGuardarHuecoRival() {
-    if (!huecoRivalAbierto) return;
-    const nombreRival = nombreRivalForm.trim();
-    if (!nombreRival) {
-      toast.error("Ponle un nombre al jugador rival");
-      return;
-    }
-    const dorsal = dorsalRivalForm.trim() ? Number(dorsalRivalForm.trim()) : null;
-
-    const entryIdExistente = asignacionesRival[huecoRivalAbierto];
-    const entryId = entryIdExistente ?? crypto.randomUUID();
-    setEntradasRival((prev) => ({ ...prev, [entryId]: { nombre: nombreRival, dorsal } }));
-    setAsignacionesRival((prev) => ({ ...prev, [huecoRivalAbierto]: entryId }));
-    setHuecoRivalAbierto(null);
+  function añadirFichaRival() {
+    const id = crypto.randomUUID();
+    numeroRivalContador.current += 1;
+    setFichasRival((prev) => ({
+      ...prev,
+      [id]: { ...siguientePosicionSpawnRival(), numero: numeroRivalContador.current },
+    }));
   }
 
-  function handleQuitarHuecoRival() {
-    if (!huecoRivalAbierto) return;
-    setAsignacionesRival((prev) => {
+  function quitarFichaRival(id: string) {
+    setFichasRival((prev) => {
       const next = { ...prev };
-      delete next[huecoRivalAbierto];
+      delete next[id];
       return next;
     });
-    setHuecoRivalAbierto(null);
   }
 
-  function handleCambiarFormacionRival(nuevoValue: string | null) {
-    const nuevaFormacion = FORMACIONES.find((f) => f.value === nuevoValue);
-    if (!nuevaFormacion) return;
-
-    const paresActuales = Object.entries(asignacionesRival).map(([huecoId, entryId]) => ({
-      id: entryId,
-      label: formacionRival.huecos.find((h) => h.id === huecoId)?.label ?? "",
-    }));
-
-    setFormacionRival(nuevaFormacion);
-    setAsignacionesRival(remapearAFormacion(paresActuales, nuevaFormacion));
-  }
-
-  function handlePointerDownRival(
-    e: React.PointerEvent<HTMLButtonElement>,
-    huecoId: string,
-    entryId: string,
-  ) {
+  function handlePointerDownRival(e: React.PointerEvent<HTMLButtonElement>, id: string) {
     e.currentTarget.setPointerCapture(e.pointerId);
-    dragRivalRef.current = { huecoId, entryId, startX: e.clientX, startY: e.clientY, moved: false };
+    dragRivalRef.current = { id, startX: e.clientX, startY: e.clientY, moved: false };
   }
 
-  function handlePointerMoveRival(e: React.PointerEvent<HTMLButtonElement>, huecoId: string) {
+  function handlePointerMoveRival(e: React.PointerEvent<HTMLButtonElement>, id: string) {
     const drag = dragRivalRef.current;
-    if (!drag || drag.huecoId !== huecoId) return;
+    if (!drag || drag.id !== id) return;
 
     const dx = e.clientX - drag.startX;
     const dy = e.clientY - drag.startY;
@@ -357,33 +304,26 @@ export function CampogramaCampoUnificado({
     // "hacia arriba" de siempre, coherente con lo que ya hubiera guardado.
     const topPantalla = clamp(((e.clientY - rect.top) / rect.height) * 100, MARGEN, 100 - MARGEN);
     const top = 100 - topPantalla;
-    setPosicionesRival((prev) => ({ ...prev, [drag.entryId]: { top, left } }));
+    setFichasRival((prev) => ({ ...prev, [id]: { ...prev[id], top, left } }));
   }
 
-  function handlePointerUpRival(e: React.PointerEvent<HTMLButtonElement>, huecoId: string) {
+  function handlePointerUpRival(e: React.PointerEvent<HTMLButtonElement>, id: string) {
     const drag = dragRivalRef.current;
     dragRivalRef.current = null;
-    if (drag && drag.huecoId === huecoId && !drag.moved) {
-      abrirHuecoRival(huecoId);
+    if (drag && drag.id === id && !drag.moved) {
+      quitarFichaRival(id);
     }
   }
 
   async function handleGuardarRival() {
     setGuardandoRival(true);
-    const titularesRival: RivalTitularGuardar[] = Object.entries(asignacionesRival).map(
-      ([huecoId, entryId]) => {
-        const hueco = formacionRival.huecos.find((h) => h.id === huecoId);
-        const pos = posicionesRival[entryId];
-        const entrada = entradasRival[entryId];
-        return {
-          nombre: entrada?.nombre ?? "",
-          dorsal: entrada?.dorsal ?? null,
-          posicion: hueco?.label ?? "",
-          posX: pos?.left ?? hueco?.left ?? 50,
-          posY: pos?.top ?? hueco?.top ?? 50,
-        };
-      },
-    );
+    const titularesRival: RivalTitularGuardar[] = Object.values(fichasRival).map((f) => ({
+      nombre: `Rival ${f.numero}`,
+      dorsal: f.numero,
+      posicion: null,
+      posX: f.left,
+      posY: f.top,
+    }));
 
     const result = await guardarCampogramaRivalLocal(campogramaId, titularesRival);
     setGuardandoRival(false);
@@ -442,27 +382,24 @@ export function CampogramaCampoUnificado({
           </div>
         </div>
         <div className="space-y-1.5">
-          <p className="text-xs font-medium text-muted-foreground">Formación del rival</p>
-          <Select value={formacionRival.value} onValueChange={handleCambiarFormacionRival}>
-            <SelectTrigger className="w-full">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {FORMACIONES.map((f) => (
-                <SelectItem key={f.value} value={f.value}>
-                  {f.label}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+          <p className="text-xs font-medium text-muted-foreground">Rival</p>
+          <Button
+            type="button"
+            variant="outline"
+            className="w-full border-red-500/50 text-red-600 hover:bg-red-50 hover:text-red-600"
+            onClick={añadirFichaRival}
+          >
+            <Plus className="size-4" />
+            Ficha rival
+          </Button>
         </div>
       </div>
 
       <p className="text-xs text-muted-foreground">
         Fichas doradas: nuestro equipo — toca &quot;Disponibles&quot; para ponerlas, arrastra
-        para moverlas, tócalas para quitarlas. Fichas rojas: el rival — toca un hueco vacío
-        para escribir su nombre, arrastra una ya puesta para moverla. (
-        {titulares.length}/11 nuestros, {Object.keys(asignacionesRival).length}/11 rival)
+        para moverlas, tócalas para quitarlas. Fichas rojas: el rival — toca
+        &quot;Ficha rival&quot; para añadir una, arrastra para colocarla, tócala para
+        quitarla. ({titulares.length}/11 nuestros, {Object.keys(fichasRival).length} rival)
       </p>
 
       <div
@@ -476,38 +413,23 @@ export function CampogramaCampoUnificado({
         <div className="absolute inset-x-[38%] top-0 h-[6%] border-x border-b border-white/40" />
         <div className="absolute inset-x-[38%] bottom-0 h-[6%] border-x border-t border-white/40" />
 
-        {/* Rival: fichas rojas, reflejadas verticalmente para simular que
-            defiende el lado contrario del campo */}
-        {formacionRival.huecos.map((hueco) => {
-          const entryId = asignacionesRival[hueco.id];
-          const entrada = entryId ? entradasRival[entryId] : undefined;
-          const pos = (entryId && posicionesRival[entryId]) || { top: hueco.top, left: hueco.left };
-          const topPantalla = 100 - pos.top;
+        {/* Rival: fichas rojas genéricas, reflejadas verticalmente para
+            simular que defienden el lado contrario del campo */}
+        {Object.entries(fichasRival).map(([id, f]) => {
+          const topPantalla = 100 - f.top;
           return (
             <button
-              key={`rival-${hueco.id}`}
+              key={`rival-${id}`}
               type="button"
-              onPointerDown={
-                entrada ? (e) => handlePointerDownRival(e, hueco.id, entryId) : undefined
-              }
-              onPointerMove={entrada ? (e) => handlePointerMoveRival(e, hueco.id) : undefined}
-              onPointerUp={(e) =>
-                entrada ? handlePointerUpRival(e, hueco.id) : abrirHuecoRival(hueco.id)
-              }
-              className="absolute flex -translate-x-1/2 -translate-y-1/2 flex-col items-center gap-0.5"
-              style={{ top: `${topPantalla}%`, left: `${pos.left}%` }}
+              aria-label={`Rival ${f.numero}`}
+              onPointerDown={(e) => handlePointerDownRival(e, id)}
+              onPointerMove={(e) => handlePointerMoveRival(e, id)}
+              onPointerUp={(e) => handlePointerUpRival(e, id)}
+              className="absolute -translate-x-1/2 -translate-y-1/2"
+              style={{ top: `${topPantalla}%`, left: `${f.left}%` }}
             >
-              <span
-                className={
-                  entrada
-                    ? "flex size-9 items-center justify-center rounded-full border-2 border-white bg-red-500 font-heading text-sm tabular-nums text-white shadow"
-                    : "flex size-9 items-center justify-center rounded-full border-2 border-dashed border-red-500/60 text-red-500/80"
-                }
-              >
-                {entrada ? (entrada.dorsal ?? entrada.nombre[0]) : "+"}
-              </span>
-              <span className="max-w-16 truncate rounded bg-black/40 px-1 text-[10px] text-white">
-                {entrada ? entrada.nombre : hueco.label}
+              <span className="flex size-9 items-center justify-center rounded-full border-2 border-white bg-red-500 font-heading text-sm tabular-nums text-white shadow">
+                {f.numero}
               </span>
             </button>
           );
@@ -644,51 +566,6 @@ export function CampogramaCampoUnificado({
           {guardandoRival ? "Guardando..." : "Guardar alineación rival"}
         </Button>
       </div>
-
-      <Dialog
-        open={huecoRivalAbierto !== null}
-        onOpenChange={(open) => !open && setHuecoRivalAbierto(null)}
-      >
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>
-              {formacionRival.huecos.find((h) => h.id === huecoRivalAbierto)?.label}
-            </DialogTitle>
-          </DialogHeader>
-          <div className="space-y-3">
-            <div className="space-y-2">
-              <Label htmlFor="nombreRival">Nombre</Label>
-              <Input
-                id="nombreRival"
-                value={nombreRivalForm}
-                onChange={(e) => setNombreRivalForm(e.target.value)}
-                placeholder="Ej: González"
-                autoFocus
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="dorsalRival">Dorsal (opcional)</Label>
-              <Input
-                id="dorsalRival"
-                type="number"
-                value={dorsalRivalForm}
-                onChange={(e) => setDorsalRivalForm(e.target.value)}
-              />
-            </div>
-            <div className="flex gap-2">
-              <Button type="button" onClick={handleGuardarHuecoRival} className="flex-1">
-                Guardar
-              </Button>
-              {huecoRivalAbierto && asignacionesRival[huecoRivalAbierto] && (
-                <Button type="button" variant="outline" onClick={handleQuitarHuecoRival}>
-                  <Trash2 className="size-4" />
-                  Quitar
-                </Button>
-              )}
-            </div>
-          </div>
-        </DialogContent>
-      </Dialog>
     </div>
   );
 }
