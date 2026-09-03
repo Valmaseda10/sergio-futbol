@@ -500,8 +500,8 @@ export function CampogramaCampoUnificado({
               <span
                 className={
                   entrada
-                    ? "flex size-9 items-center justify-center rounded-full border-2 border-destructive bg-white font-heading text-sm tabular-nums text-foreground shadow"
-                    : "flex size-9 items-center justify-center rounded-full border-2 border-dashed border-destructive/50 text-destructive/70"
+                    ? "flex size-9 items-center justify-center rounded-full border-2 border-white bg-red-500 font-heading text-sm tabular-nums text-white shadow"
+                    : "flex size-9 items-center justify-center rounded-full border-2 border-dashed border-red-500/60 text-red-500/80"
                 }
               >
                 {entrada ? (entrada.dorsal ?? entrada.nombre[0]) : "+"}
