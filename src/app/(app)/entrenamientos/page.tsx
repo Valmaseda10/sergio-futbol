@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { useLiveQuery } from "dexie-react-hooks";
 import {
   Plus,
@@ -10,8 +10,10 @@ import {
   MapPin,
   Clock,
   BookOpen,
+  ChevronDown,
 } from "lucide-react";
 import { localDb, type LocalEntrenamiento } from "@/lib/db/local-db";
+import { cn } from "@/lib/utils";
 import { capitalizarPrimera } from "@/lib/date";
 import { temporadaDeFecha } from "@/lib/temporada";
 import { useTemporadaSeleccionada } from "@/lib/hooks/use-temporada-seleccionada";
@@ -80,6 +82,25 @@ function Fila({ e }: { e: LocalEntrenamiento }) {
 
 export default function EntrenamientosPage() {
   const hoy = hoyISO();
+
+  // El mes actual empieza desplegado; el resto, plegado — así se recogen
+  // los meses pasados/futuros y la lista no se hace kilométrica, pero se
+  // pueden abrir tocando su cabecera.
+  const [mesesAbiertos, setMesesAbiertos] = useState<Set<string>>(
+    () => new Set([claveMes(hoy)]),
+  );
+
+  function toggleMes(clave: string) {
+    setMesesAbiertos((prev) => {
+      const next = new Set(prev);
+      if (next.has(clave)) {
+        next.delete(clave);
+      } else {
+        next.add(clave);
+      }
+      return next;
+    });
+  }
 
   const entrenamientos = useLiveQuery(
     () => localDb.entrenamientos.toArray(),
@@ -170,24 +191,42 @@ export default function EntrenamientosPage() {
           No hay entrenamientos programados.
         </p>
       ) : (
-        meses.map(({ clave, entrenamientos: lista, esMesActual }) => (
-          <section key={clave} className="space-y-2">
-            <h2
-              className={
-                esMesActual
-                  ? "font-heading text-sm uppercase tracking-wide text-primary"
-                  : "text-sm font-medium text-muted-foreground"
-              }
-            >
-              {nombreMes(clave)}
-            </h2>
-            <ul className="divide-y rounded-md border">
-              {lista.map((e) => (
-                <Fila key={e.id} e={e} />
-              ))}
-            </ul>
-          </section>
-        ))
+        meses.map(({ clave, entrenamientos: lista, esMesActual }) => {
+          const abierto = mesesAbiertos.has(clave);
+          return (
+            <section key={clave} className="space-y-2">
+              <button
+                type="button"
+                onClick={() => toggleMes(clave)}
+                className={
+                  esMesActual
+                    ? "flex w-full items-center justify-between font-heading text-sm uppercase tracking-wide text-primary"
+                    : "flex w-full items-center justify-between text-sm font-medium text-muted-foreground"
+                }
+              >
+                <span>
+                  {nombreMes(clave)}{" "}
+                  <span className="font-sans text-xs font-normal normal-case tracking-normal text-muted-foreground">
+                    ({lista.length})
+                  </span>
+                </span>
+                <ChevronDown
+                  className={cn(
+                    "size-4 shrink-0 transition-transform",
+                    abierto && "rotate-180",
+                  )}
+                />
+              </button>
+              {abierto && (
+                <ul className="divide-y rounded-md border">
+                  {lista.map((e) => (
+                    <Fila key={e.id} e={e} />
+                  ))}
+                </ul>
+              )}
+            </section>
+          );
+        })
       )}
     </div>
   );
