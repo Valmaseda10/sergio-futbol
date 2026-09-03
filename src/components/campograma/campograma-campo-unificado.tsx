@@ -207,36 +207,6 @@ export function CampogramaCampoUnificado({
     }
   }
 
-  async function handleGuardar() {
-    if (!nombre.trim()) {
-      toast.error("Ponle un nombre al campograma");
-      return;
-    }
-    setGuardando(true);
-    const result = await guardarCampogramaLocal({
-      id: inicial?.id,
-      nombre,
-      notas: notas.trim() || null,
-      titulares: titulares.map((j) => ({
-        jugadorId: j.id,
-        posicion: null,
-        posX: posiciones[j.id].left,
-        posY: posiciones[j.id].top,
-      })),
-      suplentesIds: suplentes,
-    });
-    setGuardando(false);
-
-    if ("error" in result) {
-      toast.error(result.error);
-      return;
-    }
-
-    toast.success("Campograma guardado");
-    router.push(`/campograma/${result.id}`);
-    router.refresh();
-  }
-
   // --- Rival ---
   // Fichas genéricas rojas numeradas, igual que en la Pizarra: no hacen
   // falta nombre ni formación, solo colocarlas donde se quiera.
@@ -247,7 +217,6 @@ export function CampogramaCampoUnificado({
     });
     return mapa;
   });
-  const [guardandoRival, setGuardandoRival] = useState(false);
 
   const dragRivalRef = useRef<{ id: string; startX: number; startY: number; moved: boolean } | null>(
     null,
@@ -315,8 +284,35 @@ export function CampogramaCampoUnificado({
     }
   }
 
-  async function handleGuardarRival() {
-    setGuardandoRival(true);
+  // Un único botón guarda a la vez nuestra alineación y la del rival — antes
+  // eran dos botones separados y era fácil guardar solo uno de los dos sin
+  // darse cuenta de que el otro se quedaba sin persistir.
+  async function handleGuardarTodo() {
+    if (!nombre.trim()) {
+      toast.error("Ponle un nombre al campograma");
+      return;
+    }
+    setGuardando(true);
+
+    const resultPropio = await guardarCampogramaLocal({
+      id: inicial?.id,
+      nombre,
+      notas: notas.trim() || null,
+      titulares: titulares.map((j) => ({
+        jugadorId: j.id,
+        posicion: null,
+        posX: posiciones[j.id].left,
+        posY: posiciones[j.id].top,
+      })),
+      suplentesIds: suplentes,
+    });
+
+    if ("error" in resultPropio) {
+      setGuardando(false);
+      toast.error(resultPropio.error);
+      return;
+    }
+
     const titularesRival: RivalTitularGuardar[] = Object.values(fichasRival).map((f) => ({
       nombre: `Rival ${f.numero}`,
       dorsal: f.numero,
@@ -324,16 +320,17 @@ export function CampogramaCampoUnificado({
       posX: f.left,
       posY: f.top,
     }));
+    const resultRival = await guardarCampogramaRivalLocal(campogramaId, titularesRival);
+    setGuardando(false);
 
-    const result = await guardarCampogramaRivalLocal(campogramaId, titularesRival);
-    setGuardandoRival(false);
-
-    if ("error" in result) {
-      toast.error(result.error);
+    if ("error" in resultRival) {
+      toast.error(resultRival.error);
       return;
     }
 
-    toast.success("Alineación rival guardada");
+    toast.success("Campograma guardado");
+    router.push(`/campograma/${resultPropio.id}`);
+    router.refresh();
   }
 
   return (
@@ -550,22 +547,10 @@ export function CampogramaCampoUnificado({
         )}
       </div>
 
-      <div className="grid gap-2 sm:grid-cols-2">
-        <Button className={cn("w-full")} disabled={guardando} onClick={handleGuardar}>
-          <Save className="size-4" />
-          {guardando ? "Guardando..." : "Guardar campograma"}
-        </Button>
-        <Button
-          type="button"
-          variant="outline"
-          className="w-full"
-          disabled={guardandoRival}
-          onClick={handleGuardarRival}
-        >
-          <Save className="size-4" />
-          {guardandoRival ? "Guardando..." : "Guardar alineación rival"}
-        </Button>
-      </div>
+      <Button className={cn("w-full")} disabled={guardando} onClick={handleGuardarTodo}>
+        <Save className="size-4" />
+        {guardando ? "Guardando..." : "Guardar campograma"}
+      </Button>
     </div>
   );
 }
