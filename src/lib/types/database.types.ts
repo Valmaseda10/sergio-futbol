@@ -265,7 +265,8 @@ export interface Database {
         Row: {
           id: string;
           partido_id: string;
-          jugador_id: string;
+          jugador_id: string | null;
+          nombre_libre: string | null;
           titular: boolean;
           posicion_jugada: string | null;
           minuto_entra: number | null;
@@ -276,7 +277,8 @@ export interface Database {
         Insert: {
           id?: string;
           partido_id: string;
-          jugador_id: string;
+          jugador_id?: string | null;
+          nombre_libre?: string | null;
           titular?: boolean;
           posicion_jugada?: string | null;
           minuto_entra?: number | null;
@@ -293,7 +295,8 @@ export interface Database {
         Row: {
           id: string;
           partido_id: string;
-          jugador_id: string;
+          jugador_id: string | null;
+          nombre_libre: string | null;
           titular: boolean;
           posicion_jugada: string | null;
           pos_x: number | null;
@@ -302,7 +305,8 @@ export interface Database {
         Insert: {
           id?: string;
           partido_id: string;
-          jugador_id: string;
+          jugador_id?: string | null;
+          nombre_libre?: string | null;
           titular?: boolean;
           posicion_jugada?: string | null;
           pos_x?: number | null;

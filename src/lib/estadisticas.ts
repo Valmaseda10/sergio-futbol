@@ -51,7 +51,7 @@ export interface ConvocatoriaRow {
 
 export interface AlineacionRow {
   partido_id: string;
-  jugador_id: string;
+  jugador_id: string | null;
   titular: boolean;
 }
 

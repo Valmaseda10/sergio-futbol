@@ -1,7 +1,8 @@
 import type { LocalAlineacion, LocalEventoPartido } from "@/lib/db/local-db";
 
 export interface SlotOnceFinal {
-  jugadorId: string;
+  jugadorId: string | null;
+  nombreLibre: string | null;
   posicion: string | null;
   posX: number | null;
   posY: number | null;
@@ -17,18 +18,25 @@ export interface OnceFinal {
  * eventos "cambio_sale"/"cambio_entra" registrados en Eventos, procesados en
  * orden cronológico: cada entrada ocupa el hueco (posición en el campo) que
  * dejó libre la última salida. No contempla expulsiones (tarjeta_roja).
+ *
+ * Los jugadores "solo por hoy" (sin fila real en `jugadores`, jugador_id
+ * null) no pueden ser sustituidos vía Eventos (que solo referencian
+ * jugadores reales): pasan tal cual al once final, indexados por el id de
+ * su propia fila de alineación para no colisionar entre sí.
  */
 export function calcularOnceFinal(
   titularesIniciales: Pick<
     LocalAlineacion,
-    "jugador_id" | "posicion_jugada" | "pos_x" | "pos_y"
+    "id" | "jugador_id" | "nombre_libre" | "posicion_jugada" | "pos_x" | "pos_y"
   >[],
   eventos: Pick<LocalEventoPartido, "jugador_id" | "tipo" | "minuto">[],
 ): OnceFinal {
   const lineup = new Map<string, SlotOnceFinal>();
   for (const t of titularesIniciales) {
-    lineup.set(t.jugador_id, {
+    const clave = t.jugador_id ?? `libre:${t.id}`;
+    lineup.set(clave, {
       jugadorId: t.jugador_id,
+      nombreLibre: t.nombre_libre,
       posicion: t.posicion_jugada,
       posX: t.pos_x,
       posY: t.pos_y,
@@ -57,7 +65,11 @@ export function calcularOnceFinal(
     } else {
       const vacante = vacantes.shift();
       if (vacante) {
-        lineup.set(evento.jugador_id, { ...vacante, jugadorId: evento.jugador_id });
+        lineup.set(evento.jugador_id, {
+          ...vacante,
+          jugadorId: evento.jugador_id,
+          nombreLibre: null,
+        });
       } else {
         entrantesSinHueco.push(evento.jugador_id);
       }

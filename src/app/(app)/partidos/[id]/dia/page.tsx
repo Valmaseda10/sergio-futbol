@@ -98,6 +98,7 @@ export default function DiaPartidoPage() {
     () =>
       (alineaciones ?? []).map((a) => ({
         jugadorId: a.jugador_id,
+        nombreLibre: a.nombre_libre,
         posicion: a.posicion_jugada ?? "",
         posX: a.pos_x ?? undefined,
         posY: a.pos_y ?? undefined,
@@ -109,6 +110,7 @@ export default function DiaPartidoPage() {
     if (alineacionesFinales && alineacionesFinales.length > 0) {
       return alineacionesFinales.map((a) => ({
         jugadorId: a.jugador_id,
+        nombreLibre: a.nombre_libre,
         posicion: a.posicion_jugada ?? "",
         posX: a.pos_x ?? undefined,
         posY: a.pos_y ?? undefined,
@@ -117,6 +119,7 @@ export default function DiaPartidoPage() {
     const { titulares } = calcularOnceFinal(alineaciones ?? [], eventos ?? []);
     return titulares.map((t) => ({
       jugadorId: t.jugadorId,
+      nombreLibre: t.nombreLibre,
       posicion: t.posicion ?? "",
       posX: t.posX ?? undefined,
       posY: t.posY ?? undefined,

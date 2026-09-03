@@ -182,26 +182,40 @@ export async function toggleConvocadoLocal(
 export async function guardarAlineacionLocal(
   partidoId: string,
   titulares: {
-    jugadorId: string;
+    jugadorId: string | null;
+    nombreLibre?: string | null;
     posicion: string;
     posX?: number;
     posY?: number;
   }[],
   suplentesIds: string[],
 ): Promise<SimpleResult> {
+  const titularesReales = titulares.filter(
+    (t): t is typeof t & { jugadorId: string } => t.jugadorId != null,
+  );
+  // Jugadores "solo por hoy" (invitados/de prueba, sin fila real en
+  // `jugadores`): no tienen una clave estable como los reales, así que en
+  // vez de comparar fila a fila con lo existente se reemplaza el conjunto
+  // entero cada vez — mismo patrón que campograma_rivales.
+  const titularesLibres = titulares.filter((t) => t.jugadorId == null);
+
   const existentes = await localDb.alineaciones
     .where("partido_id")
     .equals(partidoId)
     .toArray();
+  const existentesReales = existentes.filter(
+    (a): a is typeof a & { jugador_id: string } => a.jugador_id != null,
+  );
+  const existentesLibres = existentes.filter((a) => a.jugador_id == null);
   const existentesPorJugador = new Map(
-    existentes.map((a) => [a.jugador_id, a]),
+    existentesReales.map((a) => [a.jugador_id, a]),
   );
 
   const deseados = new Map<
     string,
     { titular: boolean; posicion: string | null; posX: number | null; posY: number | null }
   >();
-  for (const t of titulares) {
+  for (const t of titularesReales) {
     deseados.set(t.jugadorId, {
       titular: true,
       posicion: t.posicion,
@@ -218,7 +232,7 @@ export async function guardarAlineacionLocal(
     });
   }
 
-  const aBorrar = existentes.filter((a) => !deseados.has(a.jugador_id));
+  const aBorrar = existentesReales.filter((a) => !deseados.has(a.jugador_id));
 
   await localDb.alineaciones.bulkDelete(aBorrar.map((a) => a.id));
   for (const a of aBorrar) {
@@ -242,6 +256,7 @@ export async function guardarAlineacionLocal(
         id,
         partido_id: partidoId,
         jugador_id: jugadorId,
+        nombre_libre: null,
         titular: datos.titular,
         posicion_jugada: datos.posicion,
         minuto_entra: null,
@@ -254,6 +269,28 @@ export async function guardarAlineacionLocal(
     }
   }
 
+  await localDb.alineaciones.bulkDelete(existentesLibres.map((a) => a.id));
+  for (const a of existentesLibres) {
+    await queueMutation("alineaciones", "delete", a.id);
+  }
+  for (const t of titularesLibres) {
+    const id = crypto.randomUUID();
+    const row: LocalAlineacion = {
+      id,
+      partido_id: partidoId,
+      jugador_id: null,
+      nombre_libre: t.nombreLibre ?? null,
+      titular: true,
+      posicion_jugada: t.posicion,
+      minuto_entra: null,
+      minuto_sale: null,
+      pos_x: t.posX ?? null,
+      pos_y: t.posY ?? null,
+    };
+    await localDb.alineaciones.put(row);
+    await queueMutation("alineaciones", "insert", id, row);
+  }
+
   return { success: true };
 }
 
@@ -263,26 +300,36 @@ export async function guardarAlineacionLocal(
 export async function guardarAlineacionFinalLocal(
   partidoId: string,
   titulares: {
-    jugadorId: string;
+    jugadorId: string | null;
+    nombreLibre?: string | null;
     posicion: string;
     posX?: number;
     posY?: number;
   }[],
   suplentesIds: string[],
 ): Promise<SimpleResult> {
+  const titularesReales = titulares.filter(
+    (t): t is typeof t & { jugadorId: string } => t.jugadorId != null,
+  );
+  const titularesLibres = titulares.filter((t) => t.jugadorId == null);
+
   const existentes = await localDb.alineaciones_finales
     .where("partido_id")
     .equals(partidoId)
     .toArray();
+  const existentesReales = existentes.filter(
+    (a): a is typeof a & { jugador_id: string } => a.jugador_id != null,
+  );
+  const existentesLibres = existentes.filter((a) => a.jugador_id == null);
   const existentesPorJugador = new Map(
-    existentes.map((a) => [a.jugador_id, a]),
+    existentesReales.map((a) => [a.jugador_id, a]),
   );
 
   const deseados = new Map<
     string,
     { titular: boolean; posicion: string | null; posX: number | null; posY: number | null }
   >();
-  for (const t of titulares) {
+  for (const t of titularesReales) {
     deseados.set(t.jugadorId, {
       titular: true,
       posicion: t.posicion,
@@ -299,7 +346,7 @@ export async function guardarAlineacionFinalLocal(
     });
   }
 
-  const aBorrar = existentes.filter((a) => !deseados.has(a.jugador_id));
+  const aBorrar = existentesReales.filter((a) => !deseados.has(a.jugador_id));
 
   await localDb.alineaciones_finales.bulkDelete(aBorrar.map((a) => a.id));
   for (const a of aBorrar) {
@@ -323,6 +370,7 @@ export async function guardarAlineacionFinalLocal(
         id,
         partido_id: partidoId,
         jugador_id: jugadorId,
+        nombre_libre: null,
         titular: datos.titular,
         posicion_jugada: datos.posicion,
         pos_x: datos.posX,
@@ -331,6 +379,26 @@ export async function guardarAlineacionFinalLocal(
       await localDb.alineaciones_finales.put(row);
       await queueMutation("alineaciones_finales", "insert", id, row);
     }
+  }
+
+  await localDb.alineaciones_finales.bulkDelete(existentesLibres.map((a) => a.id));
+  for (const a of existentesLibres) {
+    await queueMutation("alineaciones_finales", "delete", a.id);
+  }
+  for (const t of titularesLibres) {
+    const id = crypto.randomUUID();
+    const row: LocalAlineacionFinal = {
+      id,
+      partido_id: partidoId,
+      jugador_id: null,
+      nombre_libre: t.nombreLibre ?? null,
+      titular: true,
+      posicion_jugada: t.posicion,
+      pos_x: t.posX ?? null,
+      pos_y: t.posY ?? null,
+    };
+    await localDb.alineaciones_finales.put(row);
+    await queueMutation("alineaciones_finales", "insert", id, row);
   }
 
   return { success: true };
