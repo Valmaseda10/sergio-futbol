@@ -274,7 +274,12 @@ export function PartidoForm({
                   }
                 >
                   <SelectTrigger id="rival_scouting_id" className="w-full">
-                    <SelectValue />
+                    <SelectValue>
+                      {(value) =>
+                        rivalesScouting.find((r) => r.id === value)?.nombre ??
+                        "Ninguno"
+                      }
+                    </SelectValue>
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value={SIN_VINCULAR}>Ninguno</SelectItem>
