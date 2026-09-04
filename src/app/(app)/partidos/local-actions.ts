@@ -436,6 +436,7 @@ export async function crearEventoLocal(
     pos_x_centro: golDetalle?.posXCentro ?? null,
     pos_y_centro: golDetalle?.posYCentro ?? null,
     cambio_grupo_id: null,
+    nombre_libre: null,
   };
 
   await localDb.eventos_partido.put(row);
@@ -454,16 +455,26 @@ export async function eliminarEventoLocal(eventoId: string): Promise<SimpleResul
 // enlazados por cambio_grupo_id, para poder crearlos y borrarlos juntos con
 // una sola acción desde el apartado "Cambios" en vez de dar de alta cada
 // evento por separado en Eventos.
+//
+// La salida puede ser un jugador real (jugadorId) o uno "solo por hoy" sin
+// ficha en Plantilla (nombreLibre): eventos_partido exige jugador_id real
+// por FK, así que para estos últimos se deja jugador_id a null y se guarda
+// el nombre en su lugar. La entrada siempre es un jugador real (viene del
+// banquillo de convocados).
 export async function crearCambioLocal(
   partidoId: string,
-  jugadorSaleId: string,
+  salida: { jugadorId: string } | { nombreLibre: string },
   jugadorEntraId: string,
   minuto: string,
 ): Promise<SimpleResult> {
   const grupoId = crypto.randomUUID();
   const minutoNum = minuto !== "" ? Number(minuto) : null;
 
-  function fila(jugadorId: string, tipo: TipoEventoPartido): LocalEventoPartido {
+  function fila(
+    tipo: TipoEventoPartido,
+    jugadorId: string | null,
+    nombreLibre: string | null,
+  ): LocalEventoPartido {
     return {
       id: crypto.randomUUID(),
       partido_id: partidoId,
@@ -478,11 +489,15 @@ export async function crearCambioLocal(
       pos_x_centro: null,
       pos_y_centro: null,
       cambio_grupo_id: grupoId,
+      nombre_libre: nombreLibre,
     };
   }
 
-  const filaSale = fila(jugadorSaleId, "cambio_sale");
-  const filaEntra = fila(jugadorEntraId, "cambio_entra");
+  const filaSale =
+    "jugadorId" in salida
+      ? fila("cambio_sale", salida.jugadorId, null)
+      : fila("cambio_sale", null, salida.nombreLibre);
+  const filaEntra = fila("cambio_entra", jugadorEntraId, null);
 
   await localDb.eventos_partido.bulkPut([filaSale, filaEntra]);
   await queueMutation("eventos_partido", "insert", filaSale.id, filaSale);

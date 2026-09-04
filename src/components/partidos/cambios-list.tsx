@@ -6,9 +6,9 @@
 // enlazados (cambio_sale/cambio_entra) para poder verlos y borrarlos juntos,
 // en vez de dar de alta cada evento suelto desde Eventos.
 //
-// Los jugadores "solo por hoy" (alineación libre, sin ficha en Plantilla) se
-// dibujan en el campo para que el once cuadre, pero no se pueden seleccionar
-// como salida: el modelo de eventos solo admite jugadores reales.
+// Los jugadores "solo por hoy" (alineación libre, sin ficha en Plantilla)
+// también se pueden dar de baja tocándolos en el campo: como no tienen
+// jugador_id con el que enlazar el evento, se guardan por nombre.
 
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
@@ -50,7 +50,9 @@ export function CambiosList({
   >[];
   eventos: LocalEventoPartido[];
 }) {
-  const [saleId, setSaleId] = useState("");
+  // "jugador:<id>" para un titular real o "libre:<nombre>" para uno "solo
+  // por hoy" (no tiene jugador_id con el que identificarlo de otra forma).
+  const [saleKey, setSaleKey] = useState<string | null>(null);
   const [entraId, setEntraId] = useState("");
   const [minuto, setMinuto] = useState("");
   const [enviando, setEnviando] = useState(false);
@@ -109,9 +111,13 @@ export function CambiosList({
   }, [eventos]);
 
   async function handleConfirmar() {
-    if (!saleId || !entraId) return;
+    if (!saleKey || !entraId) return;
+    const salida = saleKey.startsWith("jugador:")
+      ? { jugadorId: saleKey.slice("jugador:".length) }
+      : { nombreLibre: saleKey.slice("libre:".length) };
+
     setEnviando(true);
-    const result = await crearCambioLocal(partidoId, saleId, entraId, minuto);
+    const result = await crearCambioLocal(partidoId, salida, entraId, minuto);
     setEnviando(false);
 
     if ("error" in result) {
@@ -120,7 +126,7 @@ export function CambiosList({
     }
 
     toast.success("Cambio registrado");
-    setSaleId("");
+    setSaleKey(null);
     setEntraId("");
     setMinuto("");
   }
@@ -147,23 +153,23 @@ export function CambiosList({
 
           {onceFinal.titulares.map((t, i) => {
             const jugador = t.jugadorId ? jugadoresPorId.get(t.jugadorId) : null;
-            const seleccionado = !!t.jugadorId && t.jugadorId === saleId;
+            const clave = t.jugadorId
+              ? `jugador:${t.jugadorId}`
+              : t.nombreLibre
+                ? `libre:${t.nombreLibre}`
+                : null;
+            const seleccionado = clave != null && clave === saleKey;
             const top = t.posY ?? 50;
             const left = t.posX ?? 50;
             return (
               <button
-                key={t.jugadorId ?? `libre-${i}`}
+                key={clave ?? `sin-clave-${i}`}
                 type="button"
-                disabled={!t.jugadorId}
+                disabled={!clave}
                 onClick={() =>
-                  setSaleId((prev) =>
-                    prev === t.jugadorId ? "" : (t.jugadorId ?? prev),
-                  )
+                  setSaleKey((prev) => (prev === clave ? null : clave))
                 }
-                className={cn(
-                  "absolute flex -translate-x-1/2 -translate-y-1/2 flex-col items-center gap-0.5",
-                  !t.jugadorId && "cursor-default",
-                )}
+                className="absolute flex -translate-x-1/2 -translate-y-1/2 flex-col items-center gap-0.5"
                 style={{ top: `${top}%`, left: `${left}%` }}
               >
                 <span
@@ -245,7 +251,7 @@ export function CambiosList({
         />
         <Button
           className="w-full"
-          disabled={!saleId || !entraId || enviando}
+          disabled={!saleKey || !entraId || enviando}
           onClick={handleConfirmar}
         >
           <ArrowLeftRight className="size-4" />
@@ -259,6 +265,9 @@ export function CambiosList({
             const jSale = sale?.jugador_id
               ? jugadoresPorId.get(sale.jugador_id)
               : null;
+            const nombreSale = jSale
+              ? nombreMostrado(jSale)
+              : (sale?.nombre_libre ?? "?");
             const jEntra = entra?.jugador_id
               ? jugadoresPorId.get(entra.jugador_id)
               : null;
@@ -268,9 +277,7 @@ export function CambiosList({
                   {sale?.minuto != null ? `${sale.minuto}'` : "—"}
                 </span>
                 <span className="min-w-0 flex-1 truncate">
-                  <span className="text-destructive">
-                    {jSale ? nombreMostrado(jSale) : "?"}
-                  </span>
+                  <span className="text-destructive">{nombreSale}</span>
                   {" → "}
                   <span className="text-pitch">
                     {jEntra ? nombreMostrado(jEntra) : "?"}
