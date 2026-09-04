@@ -50,7 +50,17 @@ export function calcularOnceFinal(
         e.jugador_id != null,
     )
     .slice()
-    .sort((a, b) => (a.minuto ?? 0) - (b.minuto ?? 0));
+    .sort((a, b) => {
+      const diff = (a.minuto ?? 0) - (b.minuto ?? 0);
+      if (diff !== 0) return diff;
+      // A igual minuto (típico: un cambio registrado como par sale/entra en
+      // el mismo minuto) hay que procesar siempre la salida antes que la
+      // entrada — si no, el orden de lectura de la base de datos no está
+      // garantizado y una entrada podría intentar ocupar hueco antes de que
+      // su salida lo libere, quedándose sin sitio (entrantesSinHueco).
+      if (a.tipo === b.tipo) return 0;
+      return a.tipo === "cambio_sale" ? -1 : 1;
+    });
 
   const vacantes: SlotOnceFinal[] = [];
   const entrantesSinHueco: string[] = [];
