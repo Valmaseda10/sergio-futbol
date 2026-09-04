@@ -954,7 +954,7 @@ export function PizarraTactica({ jugadores }: { jugadores: Jugador[] }) {
           "relative touch-none overflow-hidden rounded-lg bg-pitch",
           pantallaCompleta
             ? "mx-auto aspect-[2/3] w-full max-w-2xl"
-            : "aspect-[2/3] w-full",
+            : "mx-auto aspect-[2/3] w-full max-w-xs",
         )}
       >
         {/* Línea de medio campo y círculo central */}

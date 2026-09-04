@@ -8,6 +8,7 @@ import {
   Pencil,
   Users,
   LayoutGrid,
+  ArrowLeftRight,
   ListOrdered,
   Star,
   MapPin,
@@ -91,6 +92,16 @@ export default function FichaPartidoPage() {
     [id],
     0,
   );
+  const cambiosCount = useLiveQuery(
+    () =>
+      localDb.eventos_partido
+        .where("partido_id")
+        .equals(id)
+        .filter((e) => e.tipo === "cambio_sale")
+        .count(),
+    [id],
+    0,
+  );
   const tieneValoracion = useLiveQuery(
     () =>
       localDb.valoraciones_partido
@@ -142,6 +153,12 @@ export default function FichaPartidoPage() {
       icon: LayoutGrid,
       label: "Alineación",
       estado: titularesCount > 0 ? "Definida" : "Sin definir",
+    },
+    {
+      href: `/partidos/${id}/cambios`,
+      icon: ArrowLeftRight,
+      label: "Cambios",
+      estado: `${cambiosCount} cambios`,
     },
     {
       href: `/partidos/${id}/eventos`,

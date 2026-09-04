@@ -435,6 +435,7 @@ export async function crearEventoLocal(
     abp_tipo: golDetalle?.abpTipo ?? null,
     pos_x_centro: golDetalle?.posXCentro ?? null,
     pos_y_centro: golDetalle?.posYCentro ?? null,
+    cambio_grupo_id: null,
   };
 
   await localDb.eventos_partido.put(row);
@@ -446,6 +447,63 @@ export async function crearEventoLocal(
 export async function eliminarEventoLocal(eventoId: string): Promise<SimpleResult> {
   await localDb.eventos_partido.delete(eventoId);
   await queueMutation("eventos_partido", "delete", eventoId);
+  return { success: true };
+}
+
+// Un cambio de jugador se registra como un par de eventos (sale/entra)
+// enlazados por cambio_grupo_id, para poder crearlos y borrarlos juntos con
+// una sola acción desde el apartado "Cambios" en vez de dar de alta cada
+// evento por separado en Eventos.
+export async function crearCambioLocal(
+  partidoId: string,
+  jugadorSaleId: string,
+  jugadorEntraId: string,
+  minuto: string,
+): Promise<SimpleResult> {
+  const grupoId = crypto.randomUUID();
+  const minutoNum = minuto !== "" ? Number(minuto) : null;
+
+  function fila(jugadorId: string, tipo: TipoEventoPartido): LocalEventoPartido {
+    return {
+      id: crypto.randomUUID(),
+      partido_id: partidoId,
+      jugador_id: jugadorId,
+      tipo,
+      minuto: minutoNum,
+      a_favor: true,
+      tipo_gol: null,
+      pos_x: null,
+      pos_y: null,
+      abp_tipo: null,
+      pos_x_centro: null,
+      pos_y_centro: null,
+      cambio_grupo_id: grupoId,
+    };
+  }
+
+  const filaSale = fila(jugadorSaleId, "cambio_sale");
+  const filaEntra = fila(jugadorEntraId, "cambio_entra");
+
+  await localDb.eventos_partido.bulkPut([filaSale, filaEntra]);
+  await queueMutation("eventos_partido", "insert", filaSale.id, filaSale);
+  await queueMutation("eventos_partido", "insert", filaEntra.id, filaEntra);
+
+  return { success: true };
+}
+
+export async function eliminarCambioLocal(grupoId: string): Promise<SimpleResult> {
+  // cambio_grupo_id no está indexado en Dexie (solo hace falta filtrar
+  // dentro del puñado de eventos de un partido), así que se recorre en JS
+  // en vez de usar .where().
+  const filas = await localDb.eventos_partido
+    .filter((f) => f.cambio_grupo_id === grupoId)
+    .toArray();
+
+  for (const f of filas) {
+    await localDb.eventos_partido.delete(f.id);
+    await queueMutation("eventos_partido", "delete", f.id);
+  }
+
   return { success: true };
 }
 

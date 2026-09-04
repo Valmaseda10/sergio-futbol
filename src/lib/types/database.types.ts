@@ -403,6 +403,7 @@ export interface Database {
           abp_tipo: TipoAbp | null;
           pos_x_centro: number | null;
           pos_y_centro: number | null;
+          cambio_grupo_id: string | null;
         };
         Insert: {
           id?: string;
@@ -417,6 +418,7 @@ export interface Database {
           abp_tipo?: TipoAbp | null;
           pos_x_centro?: number | null;
           pos_y_centro?: number | null;
+          cambio_grupo_id?: string | null;
         };
         Update: Partial<
           Database["public"]["Tables"]["eventos_partido"]["Insert"]
