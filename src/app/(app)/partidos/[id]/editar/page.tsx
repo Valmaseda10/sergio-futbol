@@ -49,6 +49,7 @@ export default function EditarPartidoPage() {
           resultado_favor: partido.resultado_favor?.toString() ?? "",
           resultado_contra: partido.resultado_contra?.toString() ?? "",
           notas: partido.notas ?? "",
+          rival_scouting_id: partido.rival_scouting_id ?? "",
           fotoRivalSignedUrl,
         }}
       />

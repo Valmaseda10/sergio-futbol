@@ -118,6 +118,15 @@ export function InicioDashboard({
     [partidos, hoy],
   );
 
+  const rivalScoutingProximoPartido = useLiveQuery(
+    async () =>
+      proximoPartido?.rival_scouting_id
+        ? ((await localDb.rivales_scouting.get(proximoPartido.rival_scouting_id)) ??
+          null)
+        : null,
+    [proximoPartido?.rival_scouting_id],
+  );
+
   const ultimosResultados = useMemo(
     () =>
       partidos
@@ -329,6 +338,14 @@ export function InicioDashboard({
               <p className="text-sm text-muted-foreground">
                 No hay partidos programados.
               </p>
+            )}
+            {rivalScoutingProximoPartido && (
+              <Link
+                href={`/rivales/${rivalScoutingProximoPartido.id}`}
+                className="mt-2 inline-block text-xs font-medium text-primary hover:underline"
+              >
+                Ver scouting del rival →
+              </Link>
             )}
           </CardContent>
         </Card>

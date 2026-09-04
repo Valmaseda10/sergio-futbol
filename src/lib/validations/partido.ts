@@ -10,6 +10,7 @@ export const partidoSchema = z.object({
   resultado_favor: z.string().trim(),
   resultado_contra: z.string().trim(),
   notas: z.string().trim(),
+  rival_scouting_id: z.string().trim(),
 });
 
 export type PartidoFormValues = z.infer<typeof partidoSchema>;
@@ -24,6 +25,7 @@ export const PARTIDO_FORM_DEFAULTS: PartidoFormValues = {
   resultado_favor: "",
   resultado_contra: "",
   notas: "",
+  rival_scouting_id: "",
 };
 
 export function toPartidoInsert(values: PartidoFormValues) {
@@ -39,6 +41,7 @@ export function toPartidoInsert(values: PartidoFormValues) {
     resultado_contra:
       values.resultado_contra !== "" ? Number(values.resultado_contra) : null,
     notas: values.notas || null,
+    rival_scouting_id: values.rival_scouting_id || null,
   };
 }
 
@@ -57,5 +60,6 @@ export function partidoFormDataToValues(formData: FormData): PartidoFormValues {
     resultado_favor: String(formData.get("resultado_favor") ?? ""),
     resultado_contra: String(formData.get("resultado_contra") ?? ""),
     notas: String(formData.get("notas") ?? ""),
+    rival_scouting_id: String(formData.get("rival_scouting_id") ?? ""),
   };
 }

@@ -31,6 +31,10 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 
+// Base UI Select no admite un valor "" real como opción, así que "sin
+// vincular" se representa con este centinela y se traduce a "" al guardar.
+const SIN_VINCULAR = "__ninguno__";
+
 const COMPETICION_LABEL: Record<string, string> = {
   liga: "Liga",
   amistoso: "Amistoso",
@@ -76,7 +80,29 @@ export function PartidoForm({
   });
 
   const fechaValue = watch("fecha");
+  const rivalValue = watch("rival");
   const diaSemanaLabel = fechaValue ? diaSemanaDeFecha(fechaValue) : null;
+
+  const rivalesScouting = useLiveQuery(
+    () =>
+      localDb.rivales_scouting
+        .toArray()
+        .then((rows) => rows.sort((a, b) => a.nombre.localeCompare(b.nombre))),
+    [],
+    [],
+  );
+
+  // Si el nombre del rival escrito coincide con una ficha de scouting ya
+  // existente, se sugiere sola la primera vez (solo en partidos nuevos, y
+  // solo si el entrenador no ha elegido ya otra cosa a mano).
+  useEffect(() => {
+    if (partido || !rivalValue) return;
+    if (getValues().rival_scouting_id) return;
+    const coincide = rivalesScouting.find(
+      (r) => r.nombre.trim().toLowerCase() === rivalValue.trim().toLowerCase(),
+    );
+    if (coincide) setValue("rival_scouting_id", coincide.id);
+  }, [rivalValue, rivalesScouting, partido, getValues, setValue]);
 
   // Si sábado o domingo tienen un horario de partido configurado en Ajustes,
   // se usa para rellenar hora y lugar en cuanto se elige una fecha que caiga
@@ -233,6 +259,38 @@ export function PartidoForm({
             <Label htmlFor="rival">Rival</Label>
             <Input id="rival" {...register("rival")} />
             <FieldError message={errors.rival?.message} />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="rival_scouting_id">Vincular con scouting (opcional)</Label>
+            <Controller
+              control={control}
+              name="rival_scouting_id"
+              render={({ field }) => (
+                <Select
+                  value={field.value || SIN_VINCULAR}
+                  onValueChange={(v) =>
+                    field.onChange(v === SIN_VINCULAR ? "" : v)
+                  }
+                >
+                  <SelectTrigger id="rival_scouting_id" className="w-full">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value={SIN_VINCULAR}>Ninguno</SelectItem>
+                    {rivalesScouting.map((r) => (
+                      <SelectItem key={r.id} value={r.id}>
+                        {r.nombre}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
+            />
+            <p className="text-xs text-muted-foreground">
+              Si tienes una ficha de scouting de este rival, vincúlala para
+              verla directamente desde el partido.
+            </p>
           </div>
 
           <div className="space-y-2">

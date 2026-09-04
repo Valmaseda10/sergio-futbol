@@ -222,6 +222,7 @@ export interface Database {
           resultado_contra: number | null;
           notas: string | null;
           foto_rival_url: string | null;
+          rival_scouting_id: string | null;
           created_at: string;
         };
         Insert: {
@@ -236,6 +237,7 @@ export interface Database {
           resultado_contra?: number | null;
           notas?: string | null;
           foto_rival_url?: string | null;
+          rival_scouting_id?: string | null;
           created_at?: string;
         };
         Update: Partial<Database["public"]["Tables"]["partidos"]["Insert"]>;

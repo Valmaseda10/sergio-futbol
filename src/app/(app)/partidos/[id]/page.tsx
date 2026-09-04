@@ -64,6 +64,13 @@ export default function FichaPartidoPage() {
     async () => (await localDb.partidos.get(id)) ?? null,
     [id],
   );
+  const rivalScouting = useLiveQuery(
+    async () =>
+      partido?.rival_scouting_id
+        ? ((await localDb.rivales_scouting.get(partido.rival_scouting_id)) ?? null)
+        : null,
+    [partido?.rival_scouting_id],
+  );
   const convocadosCount = useLiveQuery(
     () => localDb.convocatorias.where("partido_id").equals(id).count(),
     [id],
@@ -218,6 +225,26 @@ export default function FichaPartidoPage() {
           <Pencil className="size-4" />
         </Button>
       </div>
+
+      {rivalScouting && (
+        <Link
+          href={`/rivales/${rivalScouting.id}`}
+          className="block rounded-md border p-3 hover:bg-muted/50"
+        >
+          <p className="text-xs font-medium text-muted-foreground">
+            Scouting del rival
+          </p>
+          {rivalScouting.sistema_juego && (
+            <p className="mt-1 line-clamp-2 text-sm">
+              {rivalScouting.sistema_juego}
+            </p>
+          )}
+          <span className="mt-1 inline-flex items-center gap-1 text-xs font-medium text-primary">
+            Ver ficha completa
+            <ChevronRight className="size-3" />
+          </span>
+        </Link>
+      )}
 
       <Button
         className="w-full"
