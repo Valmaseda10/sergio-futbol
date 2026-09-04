@@ -82,9 +82,9 @@ export function CambiosList({
     [eventos],
   );
 
-  const banquillo = convocados.filter(
-    (j) => !enCampoIds.has(j.id) && !yaSalieron.has(j.id),
-  );
+  // Los que ya salieron se quedan en el banquillo (no desaparecen) pero en
+  // rojo y sin poder tocarlos, para ver de un vistazo quién ha salido ya.
+  const banquillo = convocados.filter((j) => !enCampoIds.has(j.id));
 
   const cambios = useMemo(() => {
     const grupos = new Map<
@@ -195,25 +195,40 @@ export function CambiosList({
           </p>
         ) : (
           <ul className="flex flex-wrap gap-2">
-            {banquillo.map((j) => (
-              <li key={j.id}>
-                <button
-                  type="button"
-                  onClick={() => setEntraId((prev) => (prev === j.id ? "" : j.id))}
-                  className={cn(
-                    "flex items-center gap-2 rounded-full border py-1 pr-3 pl-2 text-sm",
-                    entraId === j.id
-                      ? "border-pitch bg-pitch/10 text-pitch"
-                      : "hover:bg-muted",
-                  )}
-                >
-                  <span className="flex size-6 items-center justify-center rounded-full bg-primary text-[10px] font-medium text-primary-foreground">
-                    {j.dorsal ?? nombreMostrado(j)[0]}
-                  </span>
-                  {nombreMostrado(j)}
-                </button>
-              </li>
-            ))}
+            {banquillo.map((j) => {
+              const salio = yaSalieron.has(j.id);
+              return (
+                <li key={j.id}>
+                  <button
+                    type="button"
+                    disabled={salio}
+                    onClick={() =>
+                      setEntraId((prev) => (prev === j.id ? "" : j.id))
+                    }
+                    className={cn(
+                      "flex items-center gap-2 rounded-full border py-1 pr-3 pl-2 text-sm",
+                      salio
+                        ? "border-destructive bg-destructive/10 text-destructive"
+                        : entraId === j.id
+                          ? "border-pitch bg-pitch/10 text-pitch"
+                          : "hover:bg-muted",
+                    )}
+                  >
+                    <span
+                      className={cn(
+                        "flex size-6 items-center justify-center rounded-full text-[10px] font-medium",
+                        salio
+                          ? "bg-destructive text-white"
+                          : "bg-primary text-primary-foreground",
+                      )}
+                    >
+                      {j.dorsal ?? nombreMostrado(j)[0]}
+                    </span>
+                    {nombreMostrado(j)}
+                  </button>
+                </li>
+              );
+            })}
           </ul>
         )}
       </div>
