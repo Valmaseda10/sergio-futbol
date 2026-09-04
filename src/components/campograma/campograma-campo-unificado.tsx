@@ -340,6 +340,28 @@ export function CampogramaCampoUnificado({
 
   return (
     <div className="space-y-4">
+      <div className="space-y-3 rounded-md border p-3">
+        <div className="space-y-2">
+          <Label htmlFor="nombreCampograma">Nombre</Label>
+          <Input
+            id="nombreCampograma"
+            placeholder="Ej: 1-4-3-3 base"
+            value={nombre}
+            onChange={(e) => setNombre(e.target.value)}
+          />
+        </div>
+        <div className="space-y-2">
+          <Label htmlFor="notasCampograma">Notas (opcional)</Label>
+          <Textarea
+            id="notasCampograma"
+            rows={2}
+            placeholder="Ej: para partidos fuera de casa"
+            value={notas}
+            onChange={(e) => setNotas(e.target.value)}
+          />
+        </div>
+      </div>
+
       <div className="grid gap-3 sm:grid-cols-2">
         <div className="space-y-1.5">
           <p className="text-xs font-medium text-muted-foreground">Nuestra formación</p>
@@ -382,137 +404,121 @@ export function CampogramaCampoUnificado({
         quitarla. ({titulares.length}/11 nuestros, {Object.keys(fichasRival).length} rival)
       </p>
 
-      <div
-        ref={pitchRef}
-        className="relative mx-auto aspect-[2/3] w-full max-w-md touch-none overflow-hidden rounded-lg bg-pitch"
-      >
-        <div className="absolute inset-x-0 top-1/2 h-px bg-white/40" />
-        <div className="absolute top-1/2 left-1/2 size-16 -translate-x-1/2 -translate-y-1/2 rounded-full border border-white/40" />
-        <div className="absolute inset-x-[20%] top-0 h-[16%] border-x border-b border-white/40" />
-        <div className="absolute inset-x-[20%] bottom-0 h-[16%] border-x border-t border-white/40" />
-        <div className="absolute inset-x-[38%] top-0 h-[6%] border-x border-b border-white/40" />
-        <div className="absolute inset-x-[38%] bottom-0 h-[6%] border-x border-t border-white/40" />
-
-        {/* Rival: fichas rojas genéricas, reflejadas verticalmente para
-            simular que defienden el lado contrario del campo */}
-        {Object.entries(fichasRival).map(([id, f]) => {
-          const topPantalla = 100 - f.top;
-          return (
-            <button
-              key={`rival-${id}`}
-              type="button"
-              aria-label={`Rival ${f.numero}`}
-              onPointerDown={(e) => handlePointerDownRival(e, id)}
-              onPointerMove={(e) => handlePointerMoveRival(e, id)}
-              onPointerUp={(e) => handlePointerUpRival(e, id)}
-              className="absolute -translate-x-1/2 -translate-y-1/2"
-              style={{ top: `${topPantalla}%`, left: `${f.left}%` }}
-            >
-              <span className="flex size-9 items-center justify-center rounded-full border-2 border-white bg-red-500 font-heading text-sm tabular-nums text-white shadow">
-                {f.numero}
-              </span>
-            </button>
-          );
-        })}
-
-        {/* Nuestro equipo: fichas doradas */}
-        {titulares.map((j) => {
-          const pos = posiciones[j.id];
-          return (
-            <button
-              key={j.id}
-              type="button"
-              onPointerDown={(e) => handlePointerDown(e, j.id)}
-              onPointerMove={(e) => handlePointerMove(e, j.id)}
-              onPointerUp={(e) => handlePointerUp(e, j.id)}
-              className="absolute flex -translate-x-1/2 -translate-y-1/2 flex-col items-center gap-0.5"
-              style={{ top: `${pos.top}%`, left: `${pos.left}%` }}
-            >
-              <span className="flex size-9 items-center justify-center rounded-full border-2 border-gold bg-white font-heading text-sm tabular-nums text-foreground shadow">
-                {j.dorsal ?? nombreJugador(j)[0]}
-              </span>
-              <span className="max-w-16 truncate rounded bg-black/40 px-1 text-[10px] text-white">
-                {nombreJugador(j)}
-              </span>
-            </button>
-          );
-        })}
-      </div>
-
-      <div className="space-y-3 rounded-md border p-3">
-        <div className="space-y-2">
-          <Label htmlFor="nombreCampograma">Nombre</Label>
-          <Input
-            id="nombreCampograma"
-            placeholder="Ej: 1-4-3-3 base"
-            value={nombre}
-            onChange={(e) => setNombre(e.target.value)}
-          />
-        </div>
-        <div className="space-y-2">
-          <Label htmlFor="notasCampograma">Notas (opcional)</Label>
-          <Textarea
-            id="notasCampograma"
-            rows={2}
-            placeholder="Ej: para partidos fuera de casa"
-            value={notas}
-            onChange={(e) => setNotas(e.target.value)}
-          />
-        </div>
-      </div>
-
-      <div className="space-y-2">
-        <p className="text-sm font-medium text-muted-foreground">
-          Suplentes ({enSuplentes.length})
-        </p>
-        {enSuplentes.length === 0 ? (
-          <p className="text-sm text-muted-foreground">
-            Toca un jugador de &quot;Disponibles&quot; abajo para añadirlo al banquillo.
+      <div className="flex items-start gap-3">
+        <div className="w-24 shrink-0 space-y-2">
+          <p className="text-xs font-medium text-muted-foreground">
+            Suplentes ({enSuplentes.length})
           </p>
-        ) : (
-          <ul className="space-y-1.5">
-            {enSuplentes.map((j, i) => (
-              <li
-                key={j.id}
-                className="flex items-center gap-2 rounded-md border py-1.5 pr-2 pl-3"
+          {enSuplentes.length === 0 ? (
+            <p className="text-xs text-muted-foreground">
+              Toca &quot;Disponibles&quot; abajo para añadir al banquillo.
+            </p>
+          ) : (
+            <ul className="space-y-1.5">
+              {enSuplentes.map((j, i) => (
+                <li
+                  key={j.id}
+                  className="flex flex-col items-center gap-1 rounded-md border p-1.5"
+                >
+                  <span className="flex size-7 items-center justify-center rounded-full bg-primary text-[10px] font-medium text-primary-foreground">
+                    {j.dorsal ?? nombreJugador(j)[0]}
+                  </span>
+                  <span className="w-full truncate text-center text-[10px] leading-tight">
+                    {nombreJugador(j)}
+                  </span>
+                  <div className="flex items-center justify-center gap-0.5">
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon-xs"
+                      disabled={i === 0}
+                      aria-label="Subir"
+                      onClick={() => moverSuplente(j.id, -1)}
+                    >
+                      <ArrowUp className="size-3" />
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon-xs"
+                      disabled={i === enSuplentes.length - 1}
+                      aria-label="Bajar"
+                      onClick={() => moverSuplente(j.id, 1)}
+                    >
+                      <ArrowDown className="size-3" />
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon-xs"
+                      aria-label="Quitar de suplentes"
+                      onClick={() => quitarDeSuplente(j.id)}
+                    >
+                      <X className="size-3" />
+                    </Button>
+                  </div>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+
+        <div
+          ref={pitchRef}
+          className="relative mx-auto aspect-[2/3] w-full max-w-xs shrink touch-none overflow-hidden rounded-lg bg-pitch"
+        >
+          <div className="absolute inset-x-0 top-1/2 h-px bg-white/40" />
+          <div className="absolute top-1/2 left-1/2 size-16 -translate-x-1/2 -translate-y-1/2 rounded-full border border-white/40" />
+          <div className="absolute inset-x-[20%] top-0 h-[16%] border-x border-b border-white/40" />
+          <div className="absolute inset-x-[20%] bottom-0 h-[16%] border-x border-t border-white/40" />
+          <div className="absolute inset-x-[38%] top-0 h-[6%] border-x border-b border-white/40" />
+          <div className="absolute inset-x-[38%] bottom-0 h-[6%] border-x border-t border-white/40" />
+
+          {/* Rival: fichas rojas genéricas, reflejadas verticalmente para
+              simular que defienden el lado contrario del campo */}
+          {Object.entries(fichasRival).map(([id, f]) => {
+            const topPantalla = 100 - f.top;
+            return (
+              <button
+                key={`rival-${id}`}
+                type="button"
+                aria-label={`Rival ${f.numero}`}
+                onPointerDown={(e) => handlePointerDownRival(e, id)}
+                onPointerMove={(e) => handlePointerMoveRival(e, id)}
+                onPointerUp={(e) => handlePointerUpRival(e, id)}
+                className="absolute -translate-x-1/2 -translate-y-1/2"
+                style={{ top: `${topPantalla}%`, left: `${f.left}%` }}
               >
-                <span className="flex size-6 shrink-0 items-center justify-center rounded-full bg-primary text-[10px] font-medium text-primary-foreground">
+                <span className="flex size-9 items-center justify-center rounded-full border-2 border-white bg-red-500 font-heading text-sm tabular-nums text-white shadow">
+                  {f.numero}
+                </span>
+              </button>
+            );
+          })}
+
+          {/* Nuestro equipo: fichas doradas */}
+          {titulares.map((j) => {
+            const pos = posiciones[j.id];
+            return (
+              <button
+                key={j.id}
+                type="button"
+                onPointerDown={(e) => handlePointerDown(e, j.id)}
+                onPointerMove={(e) => handlePointerMove(e, j.id)}
+                onPointerUp={(e) => handlePointerUp(e, j.id)}
+                className="absolute flex -translate-x-1/2 -translate-y-1/2 flex-col items-center gap-0.5"
+                style={{ top: `${pos.top}%`, left: `${pos.left}%` }}
+              >
+                <span className="flex size-9 items-center justify-center rounded-full border-2 border-gold bg-white font-heading text-sm tabular-nums text-foreground shadow">
                   {j.dorsal ?? nombreJugador(j)[0]}
                 </span>
-                <span className="min-w-0 flex-1 truncate text-sm">{nombreJugador(j)}</span>
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="icon-sm"
-                  disabled={i === 0}
-                  aria-label="Subir"
-                  onClick={() => moverSuplente(j.id, -1)}
-                >
-                  <ArrowUp className="size-3.5" />
-                </Button>
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="icon-sm"
-                  disabled={i === enSuplentes.length - 1}
-                  aria-label="Bajar"
-                  onClick={() => moverSuplente(j.id, 1)}
-                >
-                  <ArrowDown className="size-3.5" />
-                </Button>
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="icon-sm"
-                  aria-label="Quitar de suplentes"
-                  onClick={() => quitarDeSuplente(j.id)}
-                >
-                  <X className="size-3.5" />
-                </Button>
-              </li>
-            ))}
-          </ul>
-        )}
+                <span className="max-w-16 truncate rounded bg-black/40 px-1 text-[10px] text-white">
+                  {nombreJugador(j)}
+                </span>
+              </button>
+            );
+          })}
+        </div>
       </div>
 
       <div className="space-y-2">
