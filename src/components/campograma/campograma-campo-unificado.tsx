@@ -16,7 +16,6 @@ import {
   guardarCampogramaRivalLocal,
   type RivalTitularGuardar,
 } from "@/app/(app)/campograma/local-actions";
-import type { CampogramaInicial } from "@/components/campograma/campograma-editor";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -86,13 +85,19 @@ export interface CampogramaRivalInicial {
   }[];
 }
 
+export interface CampogramaInicial {
+  id: string;
+  nombre: string;
+  notas: string | null;
+  titulares: { jugadorId: string; posicion: string | null; top: number; left: number }[];
+  suplentesIds: string[];
+}
+
 export function CampogramaCampoUnificado({
-  campogramaId,
   jugadores,
   inicial,
   inicialRival,
 }: {
-  campogramaId: string;
   jugadores: Jugador[];
   inicial?: CampogramaInicial;
   inicialRival?: CampogramaRivalInicial;
@@ -320,7 +325,7 @@ export function CampogramaCampoUnificado({
       posX: f.left,
       posY: f.top,
     }));
-    const resultRival = await guardarCampogramaRivalLocal(campogramaId, titularesRival);
+    const resultRival = await guardarCampogramaRivalLocal(resultPropio.id, titularesRival);
     setGuardando(false);
 
     if ("error" in resultRival) {

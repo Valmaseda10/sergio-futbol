@@ -2,7 +2,7 @@
 
 import { useLiveQuery } from "dexie-react-hooks";
 import { localDb } from "@/lib/db/local-db";
-import { CampogramaEditor } from "@/components/campograma/campograma-editor";
+import { CampogramaCampoUnificado } from "@/components/campograma/campograma-campo-unificado";
 
 export default function NuevoCampogramaPage() {
   const jugadores = useLiveQuery(
@@ -27,7 +27,7 @@ export default function NuevoCampogramaPage() {
   return (
     <div className="space-y-4">
       <h1 className="text-2xl font-semibold">Nuevo campograma</h1>
-      <CampogramaEditor jugadores={jugadores} />
+      <CampogramaCampoUnificado jugadores={jugadores} />
     </div>
   );
 }

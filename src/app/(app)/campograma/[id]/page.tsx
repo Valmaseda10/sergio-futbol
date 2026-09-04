@@ -8,9 +8,9 @@ import { toast } from "sonner";
 import { ChevronLeft, Trash2 } from "lucide-react";
 import { localDb } from "@/lib/db/local-db";
 import { eliminarCampogramaLocal } from "@/app/(app)/campograma/local-actions";
-import type { CampogramaInicial } from "@/components/campograma/campograma-editor";
 import {
   CampogramaCampoUnificado,
+  type CampogramaInicial,
   type CampogramaRivalInicial,
 } from "@/components/campograma/campograma-campo-unificado";
 import { Button } from "@/components/ui/button";
@@ -157,7 +157,6 @@ export default function EditarCampogramaPage() {
 
       {inicial && (
         <CampogramaCampoUnificado
-          campogramaId={id}
           jugadores={jugadores}
           inicial={inicial}
           inicialRival={inicialRival}
