@@ -12,7 +12,7 @@ import {
 } from "lucide-react";
 import { localDb } from "@/lib/db/local-db";
 import { capitalizarPrimera } from "@/lib/date";
-import { resultadoPartido } from "@/lib/estadisticas";
+import { marcadorLocalVisitante, resultadoPartido } from "@/lib/estadisticas";
 import { cn } from "@/lib/utils";
 import {
   Card,
@@ -362,11 +362,16 @@ export function InicioDashboard({
                 const gf = p.resultado_favor as number;
                 const gc = p.resultado_contra as number;
                 const resultado = resultadoPartido(gf, gc);
+                const { izquierda, derecha } = marcadorLocalVisitante(
+                  gf,
+                  gc,
+                  p.local_visitante,
+                );
                 return (
                   <Link
                     key={p.id}
                     href={`/partidos/${p.id}`}
-                    title={`${p.local_visitante === "local" ? "vs" : "@"} ${p.rival} · ${gf}-${gc}`}
+                    title={`${p.local_visitante === "local" ? "vs" : "@"} ${p.rival} · ${izquierda}-${derecha}`}
                     className={cn(
                       "flex size-9 shrink-0 items-center justify-center rounded-full text-sm font-semibold text-white",
                       resultado === "ganado" && "bg-pitch",

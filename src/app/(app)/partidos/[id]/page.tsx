@@ -19,7 +19,7 @@ import {
 } from "lucide-react";
 import { localDb } from "@/lib/db/local-db";
 import { capitalizarPrimera } from "@/lib/date";
-import { resultadoPartido } from "@/lib/estadisticas";
+import { marcadorLocalVisitante, resultadoPartido } from "@/lib/estadisticas";
 import { createClient } from "@/lib/supabase/client";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -145,6 +145,13 @@ export default function FichaPartidoPage() {
 
   const tieneResultado =
     partido.resultado_favor != null && partido.resultado_contra != null;
+  const marcador = tieneResultado
+    ? marcadorLocalVisitante(
+        partido.resultado_favor!,
+        partido.resultado_contra!,
+        partido.local_visitante,
+      )
+    : null;
 
   const secciones = [
     {
@@ -223,7 +230,7 @@ export default function FichaPartidoPage() {
             {COMPETICION_LABEL[partido.competicion]}
           </Badge>
         </div>
-        {tieneResultado && (
+        {tieneResultado && marcador && (
           <span
             className={cn(
               "font-heading text-3xl tabular-nums",
@@ -235,7 +242,7 @@ export default function FichaPartidoPage() {
               ],
             )}
           >
-            {partido.resultado_favor} - {partido.resultado_contra}
+            {marcador.izquierda} - {marcador.derecha}
           </span>
         )}
         <Button

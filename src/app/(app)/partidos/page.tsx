@@ -5,7 +5,7 @@ import { useLiveQuery } from "dexie-react-hooks";
 import { Plus, CalendarRange, MapPin } from "lucide-react";
 import { localDb, type LocalPartido } from "@/lib/db/local-db";
 import { diaSemanaDeFecha } from "@/lib/date";
-import { resultadoPartido } from "@/lib/estadisticas";
+import { marcadorLocalVisitante, resultadoPartido } from "@/lib/estadisticas";
 import { temporadaDeFecha } from "@/lib/temporada";
 import { useTemporadaSeleccionada } from "@/lib/hooks/use-temporada-seleccionada";
 import { cn } from "@/lib/utils";
@@ -39,6 +39,13 @@ const RESULTADO_CLASSNAME = {
 function Fila({ p }: { p: LocalPartido }) {
   const tieneResultado =
     p.resultado_favor != null && p.resultado_contra != null;
+  const marcador = tieneResultado
+    ? marcadorLocalVisitante(
+        p.resultado_favor!,
+        p.resultado_contra!,
+        p.local_visitante,
+      )
+    : null;
 
   return (
     <li key={p.id}>
@@ -67,7 +74,7 @@ function Fila({ p }: { p: LocalPartido }) {
             )}
           </p>
         </div>
-        {tieneResultado && (
+        {tieneResultado && marcador && (
           <span
             className={cn(
               "font-heading text-lg tabular-nums",
@@ -76,7 +83,7 @@ function Fila({ p }: { p: LocalPartido }) {
               ],
             )}
           >
-            {p.resultado_favor} - {p.resultado_contra}
+            {marcador.izquierda} - {marcador.derecha}
           </span>
         )}
       </Link>

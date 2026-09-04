@@ -23,6 +23,21 @@ export function resultadoPartido(
   return "empatado";
 }
 
+/**
+ * Ordena el marcador para mostrarlo como se lee cualquier resultado
+ * publicado (local - visitante): si jugamos de visitante, nuestro
+ * resultado (favor) va a la derecha en vez de siempre a la izquierda.
+ */
+export function marcadorLocalVisitante(
+  favor: number,
+  contra: number,
+  localVisitante: "local" | "visitante",
+): { izquierda: number; derecha: number } {
+  return localVisitante === "visitante"
+    ? { izquierda: contra, derecha: favor }
+    : { izquierda: favor, derecha: contra };
+}
+
 export interface PartidoJugado {
   id: string;
   fecha: string;
