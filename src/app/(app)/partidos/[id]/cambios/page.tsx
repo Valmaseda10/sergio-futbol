@@ -38,6 +38,19 @@ export default function CambiosPage() {
     () => localDb.eventos_partido.where("partido_id").equals(id).toArray(),
     [id],
   );
+  // Solo se usa como semilla inicial de las posiciones tocadas a mano (ver
+  // CambiosList): el campo de Cambios siempre calcula el once en vivo a
+  // partir de titularesIniciales + eventos, para no quedarse desactualizado
+  // según se van registrando cambios nuevos.
+  const alineacionesFinales = useLiveQuery(
+    () =>
+      localDb.alineaciones_finales
+        .where("partido_id")
+        .equals(id)
+        .filter((a) => a.titular)
+        .toArray(),
+    [id],
+  );
 
   const convocados = useMemo(() => {
     const jugadoresPorId = new Map((jugadores ?? []).map((j) => [j.id, j]));
@@ -58,7 +71,8 @@ export default function CambiosPage() {
     convocatorias === undefined ||
     jugadores === undefined ||
     titularesIniciales === undefined ||
-    eventos === undefined
+    eventos === undefined ||
+    alineacionesFinales === undefined
   ) {
     return <p className="text-sm text-muted-foreground">Cargando...</p>;
   }
@@ -106,6 +120,7 @@ export default function CambiosPage() {
           convocados={convocados}
           titularesIniciales={titularesIniciales}
           eventos={eventos}
+          alineacionesFinalesIniciales={alineacionesFinales}
         />
       )}
     </div>
