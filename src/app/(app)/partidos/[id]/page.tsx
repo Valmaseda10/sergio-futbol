@@ -88,7 +88,12 @@ export default function FichaPartidoPage() {
     0,
   );
   const eventosCount = useLiveQuery(
-    () => localDb.eventos_partido.where("partido_id").equals(id).count(),
+    () =>
+      localDb.eventos_partido
+        .where("partido_id")
+        .equals(id)
+        .filter((e) => e.tipo !== "cambio_sale" && e.tipo !== "cambio_entra")
+        .count(),
     [id],
     0,
   );

@@ -54,6 +54,18 @@ const TIPO_LABEL: Record<TipoEventoPartido, string> = {
   autogol: "Autogol",
 };
 
+// Los cambios de jugador se registran ahora en su propio apartado (Cambios),
+// no aquí: cambio_entra/cambio_sale se quedan en TIPO_LABEL solo por si
+// queda algún evento histórico de ese tipo que mostrar, pero no son
+// seleccionables al añadir uno nuevo.
+const TIPOS_SELECCIONABLES: TipoEventoPartido[] = [
+  "gol",
+  "asistencia",
+  "tarjeta_amarilla",
+  "tarjeta_roja",
+  "autogol",
+];
+
 function IndicadorTipo({ tipo }: { tipo: TipoEventoPartido }) {
   if (tipo === "tarjeta_amarilla") {
     return <span className="h-3.5 w-2.5 shrink-0 rounded-[2px] bg-amber-400" />;
@@ -85,8 +97,16 @@ export function EventosList({
   partidoId: string;
   convocados: Jugador[];
 }) {
+  // Los eventos de cambio (cambio_sale/cambio_entra) se gestionan y se ven
+  // en el apartado Cambios, no aquí, para no duplicar la misma información
+  // en dos sitios.
   const eventos = useLiveQuery(
-    () => localDb.eventos_partido.where("partido_id").equals(partidoId).toArray(),
+    () =>
+      localDb.eventos_partido
+        .where("partido_id")
+        .equals(partidoId)
+        .filter((e) => e.tipo !== "cambio_sale" && e.tipo !== "cambio_entra")
+        .toArray(),
     [partidoId],
     [],
   );
@@ -187,26 +207,27 @@ export function EventosList({
         <CardContent className="space-y-4 pt-6">
           <div className="space-y-2">
             <Label>Tipo</Label>
-            <Select
-              value={tipo}
-              onValueChange={(v) => {
-                setTipo(v as TipoEventoPartido);
-                resetGolCampos();
-              }}
-            >
-              <SelectTrigger className="w-full">
-                <SelectValue>
-                  {(value) => TIPO_LABEL[value as TipoEventoPartido] ?? value}
-                </SelectValue>
-              </SelectTrigger>
-              <SelectContent>
-                {Object.entries(TIPO_LABEL).map(([value, label]) => (
-                  <SelectItem key={value} value={value}>
-                    {label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <div className="grid grid-cols-3 gap-2 sm:grid-cols-5">
+              {TIPOS_SELECCIONABLES.map((t) => (
+                <button
+                  key={t}
+                  type="button"
+                  onClick={() => {
+                    setTipo(t);
+                    resetGolCampos();
+                  }}
+                  className={cn(
+                    "flex flex-col items-center gap-1.5 rounded-md border py-2 text-xs font-medium",
+                    tipo === t
+                      ? "border-primary bg-primary/10 text-primary"
+                      : "text-muted-foreground",
+                  )}
+                >
+                  <IndicadorTipo tipo={t} />
+                  {TIPO_LABEL[t]}
+                </button>
+              ))}
+            </div>
           </div>
 
           {tipo === "gol" && (

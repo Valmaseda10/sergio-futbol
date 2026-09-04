@@ -18,6 +18,7 @@ import {
 } from "@/app/(app)/partidos/local-actions";
 import { localDb } from "@/lib/db/local-db";
 import { diaSemanaDeFecha } from "@/lib/date";
+import { clubConfig } from "@/lib/club-config";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -81,7 +82,25 @@ export function PartidoForm({
 
   const fechaValue = watch("fecha");
   const rivalValue = watch("rival");
+  const localVisitanteValue = watch("local_visitante");
   const diaSemanaLabel = fechaValue ? diaSemanaDeFecha(fechaValue) : null;
+
+  // El resultado se guarda siempre como favor/contra (independiente de
+  // local/visitante), pero se rellena aquí en el orden local-visitante —
+  // como se ve en cualquier resultado publicado — para no tener que
+  // acordarse de invertir los números cuando jugamos fuera de casa.
+  const campoGolesLocal =
+    localVisitanteValue === "visitante" ? "resultado_contra" : "resultado_favor";
+  const campoGolesVisitante =
+    localVisitanteValue === "visitante" ? "resultado_favor" : "resultado_contra";
+  const nombreLocal =
+    localVisitanteValue === "visitante"
+      ? rivalValue || "Rival"
+      : clubConfig.nombreEquipo;
+  const nombreVisitante =
+    localVisitanteValue === "visitante"
+      ? clubConfig.nombreEquipo
+      : rivalValue || "Rival";
 
   const rivalesScouting = useLiveQuery(
     () =>
@@ -310,21 +329,25 @@ export function PartidoForm({
           <p className="text-sm font-medium">Resultado</p>
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label htmlFor="resultado_favor">Goles a favor</Label>
+              <Label htmlFor={campoGolesLocal} className="truncate">
+                {nombreLocal} (local)
+              </Label>
               <Input
-                id="resultado_favor"
+                id={campoGolesLocal}
                 type="number"
                 min={0}
-                {...register("resultado_favor")}
+                {...register(campoGolesLocal)}
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="resultado_contra">Goles en contra</Label>
+              <Label htmlFor={campoGolesVisitante} className="truncate">
+                {nombreVisitante} (visitante)
+              </Label>
               <Input
-                id="resultado_contra"
+                id={campoGolesVisitante}
                 type="number"
                 min={0}
-                {...register("resultado_contra")}
+                {...register(campoGolesVisitante)}
               />
             </div>
           </div>

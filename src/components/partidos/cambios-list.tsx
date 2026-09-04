@@ -1,10 +1,14 @@
 "use client";
 
-// Registrar un cambio en dos pasos: toca quién sale (de los que están en el
-// campo ahora mismo, calculado a partir del once inicial + cambios previos),
-// toca quién entra (del banquillo), pon el minuto y confirma. Se guardan como
-// un par de eventos enlazados (cambio_sale/cambio_entra) para poder verlos y
-// borrarlos juntos, en vez de dar de alta cada evento suelto desde Eventos.
+// Registrar un cambio en dos pasos sobre el propio campo: toca en el campo
+// al jugador que sale (se resalta en rojo), toca en el banquillo al que
+// entra, pon el minuto y confirma. Se guardan como un par de eventos
+// enlazados (cambio_sale/cambio_entra) para poder verlos y borrarlos juntos,
+// en vez de dar de alta cada evento suelto desde Eventos.
+//
+// Los jugadores "solo por hoy" (alineación libre, sin ficha en Plantilla) se
+// dibujan en el campo para que el once cuadre, pero no se pueden seleccionar
+// como salida: el modelo de eventos solo admite jugadores reales.
 
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
@@ -54,20 +58,30 @@ export function CambiosList({
 
   const jugadoresPorId = new Map(convocados.map((j) => [j.id, j]));
 
-  const { enCampoIds, yaSalieron } = useMemo(() => {
-    const { titulares } = calcularOnceFinal(titularesIniciales, eventos);
-    const enCampo = new Set(
-      titulares.map((t) => t.jugadorId).filter((id): id is string => !!id),
-    );
-    const salieron = new Set(
-      eventos
-        .filter((e) => e.tipo === "cambio_sale" && e.jugador_id)
-        .map((e) => e.jugador_id as string),
-    );
-    return { enCampoIds: enCampo, yaSalieron: salieron };
-  }, [titularesIniciales, eventos]);
+  const onceFinal = useMemo(
+    () => calcularOnceFinal(titularesIniciales, eventos),
+    [titularesIniciales, eventos],
+  );
 
-  const enCampo = convocados.filter((j) => enCampoIds.has(j.id));
+  const enCampoIds = useMemo(
+    () =>
+      new Set(
+        onceFinal.titulares
+          .map((t) => t.jugadorId)
+          .filter((id): id is string => !!id),
+      ),
+    [onceFinal],
+  );
+  const yaSalieron = useMemo(
+    () =>
+      new Set(
+        eventos
+          .filter((e) => e.tipo === "cambio_sale" && e.jugador_id)
+          .map((e) => e.jugador_id as string),
+      ),
+    [eventos],
+  );
+
   const banquillo = convocados.filter(
     (j) => !enCampoIds.has(j.id) && !yaSalieron.has(j.id),
   );
@@ -121,35 +135,54 @@ export function CambiosList({
     <div className="space-y-4">
       <div className="space-y-2">
         <p className="text-sm font-medium text-muted-foreground">
-          En el campo ({enCampo.length}) — toca quién sale
+          En el campo ({onceFinal.titulares.length}) — toca quién sale
         </p>
-        {enCampo.length === 0 ? (
-          <p className="text-sm text-muted-foreground">
-            No queda nadie en el campo.
-          </p>
-        ) : (
-          <ul className="flex flex-wrap gap-2">
-            {enCampo.map((j) => (
-              <li key={j.id}>
-                <button
-                  type="button"
-                  onClick={() => setSaleId((prev) => (prev === j.id ? "" : j.id))}
+        <div className="relative mx-auto aspect-[2/3] w-full max-w-xs touch-none overflow-hidden rounded-lg bg-pitch">
+          <div className="absolute inset-x-0 top-1/2 h-px bg-white/40" />
+          <div className="absolute top-1/2 left-1/2 size-16 -translate-x-1/2 -translate-y-1/2 rounded-full border border-white/40" />
+          <div className="absolute inset-x-[20%] top-0 h-[16%] border-x border-b border-white/40" />
+          <div className="absolute inset-x-[20%] bottom-0 h-[16%] border-x border-t border-white/40" />
+          <div className="absolute inset-x-[38%] top-0 h-[6%] border-x border-b border-white/40" />
+          <div className="absolute inset-x-[38%] bottom-0 h-[6%] border-x border-t border-white/40" />
+
+          {onceFinal.titulares.map((t, i) => {
+            const jugador = t.jugadorId ? jugadoresPorId.get(t.jugadorId) : null;
+            const seleccionado = !!t.jugadorId && t.jugadorId === saleId;
+            const top = t.posY ?? 50;
+            const left = t.posX ?? 50;
+            return (
+              <button
+                key={t.jugadorId ?? `libre-${i}`}
+                type="button"
+                disabled={!t.jugadorId}
+                onClick={() =>
+                  setSaleId((prev) =>
+                    prev === t.jugadorId ? "" : (t.jugadorId ?? prev),
+                  )
+                }
+                className={cn(
+                  "absolute flex -translate-x-1/2 -translate-y-1/2 flex-col items-center gap-0.5",
+                  !t.jugadorId && "cursor-default",
+                )}
+                style={{ top: `${top}%`, left: `${left}%` }}
+              >
+                <span
                   className={cn(
-                    "flex items-center gap-2 rounded-full border py-1 pr-3 pl-2 text-sm",
-                    saleId === j.id
-                      ? "border-destructive bg-destructive/10 text-destructive"
-                      : "hover:bg-muted",
+                    "flex size-9 items-center justify-center rounded-full border-2 bg-white font-heading text-sm tabular-nums text-foreground shadow",
+                    seleccionado ? "border-destructive" : "border-gold",
                   )}
                 >
-                  <span className="flex size-6 items-center justify-center rounded-full bg-primary text-[10px] font-medium text-primary-foreground">
-                    {j.dorsal ?? nombreMostrado(j)[0]}
-                  </span>
-                  {nombreMostrado(j)}
-                </button>
-              </li>
-            ))}
-          </ul>
-        )}
+                  {jugador
+                    ? (jugador.dorsal ?? nombreMostrado(jugador)[0])
+                    : (t.nombreLibre?.[0] ?? "?")}
+                </span>
+                <span className="max-w-16 truncate rounded bg-black/40 px-1 text-[10px] text-white">
+                  {jugador ? nombreMostrado(jugador) : `${t.nombreLibre} (invitado)`}
+                </span>
+              </button>
+            );
+          })}
+        </div>
       </div>
 
       <div className="space-y-2">
