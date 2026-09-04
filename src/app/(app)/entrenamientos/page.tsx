@@ -1,7 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo, useState } from "react";
+import { useSearchParams } from "next/navigation";
+import { useMemo } from "react";
 import { useLiveQuery } from "dexie-react-hooks";
 import {
   Plus,
@@ -10,10 +11,11 @@ import {
   MapPin,
   Clock,
   BookOpen,
-  ChevronDown,
+  ChevronLeft,
+  ChevronRight,
+  Folder,
 } from "lucide-react";
 import { localDb, type LocalEntrenamiento } from "@/lib/db/local-db";
-import { cn } from "@/lib/utils";
 import { capitalizarPrimera } from "@/lib/date";
 import { temporadaDeFecha } from "@/lib/temporada";
 import { useTemporadaSeleccionada } from "@/lib/hooks/use-temporada-seleccionada";
@@ -82,25 +84,8 @@ function Fila({ e }: { e: LocalEntrenamiento }) {
 
 export default function EntrenamientosPage() {
   const hoy = hoyISO();
-
-  // El mes actual empieza desplegado; el resto, plegado — así se recogen
-  // los meses pasados/futuros y la lista no se hace kilométrica, pero se
-  // pueden abrir tocando su cabecera.
-  const [mesesAbiertos, setMesesAbiertos] = useState<Set<string>>(
-    () => new Set([claveMes(hoy)]),
-  );
-
-  function toggleMes(clave: string) {
-    setMesesAbiertos((prev) => {
-      const next = new Set(prev);
-      if (next.has(clave)) {
-        next.delete(clave);
-      } else {
-        next.add(clave);
-      }
-      return next;
-    });
-  }
+  const searchParams = useSearchParams();
+  const mesSeleccionado = searchParams.get("mes");
 
   const entrenamientos = useLiveQuery(
     () => localDb.entrenamientos.toArray(),
@@ -130,17 +115,38 @@ export default function EntrenamientosPage() {
       }));
   }, [entrenamientosTemporada, hoy]);
 
+  const mesActual = mesSeleccionado
+    ? meses.find((m) => m.clave === mesSeleccionado)
+    : undefined;
+
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-semibold">Entrenamientos</h1>
-          <Link
-            href="/ajustes"
-            className="text-xs text-muted-foreground hover:text-foreground"
-          >
-            Temporada {temporada.replace("-", "/")}
-          </Link>
+          {mesActual ? (
+            <>
+              <Link
+                href="/entrenamientos"
+                className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground"
+              >
+                <ChevronLeft className="size-4" />
+                Meses
+              </Link>
+              <h1 className="text-2xl font-semibold">
+                {nombreMes(mesActual.clave)}
+              </h1>
+            </>
+          ) : (
+            <>
+              <h1 className="text-2xl font-semibold">Entrenamientos</h1>
+              <Link
+                href="/ajustes"
+                className="text-xs text-muted-foreground hover:text-foreground"
+              >
+                Temporada {temporada.replace("-", "/")}
+              </Link>
+            </>
+          )}
         </div>
         <div className="flex gap-2">
           <Button
@@ -184,49 +190,56 @@ export default function EntrenamientosPage() {
         </div>
       </div>
 
-      <HorarioSemanalResumen />
+      {!mesActual && <HorarioSemanalResumen />}
 
-      {meses.length === 0 ? (
+      {mesActual ? (
+        mesActual.entrenamientos.length === 0 ? (
+          <p className="py-4 text-center text-sm text-muted-foreground">
+            No hay entrenamientos ese mes.
+          </p>
+        ) : (
+          <ul className="divide-y rounded-md border">
+            {mesActual.entrenamientos.map((e) => (
+              <Fila key={e.id} e={e} />
+            ))}
+          </ul>
+        )
+      ) : meses.length === 0 ? (
         <p className="py-4 text-center text-sm text-muted-foreground">
           No hay entrenamientos programados.
         </p>
       ) : (
-        meses.map(({ clave, entrenamientos: lista, esMesActual }) => {
-          const abierto = mesesAbiertos.has(clave);
-          return (
-            <section key={clave} className="space-y-2">
-              <button
-                type="button"
-                onClick={() => toggleMes(clave)}
-                className={
-                  esMesActual
-                    ? "flex w-full items-center justify-between font-heading text-sm uppercase tracking-wide text-primary"
-                    : "flex w-full items-center justify-between text-sm font-medium text-muted-foreground"
-                }
+        <ul className="divide-y rounded-md border">
+          {meses.map(({ clave, entrenamientos: lista, esMesActual }) => (
+            <li key={clave}>
+              <Link
+                href={`/entrenamientos?mes=${clave}`}
+                className="flex items-center gap-3 p-3 hover:bg-muted/50"
               >
-                <span>
-                  {nombreMes(clave)}{" "}
-                  <span className="font-sans text-xs font-normal normal-case tracking-normal text-muted-foreground">
-                    ({lista.length})
-                  </span>
-                </span>
-                <ChevronDown
-                  className={cn(
-                    "size-4 shrink-0 transition-transform",
-                    abierto && "rotate-180",
-                  )}
+                <Folder
+                  className={
+                    esMesActual
+                      ? "size-5 shrink-0 text-primary"
+                      : "size-5 shrink-0 text-muted-foreground"
+                  }
                 />
-              </button>
-              {abierto && (
-                <ul className="divide-y rounded-md border">
-                  {lista.map((e) => (
-                    <Fila key={e.id} e={e} />
-                  ))}
-                </ul>
-              )}
-            </section>
-          );
-        })
+                <span
+                  className={
+                    esMesActual
+                      ? "flex-1 font-heading text-sm uppercase tracking-wide text-primary"
+                      : "flex-1 text-sm font-medium"
+                  }
+                >
+                  {nombreMes(clave)}
+                </span>
+                <span className="text-xs text-muted-foreground">
+                  {lista.length}
+                </span>
+                <ChevronRight className="size-4 shrink-0 text-muted-foreground" />
+              </Link>
+            </li>
+          ))}
+        </ul>
       )}
     </div>
   );
