@@ -199,37 +199,73 @@ export function calcularStatsJugadores(
     const suplencias = alineacionesJugador.filter((a) => !a.titular).length;
 
     // Minutos reales por partido: un titular empieza en el minuto 0; un
-    // suplente solo cuenta minutos si tiene un evento "entra al campo". El
-    // fin es el evento "sale del campo" si existe, o el partido completo si
-    // no se ha registrado ningún cambio para ese jugador en ese partido.
+    // suplente solo cuenta minutos desde que tiene un evento "entra al
+    // campo". Cada "sale del campo" cierra la ventana abierta; si después
+    // hay otra "entra al campo" (típico en pretemporada, con cambios sin
+    // límite y jugadores que repiten turno), se abre una ventana nueva — un
+    // jugador puede sumar así varios tramos en el mismo partido, no solo
+    // uno. Si al terminar los eventos sigue "dentro", la ventana se cierra
+    // al final del partido.
     //
     // Goles encajados: goles del rival (o autogoles, que siempre cuentan en
-    // contra) marcados con minuto dentro de esa misma ventana en ese
-    // partido — para saber cuántos goles se encajaron con el jugador en el
-    // campo, no en el partido entero.
+    // contra) marcados con minuto dentro de esas mismas ventanas — para
+    // saber cuántos goles se encajaron con el jugador en el campo, no en el
+    // partido entero.
     let minutosJugados = 0;
     let golesEncajados = 0;
     for (const a of alineacionesJugador) {
-      const cambioEntra = eventosJugador.find(
-        (e) => e.partido_id === a.partido_id && e.tipo === "cambio_entra",
-      );
-      const cambioSale = eventosJugador.find(
-        (e) => e.partido_id === a.partido_id && e.tipo === "cambio_sale",
-      );
-      const inicio = a.titular ? 0 : (cambioEntra?.minuto ?? null);
-      if (inicio == null) continue;
-      const fin = cambioSale?.minuto ?? DURACION_PARTIDO_MINUTOS;
-      minutosJugados += Math.max(0, fin - inicio);
+      const eventosCambioPartido = eventosJugador
+        .filter(
+          (e): e is typeof e & { minuto: number } =>
+            e.partido_id === a.partido_id &&
+            (e.tipo === "cambio_entra" || e.tipo === "cambio_sale") &&
+            e.minuto != null,
+        )
+        .slice()
+        .sort((x, y) => {
+          const diff = x.minuto - y.minuto;
+          if (diff !== 0) return diff;
+          // A igual minuto, la salida siempre se procesa antes que la
+          // entrada (mismo motivo que en calcularOnceFinal).
+          if (x.tipo === y.tipo) return 0;
+          return x.tipo === "cambio_sale" ? -1 : 1;
+        });
 
-      golesEncajados += eventos.filter(
-        (e) =>
+      const golesRivalPartido = eventos.filter(
+        (e): e is typeof e & { minuto: number } =>
           e.partido_id === a.partido_id &&
           (e.tipo === "gol" || e.tipo === "autogol") &&
           !e.a_favor &&
-          e.minuto != null &&
-          e.minuto >= inicio &&
-          e.minuto <= fin,
-      ).length;
+          e.minuto != null,
+      );
+
+      let dentro = a.titular;
+      let inicioVentana = a.titular ? 0 : null;
+
+      for (const evento of eventosCambioPartido) {
+        if (evento.tipo === "cambio_entra") {
+          if (!dentro) {
+            dentro = true;
+            inicioVentana = evento.minuto;
+          }
+          continue;
+        }
+        if (dentro && inicioVentana != null) {
+          minutosJugados += Math.max(0, evento.minuto - inicioVentana);
+          golesEncajados += golesRivalPartido.filter(
+            (g) => g.minuto >= inicioVentana! && g.minuto <= evento.minuto,
+          ).length;
+        }
+        dentro = false;
+        inicioVentana = null;
+      }
+
+      if (dentro && inicioVentana != null) {
+        minutosJugados += Math.max(0, DURACION_PARTIDO_MINUTOS - inicioVentana);
+        golesEncajados += golesRivalPartido.filter(
+          (g) => g.minuto >= inicioVentana! && g.minuto <= DURACION_PARTIDO_MINUTOS,
+        ).length;
+      }
     }
 
     const entrenamientosDelJugador = entrenamientos.filter(
