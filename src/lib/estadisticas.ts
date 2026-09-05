@@ -58,6 +58,7 @@ export interface EventoPartidoRow {
     | "cambio_sale"
     | "autogol";
   minuto: number | null;
+  a_favor: boolean;
 }
 
 export interface ConvocatoriaRow {
@@ -93,6 +94,7 @@ export interface JugadorStats {
   asistencias: number;
   tarjetasAmarillas: number;
   tarjetasRojas: number;
+  golesEncajados: number;
   minutosAprox: number;
   pctAsistencia: number | null;
   entrenamientosTotales: number;
@@ -200,7 +202,13 @@ export function calcularStatsJugadores(
     // suplente solo cuenta minutos si tiene un evento "entra al campo". El
     // fin es el evento "sale del campo" si existe, o el partido completo si
     // no se ha registrado ningún cambio para ese jugador en ese partido.
+    //
+    // Goles encajados: goles del rival (o autogoles, que siempre cuentan en
+    // contra) marcados con minuto dentro de esa misma ventana en ese
+    // partido — para saber cuántos goles se encajaron con el jugador en el
+    // campo, no en el partido entero.
     let minutosJugados = 0;
+    let golesEncajados = 0;
     for (const a of alineacionesJugador) {
       const cambioEntra = eventosJugador.find(
         (e) => e.partido_id === a.partido_id && e.tipo === "cambio_entra",
@@ -212,6 +220,16 @@ export function calcularStatsJugadores(
       if (inicio == null) continue;
       const fin = cambioSale?.minuto ?? DURACION_PARTIDO_MINUTOS;
       minutosJugados += Math.max(0, fin - inicio);
+
+      golesEncajados += eventos.filter(
+        (e) =>
+          e.partido_id === a.partido_id &&
+          (e.tipo === "gol" || e.tipo === "autogol") &&
+          !e.a_favor &&
+          e.minuto != null &&
+          e.minuto >= inicio &&
+          e.minuto <= fin,
+      ).length;
     }
 
     const entrenamientosDelJugador = entrenamientos.filter(
@@ -254,6 +272,7 @@ export function calcularStatsJugadores(
       ).length,
       tarjetasRojas: eventosJugador.filter((e) => e.tipo === "tarjeta_roja")
         .length,
+      golesEncajados,
       minutosAprox: minutosJugados,
       pctAsistencia,
       entrenamientosTotales: totalEntrenamientos,
