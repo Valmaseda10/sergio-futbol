@@ -11,6 +11,7 @@ import { TIPOS_GOL, TIPO_GOL_LABEL, TIPOS_ABP, TIPO_ABP_LABEL } from "@/lib/vali
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import {
   Select,
   SelectContent,
@@ -122,6 +123,7 @@ export function EventosList({
   const [posicionCentro, setPosicionCentro] = useState<{ top: number; left: number } | null>(
     null,
   );
+  const [notaGol, setNotaGol] = useState("");
   const [enviando, setEnviando] = useState(false);
   const [borrando, setBorrando] = useState<string | null>(null);
   const [eventoVer, setEventoVer] = useState<LocalEventoPartido | null>(null);
@@ -138,6 +140,7 @@ export function EventosList({
     setAbpTipo("");
     setPosicionGol(null);
     setPosicionCentro(null);
+    setNotaGol("");
   }
 
   function handlePickCentroGol(pos: { top: number; left: number }) {
@@ -174,6 +177,7 @@ export function EventosList({
             abpTipo: tipoGol === "abp" ? abpTipo || null : null,
             posXCentro: usaDoblePunto ? posicionCentro?.left ?? null : null,
             posYCentro: usaDoblePunto ? posicionCentro?.top ?? null : null,
+            notas: notaGol.trim() || null,
           }
         : undefined,
     );
@@ -362,6 +366,17 @@ export function EventosList({
                   <CampoMiniSelector value={posicionGol} onChange={setPosicionGol} />
                 </div>
               )}
+
+              <div className="space-y-2">
+                <Label htmlFor="notaGol">Nota (opcional)</Label>
+                <Textarea
+                  id="notaGol"
+                  rows={2}
+                  placeholder="Ej: rechace tras córner, portero se equivoca..."
+                  value={notaGol}
+                  onChange={(e) => setNotaGol(e.target.value)}
+                />
+              </div>
             </>
           )}
 
@@ -415,6 +430,12 @@ export function EventosList({
                         {" "}
                         · {TIPO_GOL_LABEL[evento.tipo_gol]}
                         {evento.abp_tipo && ` (${TIPO_ABP_LABEL[evento.abp_tipo]})`}
+                      </span>
+                    )}
+                    {evento.notas && (
+                      <span className="text-muted-foreground italic">
+                        {" "}
+                        · {evento.notas}
                       </span>
                     )}
                   </span>
@@ -473,6 +494,12 @@ export function EventosList({
                 <p>
                   <span className="text-muted-foreground">Minuto: </span>
                   {eventoVer.minuto}&apos;
+                </p>
+              )}
+              {eventoVer.notas && (
+                <p>
+                  <span className="text-muted-foreground">Nota: </span>
+                  {eventoVer.notas}
                 </p>
               )}
               {(eventoVer.pos_x != null || eventoVer.pos_x_centro != null) && (

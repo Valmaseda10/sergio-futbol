@@ -6,6 +6,11 @@
 // enlazados (cambio_sale/cambio_entra) para poder verlos y borrarlos juntos,
 // en vez de dar de alta cada evento suelto desde Eventos.
 //
+// Un jugador que ya salió se sigue viendo en rojo en el banquillo (para
+// saber de un vistazo quién ha salido ya), pero se puede volver a
+// seleccionar como entrada: en pretemporada es normal hacer cambios sin
+// límite y que alguien vuelva a salir más tarde.
+//
 // Los jugadores "solo por hoy" (alineación libre, sin ficha en Plantilla)
 // también se pueden dar de baja tocándolos en el campo: como no tienen
 // jugador_id con el que enlazar el evento, se guardan por nombre.
@@ -261,9 +266,10 @@ export function CambiosList({
         posY: override?.top ?? t.posY ?? undefined,
       };
     });
-    const suplentesIds = banquillo
-      .filter((j) => !yaSalieron.has(j.id))
-      .map((j) => j.id);
+    // Un jugador que ya salió se puede volver a meter (típico en
+    // pretemporada, con cambios sin límite), así que sigue contando como
+    // banquillo disponible en vez de descartarse.
+    const suplentesIds = banquillo.map((j) => j.id);
 
     const result = await guardarAlineacionFinalLocal(partidoId, titulares, suplentesIds);
     setGuardandoAlineacion(false);
@@ -374,27 +380,27 @@ export function CambiosList({
           <ul className="flex flex-wrap gap-2">
             {banquillo.map((j) => {
               const salio = yaSalieron.has(j.id);
+              const seleccionado = entraId === j.id;
               return (
                 <li key={j.id}>
                   <button
                     type="button"
-                    disabled={salio}
                     onClick={() =>
                       setEntraId((prev) => (prev === j.id ? "" : j.id))
                     }
                     className={cn(
                       "flex items-center gap-2 rounded-full border py-1 pr-3 pl-2 text-sm",
-                      salio
-                        ? "border-destructive bg-destructive/10 text-destructive"
-                        : entraId === j.id
-                          ? "border-pitch bg-pitch/10 text-pitch"
+                      seleccionado
+                        ? "border-pitch bg-pitch/10 text-pitch"
+                        : salio
+                          ? "border-destructive bg-destructive/10 text-destructive"
                           : "hover:bg-muted",
                     )}
                   >
                     <span
                       className={cn(
                         "flex size-6 items-center justify-center rounded-full text-[10px] font-medium",
-                        salio
+                        !seleccionado && salio
                           ? "bg-destructive text-white"
                           : "bg-primary text-primary-foreground",
                       )}

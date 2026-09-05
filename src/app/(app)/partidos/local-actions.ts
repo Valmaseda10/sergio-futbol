@@ -419,6 +419,7 @@ export async function crearEventoLocal(
     abpTipo?: TipoAbp | null;
     posXCentro?: number | null;
     posYCentro?: number | null;
+    notas?: string | null;
   },
 ): Promise<EventoResult> {
   const id = crypto.randomUUID();
@@ -437,6 +438,7 @@ export async function crearEventoLocal(
     pos_y_centro: golDetalle?.posYCentro ?? null,
     cambio_grupo_id: null,
     nombre_libre: null,
+    notas: golDetalle?.notas ?? null,
   };
 
   await localDb.eventos_partido.put(row);
@@ -490,6 +492,7 @@ export async function crearCambioLocal(
       pos_y_centro: null,
       cambio_grupo_id: grupoId,
       nombre_libre: nombreLibre,
+      notas: null,
     };
   }
 

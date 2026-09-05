@@ -405,6 +405,7 @@ export interface Database {
           pos_y_centro: number | null;
           cambio_grupo_id: string | null;
           nombre_libre: string | null;
+          notas: string | null;
         };
         Insert: {
           id?: string;
@@ -421,6 +422,7 @@ export interface Database {
           pos_y_centro?: number | null;
           cambio_grupo_id?: string | null;
           nombre_libre?: string | null;
+          notas?: string | null;
         };
         Update: Partial<
           Database["public"]["Tables"]["eventos_partido"]["Insert"]
