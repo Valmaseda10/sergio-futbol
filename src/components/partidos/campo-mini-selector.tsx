@@ -104,6 +104,12 @@ export function CampoCompletoSelector({
       <div className="absolute inset-x-[20%] bottom-0 h-[16%] border-x border-t border-white/40" />
       <div className="absolute inset-x-[38%] top-0 h-[6%] border-x border-b border-white/40" />
       <div className="absolute inset-x-[38%] bottom-0 h-[6%] border-x border-t border-white/40" />
+      <span className="absolute inset-x-0 top-1 text-center text-[8px] font-semibold uppercase tracking-wide text-white/70">
+        Portería rival · a favor
+      </span>
+      <span className="absolute inset-x-0 bottom-1 text-center text-[8px] font-semibold uppercase tracking-wide text-white/70">
+        Nuestra portería · en contra
+      </span>
       {value && (
         <span
           className="absolute size-5 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-white bg-gold shadow"

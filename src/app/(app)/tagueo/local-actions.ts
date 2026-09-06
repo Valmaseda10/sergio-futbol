@@ -16,10 +16,14 @@ export async function crearEtiquetaLocal(
     return { error: parsed.error.issues[0]?.message ?? "Datos no válidos" };
   }
 
+  const existentes = await localDb.etiquetas.toArray();
+  const maxOrden = existentes.reduce((max, e) => Math.max(max, e.orden), -1);
+
   const id = crypto.randomUUID();
   const row: LocalEtiqueta = {
     id,
     ...parsed.data,
+    orden: maxOrden + 1,
     activo: true,
     created_at: new Date().toISOString(),
   };
@@ -28,6 +32,33 @@ export async function crearEtiquetaLocal(
   await queueMutation("etiquetas", "insert", id, row);
 
   return { success: true, id };
+}
+
+// Mueve una categoría un puesto arriba o abajo en la lista, intercambiando su
+// "orden" con el de la categoría vecina en esa dirección (según el orden
+// actual). Si ya está en el extremo, no hace nada.
+export async function moverEtiquetaLocal(
+  id: string,
+  direccion: "arriba" | "abajo",
+): Promise<SimpleResult> {
+  const ordenadas = (await localDb.etiquetas.toArray()).sort(
+    (a, b) => a.orden - b.orden || a.nombre.localeCompare(b.nombre),
+  );
+  const index = ordenadas.findIndex((e) => e.id === id);
+  if (index === -1) return { success: true };
+
+  const destino = direccion === "arriba" ? index - 1 : index + 1;
+  if (destino < 0 || destino >= ordenadas.length) return { success: true };
+
+  const actual = ordenadas[index];
+  const vecino = ordenadas[destino];
+
+  await localDb.etiquetas.update(actual.id, { orden: vecino.orden });
+  await queueMutation("etiquetas", "update", actual.id, { orden: vecino.orden });
+  await localDb.etiquetas.update(vecino.id, { orden: actual.orden });
+  await queueMutation("etiquetas", "update", vecino.id, { orden: actual.orden });
+
+  return { success: true };
 }
 
 export async function actualizarEtiquetaLocal(

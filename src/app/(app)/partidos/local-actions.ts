@@ -558,24 +558,28 @@ export async function guardarValoracionLocal(
 // Apartado genérico de etiquetado: cada toque de una etiqueta (definida en
 // Ajustes) durante un partido se guarda como una fila suelta, opcionalmente
 // atribuida a un jugador, con minuto y una nota corta.
-export async function crearEtiquetaPartidoLocal(
-  partidoId: string,
-  etiquetaId: string,
-  jugadorId: string | null,
-  minuto: string,
-  notas: string,
-  posicion?: { left: number; top: number } | null,
-): Promise<SimpleResult> {
+export async function crearEtiquetaPartidoLocal(datos: {
+  partidoId: string;
+  etiquetaId: string;
+  jugadorId: string | null;
+  minuto: number;
+  segundo: number;
+  parte: number;
+  notas: string;
+  posicion?: { left: number; top: number } | null;
+}): Promise<SimpleResult> {
   const id = crypto.randomUUID();
   const row: LocalEtiquetaPartido = {
     id,
-    partido_id: partidoId,
-    etiqueta_id: etiquetaId,
-    jugador_id: jugadorId,
-    minuto: minuto !== "" ? Number(minuto) : null,
-    notas: notas.trim() || null,
-    pos_x: posicion?.left ?? null,
-    pos_y: posicion?.top ?? null,
+    partido_id: datos.partidoId,
+    etiqueta_id: datos.etiquetaId,
+    jugador_id: datos.jugadorId,
+    minuto: datos.minuto,
+    segundo: datos.segundo,
+    parte: datos.parte,
+    notas: datos.notas.trim() || null,
+    pos_x: datos.posicion?.left ?? null,
+    pos_y: datos.posicion?.top ?? null,
     created_at: new Date().toISOString(),
   };
 

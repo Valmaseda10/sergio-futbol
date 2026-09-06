@@ -3,11 +3,12 @@
 import { useState } from "react";
 import { useLiveQuery } from "dexie-react-hooks";
 import { toast } from "sonner";
-import { Pencil } from "lucide-react";
+import { ChevronDown, ChevronUp, Pencil } from "lucide-react";
 import {
   crearEtiquetaLocal,
   actualizarEtiquetaLocal,
   toggleActivoEtiquetaLocal,
+  moverEtiquetaLocal,
 } from "@/app/(app)/tagueo/local-actions";
 import { localDb } from "@/lib/db/local-db";
 import { etiquetaFormDataToValues } from "@/lib/validations/etiqueta";
@@ -26,6 +27,7 @@ interface Etiqueta {
   id: string;
   nombre: string;
   color: string;
+  orden: number;
   activo: boolean;
 }
 
@@ -91,13 +93,16 @@ export function EtiquetasPanel() {
     () =>
       localDb.etiquetas
         .toArray()
-        .then((rows) => rows.sort((a, b) => a.nombre.localeCompare(b.nombre))),
+        .then((rows) =>
+          rows.sort((a, b) => a.orden - b.orden || a.nombre.localeCompare(b.nombre)),
+        ),
     [],
     [],
   );
   const [mostrarNuevo, setMostrarNuevo] = useState(false);
   const [editando, setEditando] = useState<Etiqueta | null>(null);
   const [pendiente, setPendiente] = useState<string | null>(null);
+  const [moviendo, setMoviendo] = useState<string | null>(null);
 
   async function handleToggle(etiqueta: Etiqueta) {
     setPendiente(etiqueta.id);
@@ -105,12 +110,19 @@ export function EtiquetasPanel() {
     setPendiente(null);
   }
 
+  async function handleMover(id: string, direccion: "arriba" | "abajo") {
+    setMoviendo(id);
+    await moverEtiquetaLocal(id, direccion);
+    setMoviendo(null);
+  }
+
   return (
     <div className="space-y-3">
       <p className="text-xs text-muted-foreground">
         Estas son las categorías que aparecen para tocar mientras vas
         tagueando un partido (tiro a puerta, pérdida, recuperación...).
-        Añade las que quieras y desactiva las que no uses sin perder el
+        Añade las que quieras, muévelas con las flechas para ponerlas en el
+        orden que prefieras, y desactiva las que no uses sin perder el
         histórico ya registrado con ellas.
       </p>
       {etiquetas.length === 0 ? (
@@ -119,8 +131,30 @@ export function EtiquetasPanel() {
         </p>
       ) : (
         <ul className="divide-y rounded-md border">
-          {etiquetas.map((etiqueta) => (
-            <li key={etiqueta.id} className="flex items-center gap-3 p-3">
+          {etiquetas.map((etiqueta, index) => (
+            <li key={etiqueta.id} className="flex items-center gap-2 p-3">
+              <div className="flex shrink-0 flex-col">
+                <Button
+                  variant="ghost"
+                  size="icon-sm"
+                  className="h-5"
+                  disabled={index === 0 || moviendo !== null}
+                  onClick={() => handleMover(etiqueta.id, "arriba")}
+                  aria-label="Mover arriba"
+                >
+                  <ChevronUp className="size-3.5" />
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="icon-sm"
+                  className="h-5"
+                  disabled={index === etiquetas.length - 1 || moviendo !== null}
+                  onClick={() => handleMover(etiqueta.id, "abajo")}
+                  aria-label="Mover abajo"
+                >
+                  <ChevronDown className="size-3.5" />
+                </Button>
+              </div>
               <span
                 className="size-4 shrink-0 rounded-full"
                 style={{ backgroundColor: etiqueta.color }}

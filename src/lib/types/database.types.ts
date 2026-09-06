@@ -94,6 +94,7 @@ export interface Database {
           id: string;
           nombre: string;
           color: string;
+          orden: number;
           activo: boolean;
           created_at: string;
         };
@@ -101,6 +102,7 @@ export interface Database {
           id?: string;
           nombre: string;
           color: string;
+          orden?: number;
           activo?: boolean;
           created_at?: string;
         };
@@ -114,6 +116,8 @@ export interface Database {
           etiqueta_id: string;
           jugador_id: string | null;
           minuto: number | null;
+          segundo: number | null;
+          parte: number;
           notas: string | null;
           pos_x: number | null;
           pos_y: number | null;
@@ -125,6 +129,8 @@ export interface Database {
           etiqueta_id: string;
           jugador_id?: string | null;
           minuto?: number | null;
+          segundo?: number | null;
+          parte?: number;
           notas?: string | null;
           pos_x?: number | null;
           pos_y?: number | null;

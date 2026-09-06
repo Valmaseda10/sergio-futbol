@@ -31,7 +31,9 @@ export default function TagueoPartidoPage() {
       localDb.etiquetas
         .filter((e) => e.activo)
         .toArray()
-        .then((rows) => rows.sort((a, b) => a.nombre.localeCompare(b.nombre))),
+        .then((rows) =>
+          rows.sort((a, b) => a.orden - b.orden || a.nombre.localeCompare(b.nombre)),
+        ),
     [],
     [],
   );

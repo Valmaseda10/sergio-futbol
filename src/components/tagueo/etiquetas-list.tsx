@@ -60,7 +60,11 @@ export function EtiquetasList({
 
   const [paso, setPaso] = useState<Paso>("categoria");
   const [etiquetaActual, setEtiquetaActual] = useState<Etiqueta | null>(null);
-  const [minutoCapturado, setMinutoCapturado] = useState(0);
+  const [tiempoCapturado, setTiempoCapturado] = useState<{
+    minuto: number;
+    segundo: number;
+    parte: 1 | 2;
+  }>({ minuto: 0, segundo: 0, parte: 1 });
   const [jugadorElegido, setJugadorElegido] = useState<string | null>(null); // null = equipo
   const [zona, setZona] = useState<{ top: number; left: number } | null>(null);
   const [notas, setNotas] = useState("");
@@ -80,7 +84,11 @@ export function EtiquetasList({
 
   function handleElegirCategoria(etiqueta: Etiqueta) {
     setEtiquetaActual(etiqueta);
-    setMinutoCapturado(cronometro.minuto);
+    setTiempoCapturado({
+      minuto: cronometro.minuto,
+      segundo: cronometro.segundos,
+      parte: cronometro.parte,
+    });
     setPaso("jugador");
   }
 
@@ -102,14 +110,16 @@ export function EtiquetasList({
   async function handleGuardar() {
     if (!etiquetaActual) return;
     setEnviando(true);
-    const result = await crearEtiquetaPartidoLocal(
+    const result = await crearEtiquetaPartidoLocal({
       partidoId,
-      etiquetaActual.id,
-      jugadorElegido,
-      String(minutoCapturado),
+      etiquetaId: etiquetaActual.id,
+      jugadorId: jugadorElegido,
+      minuto: tiempoCapturado.minuto,
+      segundo: tiempoCapturado.segundo,
+      parte: tiempoCapturado.parte,
       notas,
-      zona,
-    );
+      posicion: zona,
+    });
     setEnviando(false);
 
     if ("error" in result) {
@@ -139,7 +149,9 @@ export function EtiquetasList({
             {dosDigitos(cronometro.minuto)}:{dosDigitos(cronometro.segundos)}
           </p>
           <p className="text-xs text-muted-foreground">
-            {cronometro.corriendo ? "En juego" : "Parado (descanso)"}
+            {cronometro.corriendo
+              ? `En juego · ${cronometro.parte}ª parte`
+              : "Parado (descanso)"}
           </p>
         </div>
         <div className="flex gap-2">
@@ -216,7 +228,9 @@ export function EtiquetasList({
               className="size-2.5 shrink-0 rounded-full"
               style={{ backgroundColor: etiquetaActual.color }}
             />
-            {etiquetaActual.nombre} · {minutoCapturado}&apos;
+            {etiquetaActual.nombre} ·{" "}
+            {dosDigitos(tiempoCapturado.minuto)}:{dosDigitos(tiempoCapturado.segundo)} ·{" "}
+            {tiempoCapturado.parte}ª parte
           </button>
           <p className="text-sm font-medium text-muted-foreground">
             ¿Quién ha sido?
@@ -261,7 +275,9 @@ export function EtiquetasList({
               className="size-2.5 shrink-0 rounded-full"
               style={{ backgroundColor: etiquetaActual.color }}
             />
-            {etiquetaActual.nombre} · {minutoCapturado}&apos; · {jugadorElegidoNombre}
+            {etiquetaActual.nombre} ·{" "}
+            {dosDigitos(tiempoCapturado.minuto)}:{dosDigitos(tiempoCapturado.segundo)} ·{" "}
+            {jugadorElegidoNombre}
           </button>
           <p className="text-sm font-medium text-muted-foreground">
             ¿En qué zona? (opcional)
@@ -286,7 +302,14 @@ export function EtiquetasList({
         <ul className="divide-y rounded-md border">
           {registros
             .slice()
-            .sort((a, b) => (a.minuto ?? 999) - (b.minuto ?? 999))
+            .sort((a, b) => {
+              const parteA = a.parte ?? 1;
+              const parteB = b.parte ?? 1;
+              if (parteA !== parteB) return parteA - parteB;
+              const segA = (a.minuto ?? 999) * 60 + (a.segundo ?? 0);
+              const segB = (b.minuto ?? 999) * 60 + (b.segundo ?? 0);
+              return segA - segB;
+            })
             .map((registro) => {
               const etiqueta = etiquetasPorId.get(registro.etiqueta_id);
               const jugador = registro.jugador_id
@@ -300,8 +323,12 @@ export function EtiquetasList({
                     borrando === registro.id && "opacity-50",
                   )}
                 >
-                  <span className="w-9 shrink-0 font-heading tabular-nums text-muted-foreground">
-                    {registro.minuto != null ? `${registro.minuto}'` : "—"}
+                  <span className="w-16 shrink-0 font-heading text-xs tabular-nums text-muted-foreground">
+                    {registro.minuto != null
+                      ? `${dosDigitos(registro.minuto)}:${dosDigitos(registro.segundo ?? 0)}`
+                      : "—"}
+                    <br />
+                    {registro.parte ?? 1}ª parte
                   </span>
                   <span
                     className="size-2.5 shrink-0 rounded-full"
