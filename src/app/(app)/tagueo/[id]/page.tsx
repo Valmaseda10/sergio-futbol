@@ -42,6 +42,21 @@ export default function TagueoPartidoPage() {
     [id],
     [],
   );
+  const titularesIniciales = useLiveQuery(
+    () =>
+      localDb.alineaciones
+        .where("partido_id")
+        .equals(id)
+        .filter((a) => a.titular)
+        .toArray(),
+    [id],
+    [],
+  );
+  const eventos = useLiveQuery(
+    () => localDb.eventos_partido.where("partido_id").equals(id).toArray(),
+    [id],
+    [],
+  );
 
   const convocados = useMemo(() => {
     const jugadoresPorId = new Map(jugadores.map((j) => [j.id, j]));
@@ -81,6 +96,8 @@ export default function TagueoPartidoPage() {
         convocados={convocados}
         etiquetas={etiquetas}
         registros={registros}
+        titularesIniciales={titularesIniciales}
+        eventos={eventos}
       />
     </div>
   );

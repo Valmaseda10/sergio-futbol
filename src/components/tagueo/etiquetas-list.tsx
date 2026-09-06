@@ -14,9 +14,10 @@ import {
   crearEtiquetaPartidoLocal,
   eliminarEtiquetaPartidoLocal,
 } from "@/app/(app)/partidos/local-actions";
-import type { LocalEtiquetaPartido } from "@/lib/db/local-db";
+import type { LocalAlineacion, LocalEtiquetaPartido, LocalEventoPartido } from "@/lib/db/local-db";
 import { useCronometro } from "@/components/tagueo/use-cronometro";
 import { CampoCompletoSelector } from "@/components/partidos/campo-mini-selector";
+import { CampoJugadorSelector } from "@/components/tagueo/campo-jugador-selector";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
@@ -50,11 +51,18 @@ export function EtiquetasList({
   convocados,
   etiquetas,
   registros,
+  titularesIniciales,
+  eventos,
 }: {
   partidoId: string;
   convocados: Jugador[];
   etiquetas: Etiqueta[];
   registros: LocalEtiquetaPartido[];
+  titularesIniciales: Pick<
+    LocalAlineacion,
+    "id" | "jugador_id" | "nombre_libre" | "posicion_jugada" | "pos_x" | "pos_y"
+  >[];
+  eventos: LocalEventoPartido[];
 }) {
   const cronometro = useCronometro(partidoId);
 
@@ -232,34 +240,51 @@ export function EtiquetasList({
             {dosDigitos(tiempoCapturado.minuto)}:{dosDigitos(tiempoCapturado.segundo)} ·{" "}
             {tiempoCapturado.parte}ª parte
           </button>
-          <p className="text-sm font-medium text-muted-foreground">
-            ¿Quién ha sido?
-          </p>
-          <ul className="flex flex-wrap gap-2">
-            <li>
-              <button
-                type="button"
-                onClick={() => handleElegirJugador(null)}
-                className="rounded-full border py-1 px-3 text-sm hover:bg-muted"
-              >
-                Equipo (sin jugador)
-              </button>
-            </li>
-            {convocados.map((j) => (
-              <li key={j.id}>
-                <button
-                  type="button"
-                  onClick={() => handleElegirJugador(j.id)}
-                  className="flex items-center gap-2 rounded-full border py-1 pr-3 pl-2 text-sm hover:bg-muted"
-                >
-                  <span className="flex size-6 items-center justify-center rounded-full bg-primary text-[10px] font-medium text-primary-foreground">
-                    {j.dorsal ?? nombreMostrado(j)[0]}
-                  </span>
-                  {nombreMostrado(j)}
-                </button>
-              </li>
-            ))}
-          </ul>
+          {titularesIniciales.length === 0 ? (
+            <>
+              <p className="text-sm font-medium text-muted-foreground">
+                ¿Quién ha sido?
+              </p>
+              <p className="text-xs text-muted-foreground">
+                Todavía no hay alineación para ver a los jugadores en el
+                campo — de momento, elige de esta lista.
+              </p>
+              <ul className="flex flex-wrap gap-2">
+                <li>
+                  <button
+                    type="button"
+                    onClick={() => handleElegirJugador(null)}
+                    className="rounded-full border py-1 px-3 text-sm hover:bg-muted"
+                  >
+                    Equipo (sin jugador)
+                  </button>
+                </li>
+                {convocados.map((j) => (
+                  <li key={j.id}>
+                    <button
+                      type="button"
+                      onClick={() => handleElegirJugador(j.id)}
+                      className="flex items-center gap-2 rounded-full border py-1 pr-3 pl-2 text-sm hover:bg-muted"
+                    >
+                      <span className="flex size-6 items-center justify-center rounded-full bg-primary text-[10px] font-medium text-primary-foreground">
+                        {j.dorsal ?? nombreMostrado(j)[0]}
+                      </span>
+                      {nombreMostrado(j)}
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            </>
+          ) : (
+            <CampoJugadorSelector
+              partidoId={partidoId}
+              convocados={convocados}
+              titularesIniciales={titularesIniciales}
+              eventos={eventos}
+              minutoSugerido={tiempoCapturado.minuto}
+              onSeleccionarJugador={handleElegirJugador}
+            />
+          )}
         </div>
       )}
 
