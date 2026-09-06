@@ -9,14 +9,26 @@
 import { useState } from "react";
 import Link from "next/link";
 import { toast } from "sonner";
-import { ChevronLeft, Pause, Play, RotateCcw, Tag, Trash2 } from "lucide-react";
+import {
+  ChevronDown,
+  ChevronLeft,
+  ChevronUp,
+  Pause,
+  Play,
+  RotateCcw,
+  Tag,
+  Trash2,
+} from "lucide-react";
 import {
   crearEtiquetaPartidoLocal,
   eliminarEtiquetaPartidoLocal,
 } from "@/app/(app)/partidos/local-actions";
 import type { LocalAlineacion, LocalEtiquetaPartido, LocalEventoPartido } from "@/lib/db/local-db";
 import { useCronometro } from "@/components/tagueo/use-cronometro";
-import { CampoCompletoSelector } from "@/components/partidos/campo-mini-selector";
+import {
+  CampoCompletoMini,
+  CampoCompletoSelector,
+} from "@/components/partidos/campo-mini-selector";
 import { CampoJugadorSelector } from "@/components/tagueo/campo-jugador-selector";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -78,9 +90,29 @@ export function EtiquetasList({
   const [notas, setNotas] = useState("");
   const [enviando, setEnviando] = useState(false);
   const [borrando, setBorrando] = useState<string | null>(null);
+  const [categoriaAbierta, setCategoriaAbierta] = useState<string | null>(null);
 
   const jugadoresPorId = new Map(convocados.map((j) => [j.id, j]));
-  const etiquetasPorId = new Map(etiquetas.map((e) => [e.id, e]));
+
+  // Agrupa los registros por categoría para el contador en cada botón de
+  // "¿Qué ha pasado?" y para el resumen desplegable de más abajo.
+  const registrosPorEtiqueta = new Map<string, LocalEtiquetaPartido[]>();
+  for (const registro of registros) {
+    const grupo = registrosPorEtiqueta.get(registro.etiqueta_id) ?? [];
+    grupo.push(registro);
+    registrosPorEtiqueta.set(registro.etiqueta_id, grupo);
+  }
+
+  function ordenarPorTiempo(items: LocalEtiquetaPartido[]) {
+    return items.slice().sort((a, b) => {
+      const parteA = a.parte ?? 1;
+      const parteB = b.parte ?? 1;
+      if (parteA !== parteB) return parteA - parteB;
+      const segA = (a.minuto ?? 999) * 60 + (a.segundo ?? 0);
+      const segB = (b.minuto ?? 999) * 60 + (b.segundo ?? 0);
+      return segA - segB;
+    });
+  }
 
   function resetear() {
     setPaso("categoria");
@@ -202,23 +234,31 @@ export function EtiquetasList({
             </p>
           ) : (
             <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
-              {etiquetas.map((etiqueta) => (
-                <button
-                  key={etiqueta.id}
-                  type="button"
-                  onClick={() => handleElegirCategoria(etiqueta)}
-                  className="flex items-center gap-2 rounded-md border py-2 pr-2 pl-3 text-sm font-medium"
-                  style={{ borderColor: etiqueta.color }}
-                >
-                  <span
-                    className="size-2.5 shrink-0 rounded-full"
-                    style={{ backgroundColor: etiqueta.color }}
-                  />
-                  <span className="min-w-0 flex-1 truncate text-left">
-                    {etiqueta.nombre}
-                  </span>
-                </button>
-              ))}
+              {etiquetas.map((etiqueta) => {
+                const cuenta = registrosPorEtiqueta.get(etiqueta.id)?.length ?? 0;
+                return (
+                  <button
+                    key={etiqueta.id}
+                    type="button"
+                    onClick={() => handleElegirCategoria(etiqueta)}
+                    className="flex items-center gap-2 rounded-md border py-2 pr-2 pl-3 text-sm font-medium"
+                    style={{ borderColor: etiqueta.color }}
+                  >
+                    <span
+                      className="size-2.5 shrink-0 rounded-full"
+                      style={{ backgroundColor: etiqueta.color }}
+                    />
+                    <span className="min-w-0 flex-1 truncate text-left">
+                      {etiqueta.nombre}
+                    </span>
+                    {cuenta > 0 && (
+                      <span className="flex size-5 shrink-0 items-center justify-center rounded-full bg-muted text-[11px] font-semibold tabular-nums">
+                        {cuenta}
+                      </span>
+                    )}
+                  </button>
+                );
+              })}
             </div>
           )}
         </div>
@@ -324,71 +364,103 @@ export function EtiquetasList({
       )}
 
       {registros.length > 0 && (
-        <ul className="divide-y rounded-md border">
-          {registros
-            .slice()
-            .sort((a, b) => {
-              const parteA = a.parte ?? 1;
-              const parteB = b.parte ?? 1;
-              if (parteA !== parteB) return parteA - parteB;
-              const segA = (a.minuto ?? 999) * 60 + (a.segundo ?? 0);
-              const segB = (b.minuto ?? 999) * 60 + (b.segundo ?? 0);
-              return segA - segB;
-            })
-            .map((registro) => {
-              const etiqueta = etiquetasPorId.get(registro.etiqueta_id);
-              const jugador = registro.jugador_id
-                ? jugadoresPorId.get(registro.jugador_id)
-                : null;
-              return (
-                <li
-                  key={registro.id}
-                  className={cn(
-                    "flex items-center gap-3 p-3 text-sm",
-                    borrando === registro.id && "opacity-50",
-                  )}
-                >
-                  <span className="w-16 shrink-0 font-heading text-xs tabular-nums text-muted-foreground">
-                    {registro.minuto != null
-                      ? `${dosDigitos(registro.minuto)}:${dosDigitos(registro.segundo ?? 0)}`
-                      : "—"}
-                    <br />
-                    {registro.parte ?? 1}ª parte
-                  </span>
-                  <span
-                    className="size-2.5 shrink-0 rounded-full"
-                    style={{ backgroundColor: etiqueta?.color ?? "#94a3b8" }}
-                  />
-                  <span className="min-w-0 flex-1 truncate">
-                    <span className="font-medium">
-                      {etiqueta?.nombre ?? "Etiqueta"}
-                    </span>
-                    {jugador && (
-                      <span className="text-muted-foreground">
-                        {" "}
-                        — {nombreMostrado(jugador)}
+        <div className="space-y-2">
+          <p className="text-sm font-medium text-muted-foreground">
+            Resumen del partido
+          </p>
+          <ul className="divide-y rounded-md border">
+            {etiquetas
+              .map((etiqueta) => ({
+                etiqueta,
+                items: registrosPorEtiqueta.get(etiqueta.id) ?? [],
+              }))
+              .filter((grupo) => grupo.items.length > 0)
+              .map(({ etiqueta, items }) => {
+                const abierta = categoriaAbierta === etiqueta.id;
+                return (
+                  <li key={etiqueta.id}>
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setCategoriaAbierta((prev) =>
+                          prev === etiqueta.id ? null : etiqueta.id,
+                        )
+                      }
+                      className="flex w-full items-center gap-3 p-3 text-sm"
+                    >
+                      <span
+                        className="size-2.5 shrink-0 rounded-full"
+                        style={{ backgroundColor: etiqueta.color }}
+                      />
+                      <span className="min-w-0 flex-1 truncate text-left font-medium">
+                        {etiqueta.nombre}
                       </span>
-                    )}
-                    {registro.notas && (
-                      <span className="text-muted-foreground italic">
-                        {" "}
-                        · {registro.notas}
+                      <span className="rounded-full bg-muted px-2 py-0.5 text-xs font-semibold tabular-nums">
+                        {items.length}
                       </span>
+                      {abierta ? (
+                        <ChevronUp className="size-4 shrink-0 text-muted-foreground" />
+                      ) : (
+                        <ChevronDown className="size-4 shrink-0 text-muted-foreground" />
+                      )}
+                    </button>
+                    {abierta && (
+                      <ul className="divide-y border-t bg-muted/30">
+                        {ordenarPorTiempo(items).map((registro) => {
+                          const jugador = registro.jugador_id
+                            ? jugadoresPorId.get(registro.jugador_id)
+                            : null;
+                          return (
+                            <li
+                              key={registro.id}
+                              className={cn(
+                                "flex items-center gap-3 p-3 text-sm",
+                                borrando === registro.id && "opacity-50",
+                              )}
+                            >
+                              <CampoCompletoMini
+                                value={
+                                  registro.pos_x != null && registro.pos_y != null
+                                    ? { left: registro.pos_x, top: registro.pos_y }
+                                    : null
+                                }
+                              />
+                              <div className="min-w-0 flex-1">
+                                <p className="font-heading text-xs tabular-nums text-muted-foreground">
+                                  {registro.minuto != null
+                                    ? `${dosDigitos(registro.minuto)}:${dosDigitos(registro.segundo ?? 0)}`
+                                    : "—"}{" "}
+                                  · {registro.parte ?? 1}ª parte
+                                </p>
+                                <p className="truncate">
+                                  {jugador ? nombreMostrado(jugador) : "Equipo"}
+                                  {registro.notas && (
+                                    <span className="text-muted-foreground italic">
+                                      {" "}
+                                      · {registro.notas}
+                                    </span>
+                                  )}
+                                </p>
+                              </div>
+                              <Button
+                                variant="ghost"
+                                size="icon-sm"
+                                disabled={borrando === registro.id}
+                                onClick={() => handleBorrar(registro.id)}
+                                aria-label="Eliminar registro"
+                              >
+                                <Trash2 className="size-4" />
+                              </Button>
+                            </li>
+                          );
+                        })}
+                      </ul>
                     )}
-                  </span>
-                  <Button
-                    variant="ghost"
-                    size="icon-sm"
-                    disabled={borrando === registro.id}
-                    onClick={() => handleBorrar(registro.id)}
-                    aria-label="Eliminar registro"
-                  >
-                    <Trash2 className="size-4" />
-                  </Button>
-                </li>
-              );
-            })}
-        </ul>
+                  </li>
+                );
+              })}
+          </ul>
+        </div>
       )}
 
       {registros.length === 0 && paso === "categoria" && etiquetas.length > 0 && (

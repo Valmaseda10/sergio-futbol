@@ -16,6 +16,7 @@ import {
   ChevronRight,
   Video,
   PlayCircle,
+  Tag,
 } from "lucide-react";
 import { localDb } from "@/lib/db/local-db";
 import { capitalizarPrimera } from "@/lib/date";
@@ -122,6 +123,11 @@ export default function FichaPartidoPage() {
     [id],
     0,
   );
+  const tagueosCount = useLiveQuery(
+    () => localDb.etiquetas_partido.where("partido_id").equals(id).count(),
+    [id],
+    0,
+  );
   const [fotoRivalSignedUrl, setFotoRivalSignedUrl] = useState<string | null>(
     null,
   );
@@ -189,6 +195,12 @@ export default function FichaPartidoPage() {
       icon: Video,
       label: "Vídeos",
       estado: `${videosCount} vídeos`,
+    },
+    {
+      href: `/tagueo/${id}`,
+      icon: Tag,
+      label: "Tagueo",
+      estado: `${tagueosCount} tagueados`,
     },
   ];
 

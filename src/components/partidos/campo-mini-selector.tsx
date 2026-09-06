@@ -120,6 +120,30 @@ export function CampoCompletoSelector({
   );
 }
 
+// Versión pequeña y de solo lectura del campo completo, para mostrar en una
+// fila de lista (p. ej. el detalle de un tagueo) el punto marcado sin poder
+// tocarlo ni editarlo.
+export function CampoCompletoMini({ value }: { value: Posicion | null }) {
+  return (
+    <div className="relative aspect-[2/3] w-10 shrink-0 overflow-hidden rounded bg-pitch">
+      <div className="absolute inset-x-0 top-1/2 h-px bg-white/40" />
+      <div className="absolute top-1/2 left-1/2 size-4 -translate-x-1/2 -translate-y-1/2 rounded-full border border-white/40" />
+      <div className="absolute inset-x-[20%] top-0 h-[16%] border-x border-b border-white/40" />
+      <div className="absolute inset-x-[20%] bottom-0 h-[16%] border-x border-t border-white/40" />
+      {value ? (
+        <span
+          className="absolute size-2 -translate-x-1/2 -translate-y-1/2 rounded-full border border-white bg-gold"
+          style={{ top: `${value.top}%`, left: `${value.left}%` }}
+        />
+      ) : (
+        <span className="absolute inset-0 flex items-center justify-center text-[7px] text-white/50">
+          s/z
+        </span>
+      )}
+    </div>
+  );
+}
+
 function MarcadorCentro({ pos }: { pos: Posicion }) {
   return (
     <span
