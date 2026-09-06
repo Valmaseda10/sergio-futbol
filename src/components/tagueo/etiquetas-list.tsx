@@ -3,10 +3,11 @@
 // Panel de control para ir marcando sobre la marcha lo que pasa en el
 // partido: eliges jugador y minuto una vez (se quedan puestos para
 // encadenar varias etiquetas seguidas sin repetir el paso), y tocas la
-// etiqueta que corresponda para registrarla al momento. Las etiquetas se
-// definen libremente en Ajustes → Etiquetas de partido.
+// categoría que corresponda para registrarla al momento. Las categorías se
+// definen libremente desde Tagueo → Categorías.
 
 import { useState } from "react";
+import Link from "next/link";
 import { toast } from "sonner";
 import { Tag, Trash2 } from "lucide-react";
 import {
@@ -150,8 +151,11 @@ export function EtiquetasList({
 
       {etiquetas.length === 0 ? (
         <p className="py-4 text-center text-sm text-muted-foreground">
-          Todavía no hay etiquetas definidas. Créalas desde{" "}
-          <span className="font-medium">Ajustes → Etiquetas de partido</span>.
+          Todavía no hay categorías definidas. Créalas desde{" "}
+          <Link href="/tagueo" className="font-medium underline">
+            Tagueo → Categorías
+          </Link>
+          .
         </p>
       ) : (
         <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">

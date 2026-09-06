@@ -6,9 +6,9 @@ import { useParams } from "next/navigation";
 import { useLiveQuery } from "dexie-react-hooks";
 import { ChevronLeft } from "lucide-react";
 import { localDb } from "@/lib/db/local-db";
-import { EtiquetasList } from "@/components/partidos/etiquetas-list";
+import { EtiquetasList } from "@/components/tagueo/etiquetas-list";
 
-export default function EtiquetasPartidoPage() {
+export default function TagueoPartidoPage() {
   const { id } = useParams<{ id: string }>();
 
   const partido = useLiveQuery(
@@ -66,13 +66,13 @@ export default function EtiquetasPartidoPage() {
   return (
     <div className="space-y-4">
       <Link
-        href={`/partidos/${id}`}
+        href="/tagueo"
         className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground"
       >
         <ChevronLeft className="size-4" />
-        Volver al partido
+        Tagueo
       </Link>
-      <h1 className="text-2xl font-semibold">Etiquetas vs {partido.rival}</h1>
+      <h1 className="text-2xl font-semibold">Tagueo vs {partido.rival}</h1>
 
       <EtiquetasList
         partidoId={id}

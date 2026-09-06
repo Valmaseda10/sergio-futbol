@@ -8,7 +8,7 @@ import {
   crearEtiquetaLocal,
   actualizarEtiquetaLocal,
   toggleActivoEtiquetaLocal,
-} from "@/app/(app)/ajustes/local-actions";
+} from "@/app/(app)/tagueo/local-actions";
 import { localDb } from "@/lib/db/local-db";
 import { etiquetaFormDataToValues } from "@/lib/validations/etiqueta";
 import { Button } from "@/components/ui/button";
@@ -108,10 +108,10 @@ export function EtiquetasPanel() {
   return (
     <div className="space-y-3">
       <p className="text-xs text-muted-foreground">
-        Estas etiquetas son las que aparecen para marcar lo que va pasando en
-        el apartado &quot;Etiquetas&quot; de cada partido. Añade las que
-        quieras (presión alta, pérdida, recuperación...) y desactiva las que
-        no uses sin perder el histórico ya registrado con ellas.
+        Estas son las categorías que aparecen para tocar mientras vas
+        tagueando un partido (tiro a puerta, pérdida, recuperación...).
+        Añade las que quieras y desactiva las que no uses sin perder el
+        histórico ya registrado con ellas.
       </p>
       {etiquetas.length === 0 ? (
         <p className="py-4 text-center text-sm text-muted-foreground">

@@ -5,12 +5,10 @@
 import {
   localDb,
   type LocalEstado,
-  type LocalEtiqueta,
   type LocalHorarioEntrenamiento,
 } from "@/lib/db/local-db";
 import { queueMutation } from "@/lib/db/sync";
 import { estadoSchema, type EstadoFormValues } from "@/lib/validations/estado";
-import { etiquetaSchema, type EtiquetaFormValues } from "@/lib/validations/etiqueta";
 
 type ActionResult = { error: string } | { success: true; id: string };
 type SimpleResult = { error: string } | { success: true };
@@ -58,52 +56,6 @@ export async function toggleActivoEstadoLocal(
 ): Promise<SimpleResult> {
   await localDb.estados.update(id, { activo });
   await queueMutation("estados", "update", id, { activo });
-  return { success: true };
-}
-
-export async function crearEtiquetaLocal(
-  values: EtiquetaFormValues,
-): Promise<ActionResult> {
-  const parsed = etiquetaSchema.safeParse(values);
-  if (!parsed.success) {
-    return { error: parsed.error.issues[0]?.message ?? "Datos no válidos" };
-  }
-
-  const id = crypto.randomUUID();
-  const row: LocalEtiqueta = {
-    id,
-    ...parsed.data,
-    activo: true,
-    created_at: new Date().toISOString(),
-  };
-
-  await localDb.etiquetas.put(row);
-  await queueMutation("etiquetas", "insert", id, row);
-
-  return { success: true, id };
-}
-
-export async function actualizarEtiquetaLocal(
-  id: string,
-  values: EtiquetaFormValues,
-): Promise<SimpleResult> {
-  const parsed = etiquetaSchema.safeParse(values);
-  if (!parsed.success) {
-    return { error: parsed.error.issues[0]?.message ?? "Datos no válidos" };
-  }
-
-  await localDb.etiquetas.update(id, parsed.data);
-  await queueMutation("etiquetas", "update", id, parsed.data);
-
-  return { success: true };
-}
-
-export async function toggleActivoEtiquetaLocal(
-  id: string,
-  activo: boolean,
-): Promise<SimpleResult> {
-  await localDb.etiquetas.update(id, { activo });
-  await queueMutation("etiquetas", "update", id, { activo });
   return { success: true };
 }
 

@@ -13,6 +13,7 @@ import {
   Video,
   BarChart3,
   Settings,
+  Tag,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -21,6 +22,7 @@ const NAV_ITEMS = [
   { href: "/plantilla", label: "Plantilla", icon: Users },
   { href: "/entrenamientos", label: "Entrenamientos", icon: CalendarDays },
   { href: "/partidos", label: "Partidos", icon: Trophy },
+  { href: "/tagueo", label: "Tagueo", icon: Tag },
   { href: "/rivales", label: "Rivales", icon: Swords },
   { href: "/pizarra", label: "Pizarra", icon: LayoutGrid },
   { href: "/campograma", label: "Campograma", icon: LayoutList },
@@ -37,7 +39,7 @@ export function BottomNav() {
       className="fixed inset-x-0 bottom-0 z-40 border-t bg-background pb-[env(safe-area-inset-bottom)] md:hidden print:hidden"
       aria-label="Navegación principal"
     >
-      <ul className="grid grid-cols-10">
+      <ul className="grid grid-cols-11">
         {NAV_ITEMS.map(({ href, label, icon: Icon }) => {
           const active = pathname.startsWith(href);
           return (
