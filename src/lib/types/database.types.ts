@@ -115,6 +115,8 @@ export interface Database {
           jugador_id: string | null;
           minuto: number | null;
           notas: string | null;
+          pos_x: number | null;
+          pos_y: number | null;
           created_at: string;
         };
         Insert: {
@@ -124,6 +126,8 @@ export interface Database {
           jugador_id?: string | null;
           minuto?: number | null;
           notas?: string | null;
+          pos_x?: number | null;
+          pos_y?: number | null;
           created_at?: string;
         };
         Update: Partial<

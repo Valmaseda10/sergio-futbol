@@ -72,6 +72,48 @@ export function CampoMiniSelector({
   );
 }
 
+// Campo completo (no solo un lado) para elegir una zona genérica del
+// partido — a diferencia de CampoMiniSelector, pensado para la posición de
+// un gol siempre en la misma portería de ataque.
+export function CampoCompletoSelector({
+  value,
+  onChange,
+}: {
+  value: Posicion | null;
+  onChange: (pos: Posicion) => void;
+}) {
+  const pitchRef = useRef<HTMLDivElement>(null);
+
+  function handlePick(e: React.PointerEvent<HTMLDivElement>) {
+    const rect = pitchRef.current?.getBoundingClientRect();
+    if (!rect) return;
+    const left = clamp(((e.clientX - rect.left) / rect.width) * 100, MARGEN, 100 - MARGEN);
+    const top = clamp(((e.clientY - rect.top) / rect.height) * 100, MARGEN, 100 - MARGEN);
+    onChange({ top, left });
+  }
+
+  return (
+    <div
+      ref={pitchRef}
+      onPointerDown={handlePick}
+      className="relative mx-auto aspect-[2/3] w-full max-w-xs touch-none overflow-hidden rounded-lg bg-pitch"
+    >
+      <div className="absolute inset-x-0 top-1/2 h-px bg-white/40" />
+      <div className="absolute top-1/2 left-1/2 size-16 -translate-x-1/2 -translate-y-1/2 rounded-full border border-white/40" />
+      <div className="absolute inset-x-[20%] top-0 h-[16%] border-x border-b border-white/40" />
+      <div className="absolute inset-x-[20%] bottom-0 h-[16%] border-x border-t border-white/40" />
+      <div className="absolute inset-x-[38%] top-0 h-[6%] border-x border-b border-white/40" />
+      <div className="absolute inset-x-[38%] bottom-0 h-[6%] border-x border-t border-white/40" />
+      {value && (
+        <span
+          className="absolute size-5 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-white bg-gold shadow"
+          style={{ top: `${value.top}%`, left: `${value.left}%` }}
+        />
+      )}
+    </div>
+  );
+}
+
 function MarcadorCentro({ pos }: { pos: Posicion }) {
   return (
     <span

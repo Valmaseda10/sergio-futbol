@@ -564,6 +564,7 @@ export async function crearEtiquetaPartidoLocal(
   jugadorId: string | null,
   minuto: string,
   notas: string,
+  posicion?: { left: number; top: number } | null,
 ): Promise<SimpleResult> {
   const id = crypto.randomUUID();
   const row: LocalEtiquetaPartido = {
@@ -573,6 +574,8 @@ export async function crearEtiquetaPartidoLocal(
     jugador_id: jugadorId,
     minuto: minuto !== "" ? Number(minuto) : null,
     notas: notas.trim() || null,
+    pos_x: posicion?.left ?? null,
+    pos_y: posicion?.top ?? null,
     created_at: new Date().toISOString(),
   };
 
