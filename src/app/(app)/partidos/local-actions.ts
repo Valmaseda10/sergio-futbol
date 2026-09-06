@@ -7,6 +7,7 @@ import {
   type LocalAlineacion,
   type LocalAlineacionFinal,
   type LocalConvocatoria,
+  type LocalEtiquetaPartido,
   type LocalEventoPartido,
   type LocalPartido,
   type LocalValoracionPartido,
@@ -551,5 +552,38 @@ export async function guardarValoracionLocal(
   await localDb.valoraciones_partido.put(row);
   await queueMutation("valoraciones_partido", "insert", id, row);
 
+  return { success: true };
+}
+
+// Apartado genérico de etiquetado: cada toque de una etiqueta (definida en
+// Ajustes) durante un partido se guarda como una fila suelta, opcionalmente
+// atribuida a un jugador, con minuto y una nota corta.
+export async function crearEtiquetaPartidoLocal(
+  partidoId: string,
+  etiquetaId: string,
+  jugadorId: string | null,
+  minuto: string,
+  notas: string,
+): Promise<SimpleResult> {
+  const id = crypto.randomUUID();
+  const row: LocalEtiquetaPartido = {
+    id,
+    partido_id: partidoId,
+    etiqueta_id: etiquetaId,
+    jugador_id: jugadorId,
+    minuto: minuto !== "" ? Number(minuto) : null,
+    notas: notas.trim() || null,
+    created_at: new Date().toISOString(),
+  };
+
+  await localDb.etiquetas_partido.put(row);
+  await queueMutation("etiquetas_partido", "insert", id, row);
+
+  return { success: true };
+}
+
+export async function eliminarEtiquetaPartidoLocal(id: string): Promise<SimpleResult> {
+  await localDb.etiquetas_partido.delete(id);
+  await queueMutation("etiquetas_partido", "delete", id);
   return { success: true };
 }

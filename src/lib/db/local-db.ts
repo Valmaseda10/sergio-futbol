@@ -38,6 +38,8 @@ export type LocalCampogramaJugador = Tables["campograma_jugadores"]["Row"];
 export type LocalCampogramaRival = Tables["campograma_rivales"]["Row"];
 export type LocalVideoSesion = Tables["videos_sesiones"]["Row"];
 export type LocalVideoSesionClip = Tables["videos_sesion_clips"]["Row"];
+export type LocalEtiqueta = Tables["etiquetas"]["Row"];
+export type LocalEtiquetaPartido = Tables["etiquetas_partido"]["Row"];
 
 export const SYNCED_TABLES = [
   "jugadores",
@@ -64,6 +66,8 @@ export const SYNCED_TABLES = [
   "campograma_rivales",
   "videos_sesiones",
   "videos_sesion_clips",
+  "etiquetas",
+  "etiquetas_partido",
 ] as const;
 
 export type SyncedTable = (typeof SYNCED_TABLES)[number];
@@ -121,6 +125,8 @@ class LocalDb extends Dexie {
   campograma_rivales!: Table<LocalCampogramaRival, string>;
   videos_sesiones!: Table<LocalVideoSesion, string>;
   videos_sesion_clips!: Table<LocalVideoSesionClip, string>;
+  etiquetas!: Table<LocalEtiqueta, string>;
+  etiquetas_partido!: Table<LocalEtiquetaPartido, string>;
   outbox!: Table<OutboxEntry, number>;
   meta!: Table<MetaEntry, string>;
 
@@ -188,6 +194,11 @@ class LocalDb extends Dexie {
 
     this.version(11).stores({
       campograma_rivales: "id, campograma_id",
+    });
+
+    this.version(12).stores({
+      etiquetas: "id, activo",
+      etiquetas_partido: "id, partido_id, etiqueta_id, jugador_id",
     });
   }
 }

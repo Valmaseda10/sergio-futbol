@@ -16,6 +16,7 @@ import {
   ChevronRight,
   Video,
   PlayCircle,
+  Tag,
 } from "lucide-react";
 import { localDb } from "@/lib/db/local-db";
 import { capitalizarPrimera } from "@/lib/date";
@@ -122,6 +123,11 @@ export default function FichaPartidoPage() {
     [id],
     0,
   );
+  const etiquetasCount = useLiveQuery(
+    () => localDb.etiquetas_partido.where("partido_id").equals(id).count(),
+    [id],
+    0,
+  );
   const [fotoRivalSignedUrl, setFotoRivalSignedUrl] = useState<string | null>(
     null,
   );
@@ -177,6 +183,12 @@ export default function FichaPartidoPage() {
       icon: ListOrdered,
       label: "Eventos",
       estado: `${eventosCount} registrados`,
+    },
+    {
+      href: `/partidos/${id}/etiquetas`,
+      icon: Tag,
+      label: "Etiquetas",
+      estado: `${etiquetasCount} registradas`,
     },
     {
       href: `/partidos/${id}/valoracion`,

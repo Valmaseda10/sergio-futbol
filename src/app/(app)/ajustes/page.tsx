@@ -1,6 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { SolicitudesPanel } from "@/components/ajustes/solicitudes-panel";
 import { EstadosPanel } from "@/components/ajustes/estados-panel";
+import { EtiquetasPanel } from "@/components/ajustes/etiquetas-panel";
 import { HorarioSemanalPanel } from "@/components/ajustes/horario-semanal-panel";
 import { UsuariosPanel } from "@/components/ajustes/usuarios-panel";
 import { CambiarPasswordPanel } from "@/components/ajustes/cambiar-password-panel";
@@ -103,6 +104,15 @@ export default async function AjustesPage() {
         </CardHeader>
         <CardContent>
           <EstadosPanel />
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Etiquetas de partido</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <EtiquetasPanel />
         </CardContent>
       </Card>
 

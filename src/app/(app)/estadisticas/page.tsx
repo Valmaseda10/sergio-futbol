@@ -14,6 +14,7 @@ import { MapaGoles } from "@/components/estadisticas/mapa-goles";
 import { GolesIntervaloChart } from "@/components/estadisticas/goles-intervalo-chart";
 import { JugadoresTable } from "@/components/estadisticas/jugadores-table";
 import { BalanceTemporada } from "@/components/estadisticas/balance-temporada";
+import { EtiquetasResumen } from "@/components/estadisticas/etiquetas-resumen";
 import { Button } from "@/components/ui/button";
 import { Printer } from "lucide-react";
 import { PdfWatermark } from "@/components/branding/pdf-watermark";
@@ -68,6 +69,16 @@ export default function EstadisticasPage() {
     [],
   );
   const estados = useLiveQuery(() => localDb.estados.toArray(), [], []);
+  const etiquetasDef = useLiveQuery(() => localDb.etiquetas.toArray(), [], []);
+  const etiquetasPartidoTodas = useLiveQuery(
+    () => localDb.etiquetas_partido.toArray(),
+    [],
+    [],
+  );
+  // Se necesitan también los jugadores dados de baja: uno etiquetado en un
+  // partido de esta temporada no debería desaparecer del resumen solo por
+  // no estar ya activo.
+  const jugadoresTodos = useLiveQuery(() => localDb.jugadores.toArray(), [], []);
 
   const { temporada: temporadaSel } = useTemporadaSeleccionada();
 
@@ -260,6 +271,35 @@ export default function EstadisticasPage() {
     [asistenciaEquipo],
   );
 
+  const registrosEtiquetas = useMemo(() => {
+    const etiquetasPorId = new Map(etiquetasDef.map((e) => [e.id, e.nombre]));
+    const jugadoresPorId = new Map(jugadoresTodos.map((j) => [j.id, j]));
+    const partidosPorId = new Map(partidosTemporada.map((p) => [p.id, p]));
+
+    return etiquetasPartidoTodas
+      .filter((r) => partidoIdsTemporada.has(r.partido_id))
+      .map((r) => {
+        const partido = partidosPorId.get(r.partido_id);
+        const jugador = r.jugador_id ? jugadoresPorId.get(r.jugador_id) : null;
+        return {
+          fecha: partido?.fecha ?? "",
+          rival: partido?.rival ?? "",
+          etiqueta: etiquetasPorId.get(r.etiqueta_id) ?? "Etiqueta",
+          jugador: jugador
+            ? jugador.alias || `${jugador.nombre} ${jugador.apellidos}`
+            : "Equipo",
+          minuto: r.minuto,
+          nota: r.notas,
+        };
+      });
+  }, [
+    etiquetasPartidoTodas,
+    etiquetasDef,
+    jugadoresTodos,
+    partidosTemporada,
+    partidoIdsTemporada,
+  ]);
+
   return (
     <div className="space-y-4">
       <PdfWatermark />
@@ -422,6 +462,18 @@ export default function EstadisticasPage() {
           ) : (
             <JugadoresTable jugadores={statsJugadores} />
           )}
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">Etiquetas</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <EtiquetasResumen
+            registros={registrosEtiquetas}
+            temporada={temporadaSel}
+          />
         </CardContent>
       </Card>
 

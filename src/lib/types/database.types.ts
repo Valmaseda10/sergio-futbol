@@ -89,6 +89,48 @@ export interface Database {
         Update: Partial<Database["public"]["Tables"]["estados"]["Insert"]>;
         Relationships: [];
       };
+      etiquetas: {
+        Row: {
+          id: string;
+          nombre: string;
+          color: string;
+          activo: boolean;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          nombre: string;
+          color: string;
+          activo?: boolean;
+          created_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["etiquetas"]["Insert"]>;
+        Relationships: [];
+      };
+      etiquetas_partido: {
+        Row: {
+          id: string;
+          partido_id: string;
+          etiqueta_id: string;
+          jugador_id: string | null;
+          minuto: number | null;
+          notas: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          partido_id: string;
+          etiqueta_id: string;
+          jugador_id?: string | null;
+          minuto?: number | null;
+          notas?: string | null;
+          created_at?: string;
+        };
+        Update: Partial<
+          Database["public"]["Tables"]["etiquetas_partido"]["Insert"]
+        >;
+        Relationships: [];
+      };
       ejercicios: {
         Row: {
           id: string;
