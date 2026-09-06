@@ -14,6 +14,14 @@ interface GolUbicacion {
 
 const SIN_TIPO = "__sin_tipo__";
 
+type FiltroFavor = "todos" | "favor" | "contra";
+
+const FILTROS_FAVOR: { value: FiltroFavor; label: string }[] = [
+  { value: "todos", label: "Todos" },
+  { value: "favor", label: "A favor" },
+  { value: "contra", label: "En contra" },
+];
+
 export function MapaGoles({
   goles,
   tipos,
@@ -21,13 +29,30 @@ export function MapaGoles({
   goles: GolUbicacion[];
   tipos: { value: string; label: string }[];
 }) {
+  const [filtroFavor, setFiltroFavor] = useState<FiltroFavor>("todos");
+
+  const golesPorFavor = useMemo(
+    () =>
+      goles.filter((g) => {
+        if (filtroFavor === "favor") return g.a_favor;
+        if (filtroFavor === "contra") return !g.a_favor;
+        return true;
+      }),
+    [goles, filtroFavor],
+  );
+
+  // Los tipos disponibles se recalculan sobre el filtro de a favor/en
+  // contra ya aplicado, para no ofrecer un tipo que no tiene ningún gol
+  // dentro de lo que se está viendo (p. ej. "penalti" solo a favor).
   const opciones = useMemo(() => {
-    const base = tipos.filter((t) => goles.some((g) => g.tipo_gol === t.value));
-    const hayGolesSinTipo = goles.some((g) => g.tipo_gol == null);
+    const base = tipos.filter((t) =>
+      golesPorFavor.some((g) => g.tipo_gol === t.value),
+    );
+    const hayGolesSinTipo = golesPorFavor.some((g) => g.tipo_gol == null);
     return hayGolesSinTipo
       ? [...base, { value: SIN_TIPO, label: "Sin tipo" }]
       : base;
-  }, [goles, tipos]);
+  }, [golesPorFavor, tipos]);
 
   // Se guardan los tipos EXCLUIDOS (no los seleccionados) para que, por
   // defecto, se muestren todos los goles aunque `opciones` todavía esté
@@ -43,12 +68,37 @@ export function MapaGoles({
     });
   }
 
-  const golesFiltrados = goles.filter(
+  const golesFiltrados = golesPorFavor.filter(
     (g) => !excluidos.has(g.tipo_gol ?? SIN_TIPO),
   );
 
   return (
     <div className="space-y-3">
+      <div className="flex gap-1.5 print:hidden">
+        {FILTROS_FAVOR.map((f) => {
+          const activo = filtroFavor === f.value;
+          return (
+            <button
+              key={f.value}
+              type="button"
+              onClick={() => setFiltroFavor(f.value)}
+              className={cn(
+                "flex-1 rounded-full border px-2.5 py-1.5 text-xs font-semibold transition-colors",
+                activo
+                  ? f.value === "favor"
+                    ? "border-[#1b5e3a] bg-[#1b5e3a] text-white"
+                    : f.value === "contra"
+                      ? "border-destructive bg-destructive text-white"
+                      : "border-primary bg-primary text-primary-foreground"
+                  : "border-input text-muted-foreground hover:bg-muted",
+              )}
+            >
+              {f.label}
+            </button>
+          );
+        })}
+      </div>
+
       {opciones.length > 1 && (
         <div className="flex flex-wrap gap-1.5 print:hidden">
           {opciones.map((o) => {
@@ -79,7 +129,7 @@ export function MapaGoles({
         <PitchHalfLines />
         {golesFiltrados.length === 0 ? (
           <p className="absolute inset-0 flex items-center justify-center px-4 text-center text-sm text-white/80">
-            Ningún gol de los tipos seleccionados.
+            Ningún gol de los seleccionados.
           </p>
         ) : (
           golesFiltrados.map((g, i) => (
