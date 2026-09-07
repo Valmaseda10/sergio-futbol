@@ -23,6 +23,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { FechaTile } from "@/components/ui/fecha-tile";
 import { HorarioSemanalResumen } from "@/components/entrenamientos/horario-semanal-resumen";
+import { CategoriasTareasResumen } from "@/components/entrenamientos/categorias-resumen";
 
 function nombreDia(fecha: string) {
   return capitalizarPrimera(
@@ -190,7 +191,12 @@ export default function EntrenamientosPage() {
         </div>
       </div>
 
-      {!mesActual && <HorarioSemanalResumen />}
+      {!mesActual && (
+        <>
+          <HorarioSemanalResumen />
+          <CategoriasTareasResumen entrenamientos={entrenamientosTemporada} />
+        </>
+      )}
 
       {mesActual ? (
         mesActual.entrenamientos.length === 0 ? (

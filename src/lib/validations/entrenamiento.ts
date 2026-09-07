@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { clubConfig } from "@/lib/club-config";
+import type { CategoriaTarea } from "@/lib/types/database.types";
 
 // Los inputs nativos <input type="date"> a veces dejan pasar un valor mal
 // formado si se teclea dígito a dígito muy rápido en vez de usar el selector
@@ -33,13 +34,19 @@ export const entrenamientoSchema = z.object({
   tarea_2: z.string().trim(),
   tarea_3: z.string().trim(),
   tarea_4: z.string().trim(),
-  // Enlace opcional con la biblioteca de ejercicios: es lo que permite
-  // contar cuántas veces se ha trabajado cada uno y sumar sus minutos (ver
-  // EjerciciosPanel), sin depender de comparar el texto libre de arriba.
+  // Enlace opcional con la biblioteca de ejercicios: solo para copiar texto
+  // rápido, no interviene en el recuento (ver tarea_N_categoria más abajo).
   tarea_1_ejercicio_id: z.string().trim(),
   tarea_2_ejercicio_id: z.string().trim(),
   tarea_3_ejercicio_id: z.string().trim(),
   tarea_4_ejercicio_id: z.string().trim(),
+  // Categoría fija (ver CATEGORIAS_TAREA): es lo que permite contar cuántas
+  // veces se ha trabajado cada una y sumar sus minutos, tanto si la tarea
+  // viene de la biblioteca como si se ha escrito a mano.
+  tarea_1_categoria: z.string().trim(),
+  tarea_2_categoria: z.string().trim(),
+  tarea_3_categoria: z.string().trim(),
+  tarea_4_categoria: z.string().trim(),
   tarea_1_minutos: z.string().trim(),
   tarea_2_minutos: z.string().trim(),
   tarea_3_minutos: z.string().trim(),
@@ -63,6 +70,10 @@ export const ENTRENAMIENTO_FORM_DEFAULTS: EntrenamientoFormValues = {
   tarea_2_ejercicio_id: "",
   tarea_3_ejercicio_id: "",
   tarea_4_ejercicio_id: "",
+  tarea_1_categoria: "",
+  tarea_2_categoria: "",
+  tarea_3_categoria: "",
+  tarea_4_categoria: "",
   tarea_1_minutos: "",
   tarea_2_minutos: "",
   tarea_3_minutos: "",
@@ -71,23 +82,54 @@ export const ENTRENAMIENTO_FORM_DEFAULTS: EntrenamientoFormValues = {
 };
 
 // Si se borra el texto de una tarea, se olvida también su enlace a la
-// biblioteca y sus minutos: no tiene sentido contarla como "trabajada" si ya
-// no queda ni el texto.
-function tareaInsert(texto: string, ejercicioId: string, minutos: string) {
+// biblioteca, su categoría y sus minutos: no tiene sentido contarla como
+// "trabajada" si ya no queda ni el texto.
+function tareaInsert(
+  texto: string,
+  ejercicioId: string,
+  categoria: string,
+  minutos: string,
+) {
   const limpio = texto.trim();
-  if (!limpio) return { texto: null, ejercicioId: null, minutos: null };
+  if (!limpio) {
+    return { texto: null, ejercicioId: null, categoria: null, minutos: null };
+  }
   return {
     texto: limpio,
     ejercicioId: ejercicioId || null,
+    // El desplegable del formulario solo ofrece valores de CATEGORIAS_TAREA,
+    // así que este cast es seguro; el campo llega como string genérico
+    // porque el formulario en sí no tipa por enum.
+    categoria: (categoria || null) as CategoriaTarea | null,
     minutos: minutos !== "" ? Number(minutos) : null,
   };
 }
 
 export function toEntrenamientoInsert(values: EntrenamientoFormValues) {
-  const t1 = tareaInsert(values.tarea_1, values.tarea_1_ejercicio_id, values.tarea_1_minutos);
-  const t2 = tareaInsert(values.tarea_2, values.tarea_2_ejercicio_id, values.tarea_2_minutos);
-  const t3 = tareaInsert(values.tarea_3, values.tarea_3_ejercicio_id, values.tarea_3_minutos);
-  const t4 = tareaInsert(values.tarea_4, values.tarea_4_ejercicio_id, values.tarea_4_minutos);
+  const t1 = tareaInsert(
+    values.tarea_1,
+    values.tarea_1_ejercicio_id,
+    values.tarea_1_categoria,
+    values.tarea_1_minutos,
+  );
+  const t2 = tareaInsert(
+    values.tarea_2,
+    values.tarea_2_ejercicio_id,
+    values.tarea_2_categoria,
+    values.tarea_2_minutos,
+  );
+  const t3 = tareaInsert(
+    values.tarea_3,
+    values.tarea_3_ejercicio_id,
+    values.tarea_3_categoria,
+    values.tarea_3_minutos,
+  );
+  const t4 = tareaInsert(
+    values.tarea_4,
+    values.tarea_4_ejercicio_id,
+    values.tarea_4_categoria,
+    values.tarea_4_minutos,
+  );
   return {
     fecha: values.fecha,
     hora_inicio: values.hora_inicio || null,
@@ -102,6 +144,10 @@ export function toEntrenamientoInsert(values: EntrenamientoFormValues) {
     tarea_2_ejercicio_id: t2.ejercicioId,
     tarea_3_ejercicio_id: t3.ejercicioId,
     tarea_4_ejercicio_id: t4.ejercicioId,
+    tarea_1_categoria: t1.categoria,
+    tarea_2_categoria: t2.categoria,
+    tarea_3_categoria: t3.categoria,
+    tarea_4_categoria: t4.categoria,
     tarea_1_minutos: t1.minutos,
     tarea_2_minutos: t2.minutos,
     tarea_3_minutos: t3.minutos,
@@ -127,6 +173,10 @@ export function entrenamientoFormDataToValues(
     tarea_2_ejercicio_id: String(formData.get("tarea_2_ejercicio_id") ?? ""),
     tarea_3_ejercicio_id: String(formData.get("tarea_3_ejercicio_id") ?? ""),
     tarea_4_ejercicio_id: String(formData.get("tarea_4_ejercicio_id") ?? ""),
+    tarea_1_categoria: String(formData.get("tarea_1_categoria") ?? ""),
+    tarea_2_categoria: String(formData.get("tarea_2_categoria") ?? ""),
+    tarea_3_categoria: String(formData.get("tarea_3_categoria") ?? ""),
+    tarea_4_categoria: String(formData.get("tarea_4_categoria") ?? ""),
     tarea_1_minutos: String(formData.get("tarea_1_minutos") ?? ""),
     tarea_2_minutos: String(formData.get("tarea_2_minutos") ?? ""),
     tarea_3_minutos: String(formData.get("tarea_3_minutos") ?? ""),

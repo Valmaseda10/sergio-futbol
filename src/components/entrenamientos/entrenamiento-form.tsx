@@ -1,7 +1,7 @@
 "use client";
 
 import { useRef, useState } from "react";
-import { useForm } from "react-hook-form";
+import { Controller, useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useRouter } from "next/navigation";
 import { useLiveQuery } from "dexie-react-hooks";
@@ -13,6 +13,7 @@ import {
   entrenamientoSchema,
   type EntrenamientoFormValues,
 } from "@/lib/validations/entrenamiento";
+import { CATEGORIAS_TAREA } from "@/lib/validations/categoria-tarea";
 import {
   crearEntrenamientoLocal,
   actualizarEntrenamientoLocal,
@@ -29,18 +30,32 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 const CAMPOS_TAREA = ["tarea_1", "tarea_2", "tarea_3", "tarea_4"] as const;
 type CampoTarea = (typeof CAMPOS_TAREA)[number];
 
-// Campos derivados de cada tarea (enlace a la biblioteca + minutos), tipados
-// a mano en vez de con plantillas de tipo para que setValue/register los
-// acepten sin líos de inferencia.
+// Campos derivados de cada tarea (enlace a la biblioteca, categoría fija y
+// minutos), tipados a mano en vez de con plantillas de tipo para que
+// setValue/register/Controller los acepten sin líos de inferencia.
 const CAMPO_EJERCICIO_ID = {
   tarea_1: "tarea_1_ejercicio_id",
   tarea_2: "tarea_2_ejercicio_id",
   tarea_3: "tarea_3_ejercicio_id",
   tarea_4: "tarea_4_ejercicio_id",
+} as const satisfies Record<CampoTarea, keyof EntrenamientoFormValues>;
+
+const CAMPO_CATEGORIA = {
+  tarea_1: "tarea_1_categoria",
+  tarea_2: "tarea_2_categoria",
+  tarea_3: "tarea_3_categoria",
+  tarea_4: "tarea_4_categoria",
 } as const satisfies Record<CampoTarea, keyof EntrenamientoFormValues>;
 
 const CAMPO_MINUTOS = {
@@ -81,6 +96,7 @@ export function EntrenamientoForm({
     register,
     handleSubmit,
     setValue,
+    control,
     formState: { errors, isSubmitting },
   } = useForm<EntrenamientoFormValues>({
     resolver: zodResolver(entrenamientoSchema),
@@ -226,21 +242,53 @@ export function EntrenamientoForm({
               </div>
               <Textarea id={campo} rows={2} {...register(campo)} />
               <div className="flex items-center gap-2">
-                <Label
-                  htmlFor={CAMPO_MINUTOS[campo]}
-                  className="shrink-0 text-xs text-muted-foreground"
-                >
-                  Minutos trabajados
-                </Label>
-                <Input
-                  id={CAMPO_MINUTOS[campo]}
-                  type="number"
-                  min={0}
-                  max={180}
-                  placeholder="Ej: 15"
-                  className="h-8 w-20"
-                  {...register(CAMPO_MINUTOS[campo])}
-                />
+                <div className="min-w-0 flex-1 space-y-1">
+                  <Label
+                    htmlFor={CAMPO_CATEGORIA[campo]}
+                    className="text-xs text-muted-foreground"
+                  >
+                    Categoría
+                  </Label>
+                  <Controller
+                    control={control}
+                    name={CAMPO_CATEGORIA[campo]}
+                    render={({ field }) => (
+                      <Select value={field.value} onValueChange={field.onChange}>
+                        <SelectTrigger id={CAMPO_CATEGORIA[campo]} className="w-full">
+                          <SelectValue placeholder="Sin categoría">
+                            {(value) =>
+                              CATEGORIAS_TAREA.find((c) => c.value === value)
+                                ?.label ?? (value as string)
+                            }
+                          </SelectValue>
+                        </SelectTrigger>
+                        <SelectContent>
+                          {CATEGORIAS_TAREA.map((c) => (
+                            <SelectItem key={c.value} value={c.value}>
+                              {c.label}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    )}
+                  />
+                </div>
+                <div className="w-24 shrink-0 space-y-1">
+                  <Label
+                    htmlFor={CAMPO_MINUTOS[campo]}
+                    className="text-xs text-muted-foreground"
+                  >
+                    Minutos
+                  </Label>
+                  <Input
+                    id={CAMPO_MINUTOS[campo]}
+                    type="number"
+                    min={0}
+                    max={180}
+                    placeholder="Ej: 15"
+                    {...register(CAMPO_MINUTOS[campo])}
+                  />
+                </div>
               </div>
             </div>
           ))}

@@ -16,6 +16,7 @@ import { localDb } from "@/lib/db/local-db";
 import { capitalizarPrimera } from "@/lib/date";
 import { createClient } from "@/lib/supabase/client";
 import { esPdf } from "@/lib/storage";
+import { CATEGORIA_TAREA_LABEL } from "@/lib/validations/categoria-tarea";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { EliminarEntrenamientoButton } from "@/components/entrenamientos/eliminar-entrenamiento-button";
@@ -166,15 +167,34 @@ export default function FichaEntrenamientoPage() {
             ) : (
               <ol className="space-y-2">
                 {[
-                  { tarea: entrenamiento.tarea_1, minutos: entrenamiento.tarea_1_minutos },
-                  { tarea: entrenamiento.tarea_2, minutos: entrenamiento.tarea_2_minutos },
-                  { tarea: entrenamiento.tarea_3, minutos: entrenamiento.tarea_3_minutos },
-                  { tarea: entrenamiento.tarea_4, minutos: entrenamiento.tarea_4_minutos },
-                ].map(({ tarea, minutos }, i) =>
+                  {
+                    tarea: entrenamiento.tarea_1,
+                    minutos: entrenamiento.tarea_1_minutos,
+                    categoria: entrenamiento.tarea_1_categoria,
+                  },
+                  {
+                    tarea: entrenamiento.tarea_2,
+                    minutos: entrenamiento.tarea_2_minutos,
+                    categoria: entrenamiento.tarea_2_categoria,
+                  },
+                  {
+                    tarea: entrenamiento.tarea_3,
+                    minutos: entrenamiento.tarea_3_minutos,
+                    categoria: entrenamiento.tarea_3_categoria,
+                  },
+                  {
+                    tarea: entrenamiento.tarea_4,
+                    minutos: entrenamiento.tarea_4_minutos,
+                    categoria: entrenamiento.tarea_4_categoria,
+                  },
+                ].map(({ tarea, minutos, categoria }, i) =>
                   tarea ? (
                     <li key={i} className="rounded-md border p-2">
                       <p className="flex items-center justify-between text-xs font-medium text-muted-foreground">
-                        <span>Tarea {i + 1}</span>
+                        <span>
+                          Tarea {i + 1}
+                          {categoria && ` · ${CATEGORIA_TAREA_LABEL[categoria]}`}
+                        </span>
                         {minutos != null && <span>{minutos} min</span>}
                       </p>
                       <p className="whitespace-pre-wrap">{tarea}</p>

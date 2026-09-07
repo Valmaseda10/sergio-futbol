@@ -32,6 +32,16 @@ export type TipoAbp =
   | "falta_directa"
   | "saque_banda"
   | "penalti";
+export type CategoriaTarea =
+  | "activacion"
+  | "ataque_defensas"
+  | "doble_areas"
+  | "defensa"
+  | "posesion"
+  | "finalizacion"
+  | "partidos"
+  | "rueda_pases"
+  | "abp";
 
 export type Json =
   | string
@@ -221,6 +231,10 @@ export interface Database {
           tarea_2_ejercicio_id: string | null;
           tarea_3_ejercicio_id: string | null;
           tarea_4_ejercicio_id: string | null;
+          tarea_1_categoria: CategoriaTarea | null;
+          tarea_2_categoria: CategoriaTarea | null;
+          tarea_3_categoria: CategoriaTarea | null;
+          tarea_4_categoria: CategoriaTarea | null;
           tarea_1_minutos: number | null;
           tarea_2_minutos: number | null;
           tarea_3_minutos: number | null;
@@ -244,6 +258,10 @@ export interface Database {
           tarea_2_ejercicio_id?: string | null;
           tarea_3_ejercicio_id?: string | null;
           tarea_4_ejercicio_id?: string | null;
+          tarea_1_categoria?: CategoriaTarea | null;
+          tarea_2_categoria?: CategoriaTarea | null;
+          tarea_3_categoria?: CategoriaTarea | null;
+          tarea_4_categoria?: CategoriaTarea | null;
           tarea_1_minutos?: number | null;
           tarea_2_minutos?: number | null;
           tarea_3_minutos?: number | null;
