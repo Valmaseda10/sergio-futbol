@@ -9,7 +9,7 @@ import { temporadaCorta } from "@/lib/temporada";
 import { clubConfig } from "@/lib/club-config";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Crest } from "@/components/branding/crest";
+import { ClubCrest } from "@/components/branding/club-crest";
 import { SyncStatusBadge } from "@/components/sync/sync-status";
 import { BusquedaGlobal } from "@/components/nav/busqueda-global";
 import type { Rol } from "@/lib/types/database.types";
@@ -28,7 +28,7 @@ export function TopBar({ nombre, rol }: { nombre: string; rol: Rol }) {
   return (
     <header className="sticky top-0 z-30 flex items-center justify-between gap-3 bg-[#1c1512] px-4 pb-2.5 pt-[max(0.625rem,env(safe-area-inset-top))] text-[#f3ece7] print:hidden">
       <Link href="/inicio" className="flex min-w-0 items-center gap-2.5">
-        <Crest size={30} />
+        <ClubCrest size={38} />
         <div className="min-w-0">
           <p className="truncate font-heading text-sm uppercase tracking-wide leading-tight">
             {clubConfig.nombreEquipo} {temporadaCorta(temporada)}

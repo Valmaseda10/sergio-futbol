@@ -1,4 +1,4 @@
-import { Crest } from "@/components/branding/crest";
+import { ClubCrest } from "@/components/branding/club-crest";
 import { clubConfig } from "@/lib/club-config";
 import { temporadaActual, temporadaCorta } from "@/lib/temporada";
 
@@ -18,7 +18,7 @@ export default function AuthLayout({
     <div className="flex min-h-svh flex-1 flex-col items-center justify-center bg-[#1c1512] p-4">
       <div className="w-full max-w-sm space-y-6">
         <div className="flex flex-col items-center gap-3 text-center">
-          <Crest size={56} />
+          <ClubCrest size={88} />
           <div>
             <p className="text-xs font-medium tracking-wide text-[#c9bdb6]">
               Panel del entrenador
