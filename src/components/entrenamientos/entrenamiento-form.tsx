@@ -33,6 +33,23 @@ import {
 const CAMPOS_TAREA = ["tarea_1", "tarea_2", "tarea_3", "tarea_4"] as const;
 type CampoTarea = (typeof CAMPOS_TAREA)[number];
 
+// Campos derivados de cada tarea (enlace a la biblioteca + minutos), tipados
+// a mano en vez de con plantillas de tipo para que setValue/register los
+// acepten sin líos de inferencia.
+const CAMPO_EJERCICIO_ID = {
+  tarea_1: "tarea_1_ejercicio_id",
+  tarea_2: "tarea_2_ejercicio_id",
+  tarea_3: "tarea_3_ejercicio_id",
+  tarea_4: "tarea_4_ejercicio_id",
+} as const satisfies Record<CampoTarea, keyof EntrenamientoFormValues>;
+
+const CAMPO_MINUTOS = {
+  tarea_1: "tarea_1_minutos",
+  tarea_2: "tarea_2_minutos",
+  tarea_3: "tarea_3_minutos",
+  tarea_4: "tarea_4_minutos",
+} as const satisfies Record<CampoTarea, keyof EntrenamientoFormValues>;
+
 function FieldError({ message }: { message?: string }) {
   if (!message) return null;
   return <p className="text-sm text-destructive">{message}</p>;
@@ -70,11 +87,20 @@ export function EntrenamientoForm({
     defaultValues: entrenamiento ?? ENTRENAMIENTO_FORM_DEFAULTS,
   });
 
-  function handleElegirEjercicio(descripcion: string, nombre: string) {
+  function handleElegirEjercicio(ejercicio: {
+    id: string;
+    nombre: string;
+    descripcion: string | null;
+  }) {
     if (!pickerPara) return;
-    setValue(pickerPara, descripcion || nombre, {
+    setValue(pickerPara, ejercicio.descripcion || ejercicio.nombre, {
       shouldDirty: true,
       shouldValidate: true,
+    });
+    // Este enlace (no el texto de arriba, que se puede retocar a mano) es lo
+    // que luego permite contar cuántas veces se trabaja cada ejercicio.
+    setValue(CAMPO_EJERCICIO_ID[pickerPara], ejercicio.id, {
+      shouldDirty: true,
     });
     setPickerPara(null);
   }
@@ -199,6 +225,23 @@ export function EntrenamientoForm({
                 </Button>
               </div>
               <Textarea id={campo} rows={2} {...register(campo)} />
+              <div className="flex items-center gap-2">
+                <Label
+                  htmlFor={CAMPO_MINUTOS[campo]}
+                  className="shrink-0 text-xs text-muted-foreground"
+                >
+                  Minutos trabajados
+                </Label>
+                <Input
+                  id={CAMPO_MINUTOS[campo]}
+                  type="number"
+                  min={0}
+                  max={180}
+                  placeholder="Ej: 15"
+                  className="h-8 w-20"
+                  {...register(CAMPO_MINUTOS[campo])}
+                />
+              </div>
             </div>
           ))}
           <div className="space-y-2">
@@ -247,12 +290,7 @@ export function EntrenamientoForm({
                 <button
                   key={ejercicio.id}
                   type="button"
-                  onClick={() =>
-                    handleElegirEjercicio(
-                      ejercicio.descripcion ?? "",
-                      ejercicio.nombre,
-                    )
-                  }
+                  onClick={() => handleElegirEjercicio(ejercicio)}
                   className="block w-full rounded-md p-2 text-left text-sm hover:bg-muted"
                 >
                   <p className="font-medium">{ejercicio.nombre}</p>

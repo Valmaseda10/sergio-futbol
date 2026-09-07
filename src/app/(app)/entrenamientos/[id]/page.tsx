@@ -166,15 +166,16 @@ export default function FichaEntrenamientoPage() {
             ) : (
               <ol className="space-y-2">
                 {[
-                  entrenamiento.tarea_1,
-                  entrenamiento.tarea_2,
-                  entrenamiento.tarea_3,
-                  entrenamiento.tarea_4,
-                ].map((tarea, i) =>
+                  { tarea: entrenamiento.tarea_1, minutos: entrenamiento.tarea_1_minutos },
+                  { tarea: entrenamiento.tarea_2, minutos: entrenamiento.tarea_2_minutos },
+                  { tarea: entrenamiento.tarea_3, minutos: entrenamiento.tarea_3_minutos },
+                  { tarea: entrenamiento.tarea_4, minutos: entrenamiento.tarea_4_minutos },
+                ].map(({ tarea, minutos }, i) =>
                   tarea ? (
                     <li key={i} className="rounded-md border p-2">
-                      <p className="text-xs font-medium text-muted-foreground">
-                        Tarea {i + 1}
+                      <p className="flex items-center justify-between text-xs font-medium text-muted-foreground">
+                        <span>Tarea {i + 1}</span>
+                        {minutos != null && <span>{minutos} min</span>}
                       </p>
                       <p className="whitespace-pre-wrap">{tarea}</p>
                     </li>

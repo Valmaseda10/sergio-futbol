@@ -33,6 +33,17 @@ export const entrenamientoSchema = z.object({
   tarea_2: z.string().trim(),
   tarea_3: z.string().trim(),
   tarea_4: z.string().trim(),
+  // Enlace opcional con la biblioteca de ejercicios: es lo que permite
+  // contar cuántas veces se ha trabajado cada uno y sumar sus minutos (ver
+  // EjerciciosPanel), sin depender de comparar el texto libre de arriba.
+  tarea_1_ejercicio_id: z.string().trim(),
+  tarea_2_ejercicio_id: z.string().trim(),
+  tarea_3_ejercicio_id: z.string().trim(),
+  tarea_4_ejercicio_id: z.string().trim(),
+  tarea_1_minutos: z.string().trim(),
+  tarea_2_minutos: z.string().trim(),
+  tarea_3_minutos: z.string().trim(),
+  tarea_4_minutos: z.string().trim(),
   notas: z.string().trim(),
 });
 
@@ -48,20 +59,53 @@ export const ENTRENAMIENTO_FORM_DEFAULTS: EntrenamientoFormValues = {
   tarea_2: "",
   tarea_3: "",
   tarea_4: "",
+  tarea_1_ejercicio_id: "",
+  tarea_2_ejercicio_id: "",
+  tarea_3_ejercicio_id: "",
+  tarea_4_ejercicio_id: "",
+  tarea_1_minutos: "",
+  tarea_2_minutos: "",
+  tarea_3_minutos: "",
+  tarea_4_minutos: "",
   notas: "",
 };
 
+// Si se borra el texto de una tarea, se olvida también su enlace a la
+// biblioteca y sus minutos: no tiene sentido contarla como "trabajada" si ya
+// no queda ni el texto.
+function tareaInsert(texto: string, ejercicioId: string, minutos: string) {
+  const limpio = texto.trim();
+  if (!limpio) return { texto: null, ejercicioId: null, minutos: null };
+  return {
+    texto: limpio,
+    ejercicioId: ejercicioId || null,
+    minutos: minutos !== "" ? Number(minutos) : null,
+  };
+}
+
 export function toEntrenamientoInsert(values: EntrenamientoFormValues) {
+  const t1 = tareaInsert(values.tarea_1, values.tarea_1_ejercicio_id, values.tarea_1_minutos);
+  const t2 = tareaInsert(values.tarea_2, values.tarea_2_ejercicio_id, values.tarea_2_minutos);
+  const t3 = tareaInsert(values.tarea_3, values.tarea_3_ejercicio_id, values.tarea_3_minutos);
+  const t4 = tareaInsert(values.tarea_4, values.tarea_4_ejercicio_id, values.tarea_4_minutos);
   return {
     fecha: values.fecha,
     hora_inicio: values.hora_inicio || null,
     hora_fin: values.hora_fin || null,
     lugar: values.lugar || null,
     objetivos: values.objetivos || null,
-    tarea_1: values.tarea_1 || null,
-    tarea_2: values.tarea_2 || null,
-    tarea_3: values.tarea_3 || null,
-    tarea_4: values.tarea_4 || null,
+    tarea_1: t1.texto,
+    tarea_2: t2.texto,
+    tarea_3: t3.texto,
+    tarea_4: t4.texto,
+    tarea_1_ejercicio_id: t1.ejercicioId,
+    tarea_2_ejercicio_id: t2.ejercicioId,
+    tarea_3_ejercicio_id: t3.ejercicioId,
+    tarea_4_ejercicio_id: t4.ejercicioId,
+    tarea_1_minutos: t1.minutos,
+    tarea_2_minutos: t2.minutos,
+    tarea_3_minutos: t3.minutos,
+    tarea_4_minutos: t4.minutos,
     notas: values.notas || null,
   };
 }
@@ -79,6 +123,14 @@ export function entrenamientoFormDataToValues(
     tarea_2: String(formData.get("tarea_2") ?? ""),
     tarea_3: String(formData.get("tarea_3") ?? ""),
     tarea_4: String(formData.get("tarea_4") ?? ""),
+    tarea_1_ejercicio_id: String(formData.get("tarea_1_ejercicio_id") ?? ""),
+    tarea_2_ejercicio_id: String(formData.get("tarea_2_ejercicio_id") ?? ""),
+    tarea_3_ejercicio_id: String(formData.get("tarea_3_ejercicio_id") ?? ""),
+    tarea_4_ejercicio_id: String(formData.get("tarea_4_ejercicio_id") ?? ""),
+    tarea_1_minutos: String(formData.get("tarea_1_minutos") ?? ""),
+    tarea_2_minutos: String(formData.get("tarea_2_minutos") ?? ""),
+    tarea_3_minutos: String(formData.get("tarea_3_minutos") ?? ""),
+    tarea_4_minutos: String(formData.get("tarea_4_minutos") ?? ""),
     notas: String(formData.get("notas") ?? ""),
   };
 }
