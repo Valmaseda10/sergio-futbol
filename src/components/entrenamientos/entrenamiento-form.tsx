@@ -7,13 +7,25 @@ import { useRouter } from "next/navigation";
 import { useLiveQuery } from "dexie-react-hooks";
 import { toast } from "sonner";
 import Link from "next/link";
-import { Paperclip, FileText, ExternalLink, BookOpen } from "lucide-react";
+import {
+  Paperclip,
+  FileText,
+  ExternalLink,
+  BookOpen,
+  Sparkles,
+  Loader2,
+} from "lucide-react";
 import {
   ENTRENAMIENTO_FORM_DEFAULTS,
   entrenamientoSchema,
   type EntrenamientoFormValues,
 } from "@/lib/validations/entrenamiento";
-import { CATEGORIAS_TAREA } from "@/lib/validations/categoria-tarea";
+import {
+  CATEGORIAS_TAREA,
+  CATEGORIA_TAREA_LABEL,
+  detectarCategoriaPorTexto,
+} from "@/lib/validations/categoria-tarea";
+import { extraerTareasDePdf, type TareaDetectada } from "@/lib/pdf-tareas";
 import {
   crearEntrenamientoLocal,
   actualizarEntrenamientoLocal,
@@ -82,6 +94,19 @@ export function EntrenamientoForm({
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [documento, setDocumento] = useState<File | null>(null);
   const [pickerPara, setPickerPara] = useState<CampoTarea | null>(null);
+  const [extrayendo, setExtrayendo] = useState(false);
+  const [tareasDetectadas, setTareasDetectadas] = useState<
+    TareaDetectada[] | null
+  >(null);
+
+  // No se pisa con detección automática una categoría que el entrenador ya
+  // haya elegido a mano (ni la que ya viniera guardada al editar).
+  const categoriaManualRef = useRef<Record<CampoTarea, boolean>>({
+    tarea_1: !!entrenamiento?.tarea_1_categoria,
+    tarea_2: !!entrenamiento?.tarea_2_categoria,
+    tarea_3: !!entrenamiento?.tarea_3_categoria,
+    tarea_4: !!entrenamiento?.tarea_4_categoria,
+  });
 
   const ejercicios = useLiveQuery(
     () =>
@@ -121,10 +146,69 @@ export function EntrenamientoForm({
     setPickerPara(null);
   }
 
-  function handleDocumentoChange(e: React.ChangeEvent<HTMLInputElement>) {
+  // Si el texto de la tarea coincide con alguna palabra clave de las
+  // categorías fijas, se marca sola en el desplegable — el entrenador sigue
+  // pudiendo cambiarla a mano en cualquier momento.
+  function handleCambioTarea(campo: CampoTarea, texto: string) {
+    if (categoriaManualRef.current[campo]) return;
+    const detectada = detectarCategoriaPorTexto(texto);
+    if (detectada) {
+      setValue(CAMPO_CATEGORIA[campo], detectada, { shouldDirty: true });
+    }
+  }
+
+  function handleCambioCategoria(campo: CampoTarea, valor: string | null) {
+    categoriaManualRef.current[campo] = true;
+    setValue(CAMPO_CATEGORIA[campo], valor ?? "", { shouldDirty: true });
+  }
+
+  async function handleDocumentoChange(
+    e: React.ChangeEvent<HTMLInputElement>,
+  ) {
     const file = e.target.files?.[0];
     if (!file) return;
     setDocumento(file);
+    setTareasDetectadas(null);
+
+    if (file.type !== "application/pdf") return;
+
+    setExtrayendo(true);
+    try {
+      const detectadas = await extraerTareasDePdf(file);
+      if (detectadas.length === 0) {
+        toast.info(
+          "No se han podido reconocer tareas en el PDF automáticamente; rellénalas a mano.",
+        );
+      } else {
+        setTareasDetectadas(detectadas);
+      }
+    } catch {
+      toast.info(
+        "No se ha podido leer el texto del PDF (puede ser una foto o escaneo); rellena las tareas a mano.",
+      );
+    } finally {
+      setExtrayendo(false);
+    }
+  }
+
+  function handleAplicarDetectadas() {
+    if (!tareasDetectadas) return;
+    tareasDetectadas.forEach((tarea, i) => {
+      const campo = CAMPOS_TAREA[i];
+      if (!campo) return;
+      setValue(campo, tarea.texto, { shouldDirty: true, shouldValidate: true });
+      setValue(CAMPO_MINUTOS[campo], String(tarea.minutos), {
+        shouldDirty: true,
+      });
+      if (tarea.categoria) {
+        categoriaManualRef.current[campo] = true;
+        setValue(CAMPO_CATEGORIA[campo], tarea.categoria, {
+          shouldDirty: true,
+        });
+      }
+    });
+    toast.success("Tareas rellenadas desde el PDF — revísalas antes de guardar");
+    setTareasDetectadas(null);
   }
 
   async function onSubmit(values: EntrenamientoFormValues) {
@@ -152,14 +236,21 @@ export function EntrenamientoForm({
                 type="button"
                 variant="outline"
                 size="sm"
+                disabled={extrayendo}
                 onClick={() => fileInputRef.current?.click()}
               >
-                <Paperclip className="size-4" />
-                {documento
-                  ? documento.name
-                  : entrenamiento?.documentoSignedUrl
-                    ? "Cambiar archivo"
-                    : "Añadir foto o PDF"}
+                {extrayendo ? (
+                  <Loader2 className="size-4 animate-spin" />
+                ) : (
+                  <Paperclip className="size-4" />
+                )}
+                {extrayendo
+                  ? "Leyendo el PDF..."
+                  : documento
+                    ? documento.name
+                    : entrenamiento?.documentoSignedUrl
+                      ? "Cambiar archivo"
+                      : "Añadir foto o PDF"}
               </Button>
               {!documento && entrenamiento?.documentoSignedUrl && (
                 <a
@@ -226,7 +317,9 @@ export function EntrenamientoForm({
               {...register("objetivos")}
             />
           </div>
-          {CAMPOS_TAREA.map((campo, i) => (
+          {CAMPOS_TAREA.map((campo, i) => {
+            const registroTarea = register(campo);
+            return (
             <div key={campo} className="space-y-2">
               <div className="flex items-center justify-between">
                 <Label htmlFor={campo}>Tarea {i + 1}</Label>
@@ -240,7 +333,15 @@ export function EntrenamientoForm({
                   Elegir de la biblioteca
                 </Button>
               </div>
-              <Textarea id={campo} rows={2} {...register(campo)} />
+              <Textarea
+                id={campo}
+                rows={2}
+                {...registroTarea}
+                onChange={(e) => {
+                  registroTarea.onChange(e);
+                  handleCambioTarea(campo, e.target.value);
+                }}
+              />
               <div className="flex items-center gap-2">
                 <div className="min-w-0 flex-1 space-y-1">
                   <Label
@@ -253,7 +354,10 @@ export function EntrenamientoForm({
                     control={control}
                     name={CAMPO_CATEGORIA[campo]}
                     render={({ field }) => (
-                      <Select value={field.value} onValueChange={field.onChange}>
+                      <Select
+                        value={field.value}
+                        onValueChange={(valor) => handleCambioCategoria(campo, valor)}
+                      >
                         <SelectTrigger id={CAMPO_CATEGORIA[campo]} className="w-full">
                           <SelectValue placeholder="Sin categoría">
                             {(value) =>
@@ -291,7 +395,8 @@ export function EntrenamientoForm({
                 </div>
               </div>
             </div>
-          ))}
+            );
+          })}
           <div className="space-y-2">
             <Label htmlFor="notas">Notas</Label>
             <Textarea id="notas" rows={2} {...register("notas")} />
@@ -350,6 +455,55 @@ export function EntrenamientoForm({
                 </button>
               ))
             )}
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog
+        open={tareasDetectadas !== null}
+        onOpenChange={(open) => !open && setTareasDetectadas(null)}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-1.5">
+              <Sparkles className="size-4" />
+              Tareas detectadas en el PDF
+            </DialogTitle>
+          </DialogHeader>
+          <p className="text-xs text-muted-foreground">
+            Revisa que estén bien antes de aplicarlas — sustituirán lo que
+            haya ahora en las Tareas 1-{tareasDetectadas?.length ?? 0}.
+          </p>
+          <ul className="space-y-2">
+            {tareasDetectadas?.map((tarea, i) => (
+              <li key={i} className="rounded-md border p-2 text-sm">
+                <p className="font-medium">
+                  Tarea {i + 1}: {tarea.texto}
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  {tarea.minutos} min ·{" "}
+                  {tarea.categoria
+                    ? CATEGORIA_TAREA_LABEL[tarea.categoria]
+                    : "Sin categoría reconocida"}
+                </p>
+              </li>
+            ))}
+          </ul>
+          <div className="flex gap-2">
+            <Button
+              type="button"
+              className="flex-1"
+              onClick={handleAplicarDetectadas}
+            >
+              Aplicar a las tareas
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setTareasDetectadas(null)}
+            >
+              Descartar
+            </Button>
           </div>
         </DialogContent>
       </Dialog>
