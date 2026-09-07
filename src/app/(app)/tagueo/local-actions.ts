@@ -85,6 +85,34 @@ export async function toggleActivoEtiquetaLocal(
   return { success: true };
 }
 
+// Borrado real (no solo desactivar): se lleva por delante también los
+// tagueos ya registrados con esta categoría en cualquier partido, porque
+// etiquetas_partido.etiqueta_id referencia a etiquetas con "on delete
+// cascade" en Supabase. Aquí se refleja lo mismo a mano en Dexie (que no
+// tiene cascada real) para que no queden registros huérfanos en local.
+export async function eliminarEtiquetaLocal(id: string): Promise<SimpleResult> {
+  const registros = await localDb.etiquetas_partido
+    .where("etiqueta_id")
+    .equals(id)
+    .toArray();
+
+  await localDb.transaction(
+    "rw",
+    [localDb.etiquetas, localDb.etiquetas_partido],
+    async () => {
+      await localDb.etiquetas.delete(id);
+      await localDb.etiquetas_partido.bulkDelete(registros.map((r) => r.id));
+    },
+  );
+
+  // El borrado de los registros en Supabase lo hace la cascada de la base
+  // de datos al llegar el borrado de la etiqueta: no hace falta encolarlo
+  // aparte.
+  await queueMutation("etiquetas", "delete", id);
+
+  return { success: true };
+}
+
 // El registro de cada toque de una categoría durante un partido y su borrado
 // viven en partidos/local-actions.ts (crearEtiquetaPartidoLocal /
 // eliminarEtiquetaPartidoLocal), junto al resto de acciones scoped a un

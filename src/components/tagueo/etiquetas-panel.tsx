@@ -3,12 +3,13 @@
 import { useState } from "react";
 import { useLiveQuery } from "dexie-react-hooks";
 import { toast } from "sonner";
-import { ChevronDown, ChevronUp, Pencil } from "lucide-react";
+import { ChevronDown, ChevronUp, Pencil, Trash2 } from "lucide-react";
 import {
   crearEtiquetaLocal,
   actualizarEtiquetaLocal,
   toggleActivoEtiquetaLocal,
   moverEtiquetaLocal,
+  eliminarEtiquetaLocal,
 } from "@/app/(app)/tagueo/local-actions";
 import { localDb } from "@/lib/db/local-db";
 import { etiquetaFormDataToValues } from "@/lib/validations/etiqueta";
@@ -22,6 +23,17 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 
 interface Etiqueta {
   id: string;
@@ -99,10 +111,25 @@ export function EtiquetasPanel() {
     [],
     [],
   );
+  // Cuántos tagueos ya registrados se perderían al borrar cada categoría,
+  // para avisar antes de confirmar.
+  const conteoPorEtiqueta = useLiveQuery(
+    () =>
+      localDb.etiquetas_partido.toArray().then((registros) => {
+        const mapa = new Map<string, number>();
+        for (const r of registros) {
+          mapa.set(r.etiqueta_id, (mapa.get(r.etiqueta_id) ?? 0) + 1);
+        }
+        return mapa;
+      }),
+    [],
+    new Map<string, number>(),
+  );
   const [mostrarNuevo, setMostrarNuevo] = useState(false);
   const [editando, setEditando] = useState<Etiqueta | null>(null);
   const [pendiente, setPendiente] = useState<string | null>(null);
   const [moviendo, setMoviendo] = useState<string | null>(null);
+  const [borrando, setBorrando] = useState<string | null>(null);
 
   async function handleToggle(etiqueta: Etiqueta) {
     setPendiente(etiqueta.id);
@@ -114,6 +141,18 @@ export function EtiquetasPanel() {
     setMoviendo(id);
     await moverEtiquetaLocal(id, direccion);
     setMoviendo(null);
+  }
+
+  async function handleBorrar(id: string) {
+    setBorrando(id);
+    const result = await eliminarEtiquetaLocal(id);
+    setBorrando(null);
+
+    if ("error" in result) {
+      toast.error(result.error);
+      return;
+    }
+    toast.success("Etiqueta eliminada");
   }
 
   return (
@@ -170,6 +209,41 @@ export function EtiquetasPanel() {
               >
                 <Pencil className="size-4" />
               </Button>
+              <AlertDialog>
+                <AlertDialogTrigger
+                  render={
+                    <Button
+                      variant="ghost"
+                      size="icon-sm"
+                      disabled={borrando === etiqueta.id}
+                      aria-label="Eliminar etiqueta"
+                    />
+                  }
+                >
+                  <Trash2 className="size-4 text-destructive" />
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>
+                      ¿Eliminar &ldquo;{etiqueta.nombre}&rdquo;?
+                    </AlertDialogTitle>
+                    <AlertDialogDescription>
+                      {(conteoPorEtiqueta.get(etiqueta.id) ?? 0) > 0
+                        ? `Esta categoría tiene ${conteoPorEtiqueta.get(etiqueta.id)} tagueo(s) registrados en partidos. Se eliminarán también, junto con la categoría. Esta acción no se puede deshacer.`
+                        : "Esta acción no se puede deshacer. Si solo quieres dejar de usarla sin perder el histórico, desactívala en vez de borrarla."}
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                    <AlertDialogAction
+                      onClick={() => handleBorrar(etiqueta.id)}
+                      className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                    >
+                      Eliminar
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
               <Switch
                 checked={etiqueta.activo}
                 disabled={pendiente === etiqueta.id}
