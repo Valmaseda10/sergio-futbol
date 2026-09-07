@@ -5,9 +5,11 @@ const BLANCO = "#ffffff";
 // Recreación simplificada (no pixel-perfect) del escudo de la Cultural y
 // Deportiva Leonesa, dibujada a partir de la imagen que pasó el usuario:
 // corona dorada, aro rojo con "CULTURAL" / "LEONESA" / "1923" y león
-// rampante rojo coronado sobre fondo blanco. Solo se usa como marca de
-// agua muy tenue en los PDF, así que prioriza que se reconozca la silueta
-// general sobre la fidelidad exacta del trazo.
+// rampante rojo coronado (melena en forma de sol, cuerpo, cola y una garra
+// levantada) sobre fondo blanco. Se usa tanto de logo (cabecera, login)
+// como de marca de agua de fondo, así que prioriza que la silueta se
+// reconozca claramente como un león incluso a tamaño pequeño, por encima
+// del detalle fino del trazo.
 export function ClubCrest({
   size = 32,
   className,
@@ -76,55 +78,54 @@ export function ClubCrest({
         1923
       </text>
 
-      {/* León rampante coronado */}
-      <g fill={ROJO}>
-        <path
-          d="M95 190
-             C80 188 70 172 72 155
-             C73 143 82 132 80 118
-             C79 108 70 104 68 92
-             C74 88 84 90 90 98
-             C90 86 96 76 108 72
-             C104 82 106 92 112 98
-             C120 90 132 88 140 94
-             C133 98 126 104 126 114
-             C126 124 134 128 138 120
-             C142 128 138 138 128 140
-             C132 148 130 158 122 162
-             C126 168 136 166 142 158
-             C144 168 136 178 124 178
-             C126 186 120 194 110 192
-             C112 184 108 178 100 180
-             C98 186 100 190 95 190 Z"
-        />
-        {/* melena */}
-        <g>
-          <circle cx="108" cy="86" r="16" />
-          <path d="M92 78 L86 70 L96 72 Z" />
-          <path d="M96 68 L92 58 L104 64 Z" />
-          <path d="M108 65 L108 54 L118 64 Z" />
-          <path d="M120 68 L126 58 L124 70 Z" />
+      {/* León rampante coronado, centrado en el aro blanco */}
+      <g transform="translate(35 87) scale(0.68)">
+        <g fill={ROJO}>
+          {/* melena: sol de 12 puntas alrededor de la cabeza */}
+          <path d="M 125.0 65.0 L 137.8 73.8 L 122.3 75.0 L 129.0 89.0 L 115.0 82.3 L 113.8 97.8 L 105.0 85.0 L 96.2 97.8 L 95.0 82.3 L 81.0 89.0 L 87.7 75.0 L 72.2 73.8 L 85.0 65.0 L 72.2 56.2 L 87.7 55.0 L 81.0 41.0 L 95.0 47.7 L 96.2 32.2 L 105.0 45.0 L 113.8 32.2 L 115.0 47.7 L 129.0 41.0 L 122.3 55.0 L 137.8 56.2 Z" />
+          {/* cara, dentro de la melena */}
+          <circle cx="105" cy="65" r="20" />
+          {/* cuerpo, inclinado, saliendo por debajo de la melena */}
+          <path
+            d="M 90 78
+               C 78 82 70 94 70 108
+               C 70 124 78 138 92 146
+               C 100 150 110 150 116 144
+               C 124 136 126 122 120 108
+               C 116 98 112 88 108 80 Z"
+          />
+          {/* patas traseras */}
+          <path d="M100 140 C 96 152 96 166 104 174 C 110 178 116 174 114 164 C 112 154 106 146 100 140 Z" />
+          <path d="M86 138 C 78 146 74 158 78 168 C 84 172 90 168 90 158 C 90 150 88 144 86 138 Z" />
+          {/* pata delantera levantada, con garra */}
+          <path
+            d="M92 82 C80 76 68 68 62 56"
+            stroke={ROJO}
+            strokeWidth="11"
+            fill="none"
+            strokeLinecap="round"
+          />
+          <path
+            d="M58 50 L48 42 M58 50 L50 54 M58 50 L56 60"
+            stroke={ROJO}
+            strokeWidth="4"
+            fill="none"
+            strokeLinecap="round"
+          />
+          {/* cola, sale del cuerpo y se curva por encima del lomo */}
+          <path
+            d="M110 142 C136 140 150 118 144 98 C141 88 132 82 124 82"
+            stroke={ROJO}
+            strokeWidth="7"
+            fill="none"
+            strokeLinecap="round"
+          />
+          <ellipse cx="127" cy="80" rx="7" ry="5" transform="rotate(15 127 80)" />
         </g>
-        {/* corona pequeña */}
+        {/* corona pequeña sobre la melena */}
         <g fill={ORO}>
-          <path d="M98 62 L100 54 L104 60 L108 50 L112 60 L116 54 L118 62 Z" />
+          <path d="M92 36 L94 26 L100 34 L104 22 L108 34 L114 26 L116 36 Z" />
         </g>
-        {/* pata delantera levantada */}
-        <path
-          d="M92 100 C78 96 68 100 60 92"
-          stroke={ROJO}
-          strokeWidth="7"
-          fill="none"
-          strokeLinecap="round"
-        />
-        {/* cola */}
-        <path
-          d="M124 176 C146 172 150 156 140 144 C148 146 152 156 146 166"
-          stroke={ROJO}
-          strokeWidth="6"
-          fill="none"
-          strokeLinecap="round"
-        />
       </g>
     </svg>
   );
