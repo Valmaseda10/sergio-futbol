@@ -11,7 +11,7 @@ export interface RegistroEtiquetaExport {
   nota: string | null;
 }
 
-const COLOR_CABECERA = "FF8A1B24";
+const COLOR_CABECERA = "FFE0141D";
 const COLOR_TEXTO_CABECERA = "FFFBF7F5";
 
 export async function exportarEtiquetasExcel(

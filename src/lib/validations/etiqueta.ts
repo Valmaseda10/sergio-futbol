@@ -13,6 +13,6 @@ export type EtiquetaFormValues = z.infer<typeof etiquetaSchema>;
 export function etiquetaFormDataToValues(formData: FormData): EtiquetaFormValues {
   return {
     nombre: String(formData.get("nombre") ?? ""),
-    color: String(formData.get("color") ?? "#8a1b24"),
+    color: String(formData.get("color") ?? "#e0141d"),
   };
 }

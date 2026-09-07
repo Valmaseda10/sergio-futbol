@@ -10,8 +10,8 @@
 //   NEXT_PUBLIC_CLUB_NOMBRE        — nombre del club, p. ej. "Cultural y Deportiva Leonesa"
 //   NEXT_PUBLIC_EQUIPO_NOMBRE      — nombre del equipo, p. ej. "Infantil B"
 //   NEXT_PUBLIC_ESCUDO_INICIALES   — 1-3 letras para el escudo genérico, p. ej. "IB"
-//   NEXT_PUBLIC_COLOR_PRIMARIO     — color principal en hex, p. ej. "#8a1b24"
-//   NEXT_PUBLIC_COLOR_SECUNDARIO   — color secundario/dorado en hex, p. ej. "#9c7328"
+//   NEXT_PUBLIC_COLOR_PRIMARIO     — color principal en hex, p. ej. "#e0141d"
+//   NEXT_PUBLIC_COLOR_SECUNDARIO   — color secundario/dorado en hex, p. ej. "#c9971f"
 //   NEXT_PUBLIC_LUGAR_ENTRENO_DEFECTO — lugar que aparece precargado al crear un entrenamiento
 
 function envONull(valor: string | undefined): string | null {
@@ -26,9 +26,9 @@ export const clubConfig = {
   escudoIniciales:
     envONull(process.env.NEXT_PUBLIC_ESCUDO_INICIALES) ?? "IB",
   colorPrimario:
-    envONull(process.env.NEXT_PUBLIC_COLOR_PRIMARIO) ?? "#8a1b24",
+    envONull(process.env.NEXT_PUBLIC_COLOR_PRIMARIO) ?? "#e0141d",
   colorSecundario:
-    envONull(process.env.NEXT_PUBLIC_COLOR_SECUNDARIO) ?? "#9c7328",
+    envONull(process.env.NEXT_PUBLIC_COLOR_SECUNDARIO) ?? "#c9971f",
   lugarEntrenoDefecto:
     envONull(process.env.NEXT_PUBLIC_LUGAR_ENTRENO_DEFECTO) ??
     "Área Deportiva de Puente Castro",

@@ -77,7 +77,7 @@ function EtiquetaForm({
           id="color"
           name="color"
           type="color"
-          defaultValue={etiqueta?.color ?? "#8a1b24"}
+          defaultValue={etiqueta?.color ?? "#e0141d"}
           className="h-9 w-full p-1"
         />
       </div>
