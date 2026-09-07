@@ -1,3 +1,4 @@
+import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { SolicitudesPanel } from "@/components/ajustes/solicitudes-panel";
 import { EstadosPanel } from "@/components/ajustes/estados-panel";
@@ -15,10 +16,17 @@ export default async function AjustesPage() {
     data: { user },
   } = await supabase.auth.getUser();
 
+  // El middleware ya redirige a /login sin sesión, pero por si la sesión
+  // caduca justo entre medias, mejor un redirect limpio que un crash con
+  // `user!.id` si `user` llegara a ser null aquí.
+  if (!user) {
+    redirect("/login");
+  }
+
   const { data: usuario } = await supabase
     .from("usuarios")
     .select("rol, calendario_token")
-    .eq("id", user!.id)
+    .eq("id", user.id)
     .single();
 
   const isAdmin = usuario?.rol === "admin";
@@ -114,7 +122,7 @@ export default async function AjustesPage() {
           <CardContent>
             <UsuariosPanel
               usuariosIniciales={usuarios ?? []}
-              currentUserId={user!.id}
+              currentUserId={user.id}
             />
           </CardContent>
         </Card>
