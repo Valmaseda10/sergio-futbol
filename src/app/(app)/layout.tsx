@@ -4,6 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import { TopBar } from "@/components/nav/top-bar";
 import { BottomNav, SideNav } from "@/components/nav/bottom-nav";
 import { SyncBoot } from "@/components/sync/sync-status";
+import { AppWatermark } from "@/components/branding/app-watermark";
 
 export default async function AppLayout({
   children,
@@ -35,6 +36,7 @@ export default async function AppLayout({
   return (
     <div className="flex min-h-svh flex-col">
       <SyncBoot />
+      <AppWatermark />
       <TopBar nombre={usuario.nombre} rol={usuario.rol} />
       <div className="flex flex-1">
         <SideNav />
