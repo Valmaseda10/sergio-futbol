@@ -51,9 +51,16 @@ const PALABRAS_CLAVE_CATEGORIA: Record<CategoriaTarea, string[]> = {
     // plantillas de sesión.
     "jdposicion",
     "jd posicion",
+    // Mismo lío, otra variante: "JUGO DEPOSICIÓN" en vez de "JUEGO DE
+    // POSICIÓN".
+    "jugo deposicion",
     "rondo",
     "mantenimiento",
     "circulacion",
+    // Ejercicios de superioridad numérica (3vs2, 2vs1...) — "superioriad"
+    // es como lo escribe el entrenador en sus plantillas (sin la "d").
+    "superioridad",
+    "superioriad",
   ],
   finalizacion: [
     "finalizacion",
