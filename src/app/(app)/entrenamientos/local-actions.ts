@@ -124,8 +124,15 @@ export async function eliminarEntrenamientoLocal(id: string): Promise<SimpleResu
     },
   );
 
-  // Las asistencias se borran en cascada en Supabase; solo hace falta
-  // encolar el borrado del entrenamiento en sí.
+  // Las asistencias ya sincronizadas se borran en cascada en Supabase con
+  // el borrado del entrenamiento. Pero si el entrenamiento se borra antes
+  // de que su propio insert haya llegado a sincronizarse, esa cascada
+  // nunca entra en juego: sin este paso, los inserts de asistencias
+  // pendientes se quedarían encolados para siempre intentando referenciar
+  // un entrenamiento que no existe en ningún sitio.
+  for (const a of asistencias) {
+    await queueMutation("asistencias_entrenamiento", "delete", a.id);
+  }
   await queueMutation("entrenamientos", "delete", id);
 
   return { success: true };

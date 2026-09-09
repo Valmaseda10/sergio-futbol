@@ -105,9 +105,15 @@ export async function eliminarEtiquetaLocal(id: string): Promise<SimpleResult> {
     },
   );
 
-  // El borrado de los registros en Supabase lo hace la cascada de la base
-  // de datos al llegar el borrado de la etiqueta: no hace falta encolarlo
-  // aparte.
+  // Los registros ya sincronizados se borran en Supabase por la cascada
+  // de la base de datos al llegar el borrado de la etiqueta. Pero si la
+  // etiqueta se borra antes de que su propio insert haya llegado a
+  // sincronizarse, esa cascada nunca entra en juego: sin este paso, los
+  // inserts pendientes de sus tagueos se quedarían encolados para siempre
+  // intentando referenciar una etiqueta que no existe en ningún sitio.
+  for (const r of registros) {
+    await queueMutation("etiquetas_partido", "delete", r.id);
+  }
   await queueMutation("etiquetas", "delete", id);
 
   return { success: true };

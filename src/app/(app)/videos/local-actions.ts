@@ -161,6 +161,15 @@ export async function eliminarSesionLocal(id: string): Promise<SimpleResult> {
     },
   );
 
+  // Los clips ya sincronizados se borran en cascada en Supabase con el
+  // borrado de la sesión. Pero si la sesión se borra antes de que su
+  // propio insert haya llegado a sincronizarse, esa cascada nunca entra en
+  // juego: sin este paso, los inserts de clips pendientes se quedarían
+  // encolados para siempre intentando referenciar una sesión que no
+  // existe en ningún sitio.
+  for (const c of clips) {
+    await queueMutation("videos_sesion_clips", "delete", c.id);
+  }
   await queueMutation("videos_sesiones", "delete", id);
   return { success: true };
 }

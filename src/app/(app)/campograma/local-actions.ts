@@ -182,8 +182,19 @@ export async function eliminarCampogramaLocal(id: string): Promise<SimpleResult>
     },
   );
 
-  // Los jugadores y rivales del campograma se borran en cascada en
-  // Supabase; solo hace falta encolar el borrado del campograma en sí.
+  // Los jugadores y rivales ya sincronizados se borran en cascada en
+  // Supabase con el borrado del campograma. Pero si el campograma se borra
+  // antes de que su propio insert haya llegado a sincronizarse, ese insert
+  // se cancela solo (ver queueMutation) y la cascada de Supabase nunca
+  // entra en juego: sin este paso, los inserts de sus jugadores/rivales
+  // pendientes se quedarían encolados para siempre intentando referenciar
+  // un campograma que no existe en ningún sitio.
+  for (const j of jugadores) {
+    await queueMutation("campograma_jugadores", "delete", j.id);
+  }
+  for (const r of rivales) {
+    await queueMutation("campograma_rivales", "delete", r.id);
+  }
   await queueMutation("campogramas", "delete", id);
 
   return { success: true };

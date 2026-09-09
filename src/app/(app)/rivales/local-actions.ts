@@ -137,6 +137,18 @@ export async function eliminarRivalLocal(id: string): Promise<SimpleResult> {
     },
   );
 
+  // Los destacados y la plantilla ya sincronizados se borran en cascada en
+  // Supabase con el borrado del rival. Pero si el rival se borra antes de
+  // que su propio insert haya llegado a sincronizarse, esa cascada nunca
+  // entra en juego: sin este paso, los inserts pendientes de sus
+  // destacados/plantilla se quedarían encolados para siempre intentando
+  // referenciar un rival que no existe en ningún sitio.
+  for (const d of destacados) {
+    await queueMutation("rivales_jugadores_destacados", "delete", d.id);
+  }
+  for (const p of plantilla) {
+    await queueMutation("rivales_plantilla", "delete", p.id);
+  }
   await queueMutation("rivales_scouting", "delete", id);
 
   return { success: true };

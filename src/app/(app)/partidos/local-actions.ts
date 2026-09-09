@@ -104,10 +104,11 @@ export async function actualizarPartidoLocal(
 }
 
 export async function eliminarPartidoLocal(id: string): Promise<SimpleResult> {
-  const [convocatorias, alineaciones, eventos, valoraciones] =
+  const [convocatorias, alineaciones, alineacionesFinales, eventos, valoraciones] =
     await Promise.all([
       localDb.convocatorias.where("partido_id").equals(id).toArray(),
       localDb.alineaciones.where("partido_id").equals(id).toArray(),
+      localDb.alineaciones_finales.where("partido_id").equals(id).toArray(),
       localDb.eventos_partido.where("partido_id").equals(id).toArray(),
       localDb.valoraciones_partido.where("partido_id").equals(id).toArray(),
     ]);
@@ -118,6 +119,7 @@ export async function eliminarPartidoLocal(id: string): Promise<SimpleResult> {
       localDb.partidos,
       localDb.convocatorias,
       localDb.alineaciones,
+      localDb.alineaciones_finales,
       localDb.eventos_partido,
       localDb.valoraciones_partido,
     ],
@@ -125,6 +127,9 @@ export async function eliminarPartidoLocal(id: string): Promise<SimpleResult> {
       await localDb.partidos.delete(id);
       await localDb.convocatorias.bulkDelete(convocatorias.map((c) => c.id));
       await localDb.alineaciones.bulkDelete(alineaciones.map((a) => a.id));
+      await localDb.alineaciones_finales.bulkDelete(
+        alineacionesFinales.map((a) => a.id),
+      );
       await localDb.eventos_partido.bulkDelete(eventos.map((e) => e.id));
       await localDb.valoraciones_partido.bulkDelete(
         valoraciones.map((v) => v.id),
@@ -132,8 +137,27 @@ export async function eliminarPartidoLocal(id: string): Promise<SimpleResult> {
     },
   );
 
-  // El resto de tablas relacionadas se borran en cascada en Supabase; solo
-  // hace falta encolar el borrado del partido en sí.
+  // El resto de tablas relacionadas, ya sincronizadas, se borran en
+  // cascada en Supabase con el borrado del partido. Pero si el partido se
+  // borra antes de que su propio insert haya llegado a sincronizarse, esa
+  // cascada nunca entra en juego: sin este paso, los inserts pendientes de
+  // estas filas se quedarían encolados para siempre intentando referenciar
+  // un partido que no existe en ningún sitio.
+  for (const c of convocatorias) {
+    await queueMutation("convocatorias", "delete", c.id);
+  }
+  for (const a of alineaciones) {
+    await queueMutation("alineaciones", "delete", a.id);
+  }
+  for (const a of alineacionesFinales) {
+    await queueMutation("alineaciones_finales", "delete", a.id);
+  }
+  for (const e of eventos) {
+    await queueMutation("eventos_partido", "delete", e.id);
+  }
+  for (const v of valoraciones) {
+    await queueMutation("valoraciones_partido", "delete", v.id);
+  }
   await queueMutation("partidos", "delete", id);
 
   return { success: true };
