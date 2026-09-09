@@ -665,6 +665,34 @@ export interface Database {
         >;
         Relationships: [];
       };
+      rivales_plantilla: {
+        Row: {
+          id: string;
+          rival_id: string;
+          nombre: string;
+          dorsal: number | null;
+          equipo_temporada_anterior: string | null;
+          categoria_temporada_anterior: string | null;
+          clasificacion_temporada_anterior: string | null;
+          notas: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          rival_id: string;
+          nombre: string;
+          dorsal?: number | null;
+          equipo_temporada_anterior?: string | null;
+          categoria_temporada_anterior?: string | null;
+          clasificacion_temporada_anterior?: string | null;
+          notas?: string | null;
+          created_at?: string;
+        };
+        Update: Partial<
+          Database["public"]["Tables"]["rivales_plantilla"]["Insert"]
+        >;
+        Relationships: [];
+      };
       solicitudes_acceso: {
         Row: {
           id: string;

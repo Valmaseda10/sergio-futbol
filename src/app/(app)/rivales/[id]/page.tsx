@@ -11,6 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { EliminarRivalButton } from "@/components/rivales/eliminar-rival-button";
 import { JugadoresDestacados } from "@/components/rivales/jugadores-destacados";
+import { PlantillaRival } from "@/components/rivales/plantilla-rival";
 import { EquipacionRival } from "@/components/rivales/equipacion-rival";
 import { PdfWatermark } from "@/components/branding/pdf-watermark";
 
@@ -113,7 +114,16 @@ export default function FichaRivalPage() {
 
       <Card>
         <CardHeader>
-          <CardTitle className="text-base">Jugadores</CardTitle>
+          <CardTitle className="text-base">Plantilla</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <PlantillaRival rivalId={rival.id} />
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">Jugadores destacados</CardTitle>
         </CardHeader>
         <CardContent>
           <JugadoresDestacados rivalId={rival.id} />

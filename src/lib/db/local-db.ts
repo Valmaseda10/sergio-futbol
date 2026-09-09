@@ -31,6 +31,7 @@ export type LocalLesionSesion = Tables["lesion_sesiones_readaptacion"]["Row"];
 export type LocalRivalScouting = Tables["rivales_scouting"]["Row"];
 export type LocalRivalJugadorDestacado =
   Tables["rivales_jugadores_destacados"]["Row"];
+export type LocalRivalPlantillaJugador = Tables["rivales_plantilla"]["Row"];
 export type LocalHorarioEntrenamiento = Tables["horario_entrenamiento"]["Row"];
 export type LocalRecordatorio = Tables["recordatorios"]["Row"];
 export type LocalCampograma = Tables["campogramas"]["Row"];
@@ -59,6 +60,7 @@ export const SYNCED_TABLES = [
   "lesion_sesiones_readaptacion",
   "rivales_scouting",
   "rivales_jugadores_destacados",
+  "rivales_plantilla",
   "horario_entrenamiento",
   "recordatorios",
   "campogramas",
@@ -118,6 +120,7 @@ class LocalDb extends Dexie {
   lesion_sesiones_readaptacion!: Table<LocalLesionSesion, string>;
   rivales_scouting!: Table<LocalRivalScouting, string>;
   rivales_jugadores_destacados!: Table<LocalRivalJugadorDestacado, string>;
+  rivales_plantilla!: Table<LocalRivalPlantillaJugador, string>;
   horario_entrenamiento!: Table<LocalHorarioEntrenamiento, string>;
   recordatorios!: Table<LocalRecordatorio, string>;
   campogramas!: Table<LocalCampograma, string>;
@@ -199,6 +202,10 @@ class LocalDb extends Dexie {
     this.version(12).stores({
       etiquetas: "id, activo",
       etiquetas_partido: "id, partido_id, etiqueta_id, jugador_id",
+    });
+
+    this.version(13).stores({
+      rivales_plantilla: "id, rival_id",
     });
   }
 }

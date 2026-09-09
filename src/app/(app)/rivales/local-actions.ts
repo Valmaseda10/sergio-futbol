@@ -8,6 +8,7 @@ import {
   localDb,
   type LocalRivalScouting,
   type LocalRivalJugadorDestacado,
+  type LocalRivalPlantillaJugador,
 } from "@/lib/db/local-db";
 import { queueMutation } from "@/lib/db/sync";
 import { createClient } from "@/lib/supabase/client";
@@ -15,10 +16,13 @@ import { subirArchivoPrivado, extensionDeArchivo } from "@/lib/storage";
 import {
   rivalScoutingSchema,
   jugadorDestacadoSchema,
+  plantillaJugadorSchema,
   toRivalScoutingInsert,
   toJugadorDestacadoInsert,
+  toPlantillaJugadorInsert,
   type RivalScoutingFormValues,
   type JugadorDestacadoFormValues,
+  type PlantillaJugadorFormValues,
 } from "@/lib/validations/rivales";
 
 type ActionResult = { error: string } | { success: true; id: string };
@@ -112,15 +116,24 @@ export async function eliminarRivalLocal(id: string): Promise<SimpleResult> {
     .where("rival_id")
     .equals(id)
     .toArray();
+  const plantilla = await localDb.rivales_plantilla
+    .where("rival_id")
+    .equals(id)
+    .toArray();
 
   await localDb.transaction(
     "rw",
-    [localDb.rivales_scouting, localDb.rivales_jugadores_destacados],
+    [
+      localDb.rivales_scouting,
+      localDb.rivales_jugadores_destacados,
+      localDb.rivales_plantilla,
+    ],
     async () => {
       await localDb.rivales_scouting.delete(id);
       await localDb.rivales_jugadores_destacados.bulkDelete(
         destacados.map((d) => d.id),
       );
+      await localDb.rivales_plantilla.bulkDelete(plantilla.map((p) => p.id));
     },
   );
 
@@ -172,5 +185,40 @@ export async function eliminarJugadorDestacadoLocal(
 ): Promise<SimpleResult> {
   await localDb.rivales_jugadores_destacados.delete(id);
   await queueMutation("rivales_jugadores_destacados", "delete", id);
+  return { success: true };
+}
+
+type PlantillaResult =
+  | { error: string }
+  | { success: true; jugador: LocalRivalPlantillaJugador };
+
+export async function crearJugadorPlantillaLocal(
+  rivalId: string,
+  values: PlantillaJugadorFormValues,
+): Promise<PlantillaResult> {
+  const parsed = plantillaJugadorSchema.safeParse(values);
+  if (!parsed.success) {
+    return { error: parsed.error.issues[0]?.message ?? "Datos no válidos" };
+  }
+
+  const id = crypto.randomUUID();
+  const row: LocalRivalPlantillaJugador = {
+    id,
+    rival_id: rivalId,
+    ...toPlantillaJugadorInsert(parsed.data),
+    created_at: new Date().toISOString(),
+  };
+
+  await localDb.rivales_plantilla.put(row);
+  await queueMutation("rivales_plantilla", "insert", id, row);
+
+  return { success: true, jugador: row };
+}
+
+export async function eliminarJugadorPlantillaLocal(
+  id: string,
+): Promise<SimpleResult> {
+  await localDb.rivales_plantilla.delete(id);
+  await queueMutation("rivales_plantilla", "delete", id);
   return { success: true };
 }

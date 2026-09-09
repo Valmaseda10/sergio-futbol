@@ -56,3 +56,38 @@ export function toJugadorDestacadoInsert(values: JugadorDestacadoFormValues) {
     notas: values.notas || null,
   };
 }
+
+// Plantilla completa del rival: los jugadores dados de alta esta temporada
+// (se consultan a mano en la ficha del club de la app de la federación),
+// con su historial de la temporada anterior para tener contexto de scouting.
+export const plantillaJugadorSchema = z.object({
+  nombre: z.string().trim().min(1, "Introduce el nombre"),
+  dorsal: z.string().trim(),
+  equipo_temporada_anterior: z.string().trim(),
+  categoria_temporada_anterior: z.string().trim(),
+  clasificacion_temporada_anterior: z.string().trim(),
+  notas: z.string().trim(),
+});
+
+export type PlantillaJugadorFormValues = z.infer<typeof plantillaJugadorSchema>;
+
+export const PLANTILLA_JUGADOR_FORM_DEFAULTS: PlantillaJugadorFormValues = {
+  nombre: "",
+  dorsal: "",
+  equipo_temporada_anterior: "",
+  categoria_temporada_anterior: "",
+  clasificacion_temporada_anterior: "",
+  notas: "",
+};
+
+export function toPlantillaJugadorInsert(values: PlantillaJugadorFormValues) {
+  return {
+    nombre: values.nombre,
+    dorsal: values.dorsal !== "" ? Number(values.dorsal) : null,
+    equipo_temporada_anterior: values.equipo_temporada_anterior || null,
+    categoria_temporada_anterior: values.categoria_temporada_anterior || null,
+    clasificacion_temporada_anterior:
+      values.clasificacion_temporada_anterior || null,
+    notas: values.notas || null,
+  };
+}
