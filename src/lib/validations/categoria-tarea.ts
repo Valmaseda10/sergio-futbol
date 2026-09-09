@@ -37,6 +37,7 @@ const PALABRAS_CLAVE_CATEGORIA: Record<CategoriaTarea, string[]> = {
   ataque_defensas: [
     "ataque-defensas",
     "ataque defensas",
+    "ataque vs defensa",
     "atacantes vs defensas",
     "ataque contra defensa",
     "atacantes contra defensas",
@@ -46,6 +47,10 @@ const PALABRAS_CLAVE_CATEGORIA: Record<CategoriaTarea, string[]> = {
   posesion: [
     "posesion",
     "juego de posicion",
+    // "JdPosición" es como abrevia el entrenador "Juego de Posición" en sus
+    // plantillas de sesión.
+    "jdposicion",
+    "jd posicion",
     "rondo",
     "mantenimiento",
     "circulacion",
@@ -56,9 +61,18 @@ const PALABRAS_CLAVE_CATEGORIA: Record<CategoriaTarea, string[]> = {
     "definicion",
     "tiro a puerta",
     "tiro a porteria",
+    // Ejercicios de "oleadas" (1vs0, 2vs1...): en sus propias plantillas de
+    // sesión aparecen etiquetados como "Finalización — oleadas asimétricas".
+    "oleadas",
   ],
   partidos: ["partido", "partidillo", "juego real", "juego global"],
-  rueda_pases: ["rueda de pases", "rueda pases", "circuito de pases"],
+  rueda_pases: [
+    "rueda de pases",
+    "rueda pases",
+    // Typo/abreviatura habitual del entrenador ("RUED" en vez de "RUEDA").
+    "rued de pases",
+    "circuito de pases",
+  ],
   abp: [
     "abp",
     "corner",

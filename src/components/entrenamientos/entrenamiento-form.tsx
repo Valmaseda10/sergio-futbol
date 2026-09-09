@@ -197,9 +197,14 @@ export function EntrenamientoForm({
       const campo = CAMPOS_TAREA[i];
       if (!campo) return;
       setValue(campo, tarea.texto, { shouldDirty: true, shouldValidate: true });
-      setValue(CAMPO_MINUTOS[campo], String(tarea.minutos), {
-        shouldDirty: true,
-      });
+      // minutos puede venir sin detectar (p. ej. "3 x 5 series", sin unidad
+      // de tiempo reconocible): mejor dejar el campo como estaba que
+      // rellenarlo con un "null" literal.
+      if (tarea.minutos != null) {
+        setValue(CAMPO_MINUTOS[campo], String(tarea.minutos), {
+          shouldDirty: true,
+        });
+      }
       if (tarea.categoria) {
         categoriaManualRef.current[campo] = true;
         setValue(CAMPO_CATEGORIA[campo], tarea.categoria, {
@@ -481,7 +486,7 @@ export function EntrenamientoForm({
                   Tarea {i + 1}: {tarea.texto}
                 </p>
                 <p className="text-xs text-muted-foreground">
-                  {tarea.minutos} min ·{" "}
+                  {tarea.minutos != null ? `${tarea.minutos} min` : "¿Cuántos min?"} ·{" "}
                   {tarea.categoria
                     ? CATEGORIA_TAREA_LABEL[tarea.categoria]
                     : "Sin categoría reconocida"}
