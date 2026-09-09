@@ -54,6 +54,9 @@ const PALABRAS_CLAVE_CATEGORIA: Record<CategoriaTarea, string[]> = {
     // Mismo lío, otra variante: "JUGO DEPOSICIÓN" en vez de "JUEGO DE
     // POSICIÓN".
     "jugo deposicion",
+    // "JdP" a secas, sin "osición": otra forma de abreviar que usa el
+    // entrenador en algunas sesiones ("JdP 9vs7 442").
+    "jdp ",
     "rondo",
     "mantenimiento",
     "circulacion",
