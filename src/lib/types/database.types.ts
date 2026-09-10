@@ -18,6 +18,7 @@ export type TipoEventoPartido =
 export type EstadoSolicitud = "pendiente" | "aprobado" | "rechazado";
 export type TipoVideo = "partido" | "clip";
 export type CategoriaJugadorDestacado = "top" | "flojo";
+export type RolPlantillaRival = "jugador" | "entrenador" | "delegado";
 export type TipoGol =
   | "juego_asociativo"
   | "transicion_ofensiva"
@@ -671,6 +672,8 @@ export interface Database {
           rival_id: string;
           nombre: string;
           dorsal: number | null;
+          rol: RolPlantillaRival;
+          curso: number | null;
           equipo_temporada_anterior: string | null;
           categoria_temporada_anterior: string | null;
           clasificacion_temporada_anterior: string | null;
@@ -682,6 +685,8 @@ export interface Database {
           rival_id: string;
           nombre: string;
           dorsal?: number | null;
+          rol?: RolPlantillaRival;
+          curso?: number | null;
           equipo_temporada_anterior?: string | null;
           categoria_temporada_anterior?: string | null;
           clasificacion_temporada_anterior?: string | null;

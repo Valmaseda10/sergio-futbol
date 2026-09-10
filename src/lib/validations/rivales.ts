@@ -62,6 +62,12 @@ export function toJugadorDestacadoInsert(values: JugadorDestacadoFormValues) {
 // con su historial de la temporada anterior para tener contexto de scouting.
 export const plantillaJugadorSchema = z.object({
   nombre: z.string().trim().min(1, "Introduce el nombre"),
+  // "jugador" | "entrenador" | "delegado": el cuerpo técnico va en la misma
+  // tabla pero se lista aparte de los jugadores en la ficha.
+  rol: z.enum(["jugador", "entrenador", "delegado"]),
+  // Curso dentro de Infantil: "1" (1er año, sube de Alevín) o "2" (2º año).
+  // "" si no se sabe. Solo aplica a jugadores.
+  curso: z.enum(["", "1", "2"]),
   dorsal: z.string().trim(),
   equipo_temporada_anterior: z.string().trim(),
   categoria_temporada_anterior: z.string().trim(),
@@ -73,6 +79,8 @@ export type PlantillaJugadorFormValues = z.infer<typeof plantillaJugadorSchema>;
 
 export const PLANTILLA_JUGADOR_FORM_DEFAULTS: PlantillaJugadorFormValues = {
   nombre: "",
+  rol: "jugador",
+  curso: "",
   dorsal: "",
   equipo_temporada_anterior: "",
   categoria_temporada_anterior: "",
@@ -81,9 +89,12 @@ export const PLANTILLA_JUGADOR_FORM_DEFAULTS: PlantillaJugadorFormValues = {
 };
 
 export function toPlantillaJugadorInsert(values: PlantillaJugadorFormValues) {
+  const esJugador = values.rol === "jugador";
   return {
     nombre: values.nombre,
-    dorsal: values.dorsal !== "" ? Number(values.dorsal) : null,
+    rol: values.rol,
+    curso: esJugador && values.curso !== "" ? Number(values.curso) : null,
+    dorsal: esJugador && values.dorsal !== "" ? Number(values.dorsal) : null,
     equipo_temporada_anterior: values.equipo_temporada_anterior || null,
     categoria_temporada_anterior: values.categoria_temporada_anterior || null,
     clasificacion_temporada_anterior:
