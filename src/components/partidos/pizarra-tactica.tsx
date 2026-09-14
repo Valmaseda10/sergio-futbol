@@ -951,10 +951,16 @@ export function PizarraTactica({ jugadores }: { jugadores: Jugador[] }) {
       <div
         ref={pitchRef}
         className={cn(
+          // El campo es aspect-[2/3] (muy alto): con solo un ancho máximo
+          // (max-w-*) se hace tan alto como ese ancho permita, y en una
+          // tablet u otra pantalla ancha pero no muy alta (sobre todo en
+          // pantalla completa) el campo entero no cabe y hay que hacer
+          // scroll para verlo. El w-[min(...)] limita también por alto de
+          // viewport, así que el campo siempre encaja entero en pantalla.
           "relative touch-none overflow-hidden rounded-lg bg-pitch",
           pantallaCompleta
-            ? "mx-auto aspect-[2/3] w-full max-w-2xl"
-            : "mx-auto aspect-[2/3] w-full max-w-lg",
+            ? "mx-auto aspect-[2/3] w-[min(100%,56.5vh,42rem)]"
+            : "mx-auto aspect-[2/3] w-[min(100%,43.5vh,32rem)]",
         )}
       >
         {/* Línea de medio campo y círculo central */}

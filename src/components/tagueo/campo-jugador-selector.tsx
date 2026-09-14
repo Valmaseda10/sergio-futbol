@@ -166,7 +166,7 @@ export function CampoJugadorSelector({
           : "Toca en el campo quién sale y en el banquillo quién entra."}
       </p>
 
-      <div className="relative mx-auto aspect-[2/3] w-full max-w-xs overflow-hidden rounded-lg bg-pitch">
+      <div className="relative mx-auto aspect-[2/3] w-full max-w-xs overflow-hidden rounded-lg bg-pitch sm:max-w-sm md:max-w-md">
         <div className="absolute inset-x-0 top-1/2 h-px bg-white/40" />
         <div className="absolute top-1/2 left-1/2 size-16 -translate-x-1/2 -translate-y-1/2 rounded-full border border-white/40" />
         <div className="absolute inset-x-[20%] top-0 h-[16%] border-x border-b border-white/40" />

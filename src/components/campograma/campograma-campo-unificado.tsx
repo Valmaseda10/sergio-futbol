@@ -465,7 +465,7 @@ export function CampogramaCampoUnificado({
 
         <div
           ref={pitchRef}
-          className="relative mx-auto aspect-[2/3] w-full max-w-xs shrink touch-none overflow-hidden rounded-lg bg-pitch"
+          className="relative mx-auto aspect-[2/3] w-full max-w-xs shrink touch-none overflow-hidden rounded-lg bg-pitch sm:max-w-sm md:max-w-md"
         >
           <div className="absolute inset-x-0 top-1/2 h-px bg-white/40" />
           <div className="absolute top-1/2 left-1/2 size-16 -translate-x-1/2 -translate-y-1/2 rounded-full border border-white/40" />
