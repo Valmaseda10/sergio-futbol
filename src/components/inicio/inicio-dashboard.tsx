@@ -7,7 +7,9 @@ import {
   AlertTriangle,
   CalendarRange,
   Clock,
+  Dumbbell,
   MapPin,
+  Trophy,
   Users as UsersIcon,
 } from "lucide-react";
 import { localDb } from "@/lib/db/local-db";
@@ -36,6 +38,24 @@ function sumarDias(fechaISO: string, dias: number) {
   const d = new Date(`${fechaISO}T00:00:00`);
   d.setDate(d.getDate() + dias);
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+}
+
+// Lunes de la semana de "fechaISO" (semana natural, no ISO-8601: si hoy es
+// domingo se retrocede 6 días en vez de contarlo como inicio de la
+// siguiente semana).
+function lunesDeSemana(fechaISO: string) {
+  const d = new Date(`${fechaISO}T00:00:00`);
+  const dow = d.getDay();
+  d.setDate(d.getDate() + (dow === 0 ? -6 : 1 - dow));
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+}
+
+function formatearDia(fecha: string) {
+  return capitalizarPrimera(
+    new Date(`${fecha}T00:00:00`).toLocaleDateString("es-ES", {
+      weekday: "long",
+    }),
+  );
 }
 
 function formatearFecha(fecha: string) {
@@ -102,13 +122,49 @@ export function InicioDashboard({
     [jugadores],
   );
 
-  const proximoEntrenamiento = useMemo(
-    () =>
-      entrenamientos
-        .filter((e) => e.fecha >= hoy)
-        .sort((a, b) => a.fecha.localeCompare(b.fecha))[0] ?? null,
-    [entrenamientos, hoy],
-  );
+  // Agenda de la semana natural en curso (lunes a domingo), entrenamientos y
+  // partidos mezclados y ordenados por fecha y hora: así en inicio se ve de
+  // un vistazo todo lo que toca esta semana, en el orden en que va a pasar,
+  // en vez de solo "el próximo" de cada cosa.
+  const semana = useMemo(() => {
+    const inicio = lunesDeSemana(hoy);
+    const fin = sumarDias(inicio, 6);
+    type EventoSemana = {
+      tipo: "entrenamiento" | "partido";
+      id: string;
+      fecha: string;
+      hora: string | null;
+      titulo: string;
+      lugar: string | null;
+    };
+    const eventos: EventoSemana[] = [
+      ...entrenamientos
+        .filter((e) => e.fecha >= inicio && e.fecha <= fin)
+        .map((e) => ({
+          tipo: "entrenamiento" as const,
+          id: e.id,
+          fecha: e.fecha,
+          hora: e.hora_inicio,
+          titulo: "Entrenamiento",
+          lugar: e.lugar,
+        })),
+      ...partidos
+        .filter((p) => p.fecha >= inicio && p.fecha <= fin)
+        .map((p) => ({
+          tipo: "partido" as const,
+          id: p.id,
+          fecha: p.fecha,
+          hora: p.hora,
+          titulo: `${p.local_visitante === "local" ? "vs" : "@"} ${p.rival}`,
+          lugar: p.lugar,
+        })),
+    ].sort((a, b) =>
+      a.fecha === b.fecha
+        ? (a.hora ?? "").localeCompare(b.hora ?? "")
+        : a.fecha.localeCompare(b.fecha),
+    );
+    return { inicio, fin, eventos };
+  }, [entrenamientos, partidos, hoy]);
 
   const proximoPartido = useMemo(
     () =>
@@ -168,12 +224,24 @@ export function InicioDashboard({
       (e) => e.fecha >= hoy && e.fecha <= limite7 && !e.objetivos,
     );
 
-    return { partidosSinAlineacion, entrenamientosSinPlanificar };
+    // Un solo listado ordenado por fecha (en vez de primero todos los
+    // partidos y luego todos los entrenamientos) para que los avisos salgan
+    // en el orden en que van a pasar.
+    return [
+      ...partidosSinAlineacion.map((p) => ({
+        tipo: "partido" as const,
+        fecha: p.fecha,
+        partido: p,
+      })),
+      ...entrenamientosSinPlanificar.map((e) => ({
+        tipo: "entrenamiento" as const,
+        fecha: e.fecha,
+        entrenamiento: e,
+      })),
+    ].sort((a, b) => a.fecha.localeCompare(b.fecha));
   }, [partidos, entrenamientos, convocatorias, alineaciones, hoy, limite7, limite14]);
 
-  const hayAvisos =
-    avisos.partidosSinAlineacion.length > 0 ||
-    avisos.entrenamientosSinPlanificar.length > 0;
+  const hayAvisos = avisos.length > 0;
 
   return (
     <div className="space-y-4">
@@ -212,24 +280,28 @@ export function InicioDashboard({
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-2 text-sm">
-            {avisos.partidosSinAlineacion.map((p) => (
-              <Link
-                key={p.id}
-                href={`/partidos/${p.id}/alineacion`}
-                className="block text-muted-foreground hover:text-foreground"
-              >
-                Falta la alineación de <span className="font-medium">vs {p.rival}</span> ({formatearFecha(p.fecha)})
-              </Link>
-            ))}
-            {avisos.entrenamientosSinPlanificar.map((e) => (
-              <Link
-                key={e.id}
-                href={`/entrenamientos/${e.id}/editar`}
-                className="block text-muted-foreground hover:text-foreground"
-              >
-                Falta planificar el entrenamiento del {formatearFecha(e.fecha)}
-              </Link>
-            ))}
+            {avisos.map((a) =>
+              a.tipo === "partido" ? (
+                <Link
+                  key={a.partido.id}
+                  href={`/partidos/${a.partido.id}/alineacion`}
+                  className="block text-muted-foreground hover:text-foreground"
+                >
+                  Falta la alineación de{" "}
+                  <span className="font-medium">vs {a.partido.rival}</span> (
+                  {formatearFecha(a.partido.fecha)})
+                </Link>
+              ) : (
+                <Link
+                  key={a.entrenamiento.id}
+                  href={`/entrenamientos/${a.entrenamiento.id}/editar`}
+                  className="block text-muted-foreground hover:text-foreground"
+                >
+                  Falta planificar el entrenamiento del{" "}
+                  {formatearFecha(a.entrenamiento.fecha)}
+                </Link>
+              ),
+            )}
           </CardContent>
         </Card>
       )}
@@ -248,108 +320,82 @@ export function InicioDashboard({
         </Link>
       )}
 
-      <div className="grid gap-4 sm:grid-cols-2">
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-base">Próximo entrenamiento</CardTitle>
-            {proximoEntrenamiento && (
-              <CardAction>
-                <Badge variant="outline">
-                  {diasHasta(proximoEntrenamiento.fecha, hoy)}
-                </Badge>
-              </CardAction>
-            )}
-          </CardHeader>
-          <CardContent>
-            {proximoEntrenamiento ? (
-              <Link
-                href={`/entrenamientos/${proximoEntrenamiento.id}`}
-                className="flex items-center gap-3 hover:opacity-80"
-              >
-                <FechaTile fecha={proximoEntrenamiento.fecha} />
-                <div className="min-w-0">
-                  <p className="text-sm font-medium">
-                    {formatearFecha(proximoEntrenamiento.fecha)}
-                  </p>
-                  <p className="flex flex-wrap items-center gap-x-3 text-xs text-muted-foreground">
-                    {proximoEntrenamiento.hora_inicio && (
-                      <span className="flex items-center gap-1">
-                        <Clock className="size-3" />
-                        {proximoEntrenamiento.hora_inicio.slice(0, 5)}
-                      </span>
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">Esta semana</CardTitle>
+          <CardAction>
+            <Badge variant="outline">
+              {formatearDia(semana.inicio).slice(0, 3)}{" "}
+              {new Date(`${semana.inicio}T00:00:00`).getDate()} –{" "}
+              {formatearDia(semana.fin).slice(0, 3)}{" "}
+              {new Date(`${semana.fin}T00:00:00`).getDate()}
+            </Badge>
+          </CardAction>
+        </CardHeader>
+        <CardContent>
+          {semana.eventos.length === 0 ? (
+            <p className="text-sm text-muted-foreground">
+              No hay entrenamientos ni partidos programados esta semana.
+            </p>
+          ) : (
+            <ul className="space-y-3">
+              {semana.eventos.map((ev) => (
+                <li key={`${ev.tipo}-${ev.id}`}>
+                  <Link
+                    href={
+                      ev.tipo === "entrenamiento"
+                        ? `/entrenamientos/${ev.id}`
+                        : `/partidos/${ev.id}`
+                    }
+                    className="flex items-center gap-3 hover:opacity-80"
+                  >
+                    <FechaTile fecha={ev.fecha} />
+                    <div className="min-w-0 flex-1">
+                      <p className="flex items-center gap-1.5 text-sm font-medium">
+                        {ev.tipo === "entrenamiento" ? (
+                          <Dumbbell className="size-3.5 shrink-0 text-muted-foreground" />
+                        ) : (
+                          <Trophy className="size-3.5 shrink-0 text-muted-foreground" />
+                        )}
+                        <span className="truncate">
+                          {formatearDia(ev.fecha)} · {ev.titulo}
+                        </span>
+                      </p>
+                      <p className="flex flex-wrap items-center gap-x-3 text-xs text-muted-foreground">
+                        {ev.hora && (
+                          <span className="flex items-center gap-1">
+                            <Clock className="size-3" />
+                            {ev.hora.slice(0, 5)}
+                          </span>
+                        )}
+                        {ev.lugar && (
+                          <span className="flex items-center gap-1">
+                            <MapPin className="size-3" />
+                            {ev.lugar}
+                          </span>
+                        )}
+                      </p>
+                    </div>
+                    <Badge variant="outline" className="shrink-0">
+                      {diasHasta(ev.fecha, hoy)}
+                    </Badge>
+                  </Link>
+                  {ev.tipo === "partido" &&
+                    ev.id === proximoPartido?.id &&
+                    rivalScoutingProximoPartido && (
+                      <Link
+                        href={`/rivales/${rivalScoutingProximoPartido.id}`}
+                        className="mt-1 ml-14 inline-block text-xs font-medium text-primary hover:underline"
+                      >
+                        Ver scouting del rival →
+                      </Link>
                     )}
-                    {proximoEntrenamiento.lugar && (
-                      <span className="flex items-center gap-1">
-                        <MapPin className="size-3" />
-                        {proximoEntrenamiento.lugar}
-                      </span>
-                    )}
-                  </p>
-                </div>
-              </Link>
-            ) : (
-              <p className="text-sm text-muted-foreground">
-                No hay entrenamientos programados.
-              </p>
-            )}
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-base">Próximo partido</CardTitle>
-            {proximoPartido && (
-              <CardAction>
-                <Badge variant="outline">
-                  {diasHasta(proximoPartido.fecha, hoy)}
-                </Badge>
-              </CardAction>
-            )}
-          </CardHeader>
-          <CardContent>
-            {proximoPartido ? (
-              <Link
-                href={`/partidos/${proximoPartido.id}`}
-                className="flex items-center gap-3 hover:opacity-80"
-              >
-                <FechaTile fecha={proximoPartido.fecha} />
-                <div className="min-w-0">
-                  <p className="truncate text-sm font-medium">
-                    {proximoPartido.local_visitante === "local" ? "vs" : "@"}{" "}
-                    {proximoPartido.rival}
-                  </p>
-                  <p className="flex flex-wrap items-center gap-x-3 text-xs text-muted-foreground">
-                    {proximoPartido.hora && (
-                      <span className="flex items-center gap-1">
-                        <Clock className="size-3" />
-                        {proximoPartido.hora.slice(0, 5)}
-                      </span>
-                    )}
-                    {proximoPartido.lugar && (
-                      <span className="flex items-center gap-1">
-                        <MapPin className="size-3" />
-                        {proximoPartido.lugar}
-                      </span>
-                    )}
-                  </p>
-                </div>
-              </Link>
-            ) : (
-              <p className="text-sm text-muted-foreground">
-                No hay partidos programados.
-              </p>
-            )}
-            {rivalScoutingProximoPartido && (
-              <Link
-                href={`/rivales/${rivalScoutingProximoPartido.id}`}
-                className="mt-2 inline-block text-xs font-medium text-primary hover:underline"
-              >
-                Ver scouting del rival →
-              </Link>
-            )}
-          </CardContent>
-        </Card>
-      </div>
+                </li>
+              ))}
+            </ul>
+          )}
+        </CardContent>
+      </Card>
 
       {ultimosResultados.length > 0 && (
         <Card>
