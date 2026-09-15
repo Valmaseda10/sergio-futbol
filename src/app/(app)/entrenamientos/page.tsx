@@ -191,12 +191,7 @@ export default function EntrenamientosPage() {
         </div>
       </div>
 
-      {!mesActual && (
-        <>
-          <HorarioSemanalResumen />
-          <CategoriasTareasResumen entrenamientos={entrenamientosTemporada} />
-        </>
-      )}
+      {!mesActual && <HorarioSemanalResumen />}
 
       {mesActual ? (
         mesActual.entrenamientos.length === 0 ? (
@@ -246,6 +241,10 @@ export default function EntrenamientosPage() {
             </li>
           ))}
         </ul>
+      )}
+
+      {!mesActual && (
+        <CategoriasTareasResumen entrenamientos={entrenamientosTemporada} />
       )}
     </div>
   );
