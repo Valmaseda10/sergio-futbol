@@ -156,11 +156,28 @@ function ImagenTarea({
   const inputRef = useRef<HTMLInputElement>(null);
   const [previewLocal, setPreviewLocal] = useState<string | null>(null);
 
+  function aplicarArchivo(file: File) {
+    setPreviewLocal(URL.createObjectURL(file));
+    onChange(file);
+  }
+
   function handleChange(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     if (!file) return;
-    setPreviewLocal(URL.createObjectURL(file));
-    onChange(file);
+    aplicarArchivo(file);
+  }
+
+  // Permite pegar una captura de pantalla directamente (Ctrl+V) sin tener
+  // que guardarla como archivo antes — el botón es focusable para que el
+  // navegador le entregue el evento paste aunque no sea un campo de texto.
+  function handlePaste(e: React.ClipboardEvent<HTMLButtonElement>) {
+    const item = Array.from(e.clipboardData.items).find((i) =>
+      i.type.startsWith("image/"),
+    );
+    const file = item?.getAsFile();
+    if (!file) return;
+    e.preventDefault();
+    aplicarArchivo(file);
   }
 
   const preview = previewLocal ?? urlActual ?? null;
@@ -172,8 +189,11 @@ function ImagenTarea({
       </Label>
       <button
         type="button"
+        tabIndex={0}
         onClick={() => inputRef.current?.click()}
-        className="flex h-24 w-24 shrink-0 items-center justify-center overflow-hidden rounded-md border border-dashed bg-muted/30 text-muted-foreground hover:bg-muted/50"
+        onPaste={handlePaste}
+        title="Haz clic para elegir un archivo, o pega una captura con Ctrl+V"
+        className="flex h-24 w-24 shrink-0 items-center justify-center overflow-hidden rounded-md border border-dashed bg-muted/30 text-muted-foreground hover:bg-muted/50 focus:outline-none focus:ring-2 focus:ring-ring"
       >
         {preview ? (
           // eslint-disable-next-line @next/next/no-img-element
@@ -186,6 +206,9 @@ function ImagenTarea({
           <ImagePlus className="size-5" />
         )}
       </button>
+      <p className="w-24 text-[10px] text-muted-foreground">
+        O pega una captura (Ctrl+V)
+      </p>
       <input
         ref={inputRef}
         type="file"
