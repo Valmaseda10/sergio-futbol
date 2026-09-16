@@ -102,3 +102,28 @@ export function toPlantillaJugadorInsert(values: PlantillaJugadorFormValues) {
     notas: values.notas || null,
   };
 }
+
+// Inverso de toPlantillaJugadorInsert: para precargar el formulario al
+// editar una fila ya guardada (jugador o cuerpo técnico).
+export function plantillaJugadorFormValuesDesdeFila(fila: {
+  nombre: string;
+  rol: string;
+  curso: number | null;
+  dorsal: number | null;
+  equipo_temporada_anterior: string | null;
+  categoria_temporada_anterior: string | null;
+  clasificacion_temporada_anterior: string | null;
+  notas: string | null;
+}): PlantillaJugadorFormValues {
+  return {
+    nombre: fila.nombre,
+    rol: fila.rol as PlantillaJugadorFormValues["rol"],
+    curso: fila.curso === 1 ? "1" : fila.curso === 2 ? "2" : "",
+    dorsal: fila.dorsal != null ? String(fila.dorsal) : "",
+    equipo_temporada_anterior: fila.equipo_temporada_anterior ?? "",
+    categoria_temporada_anterior: fila.categoria_temporada_anterior ?? "",
+    clasificacion_temporada_anterior:
+      fila.clasificacion_temporada_anterior ?? "",
+    notas: fila.notas ?? "",
+  };
+}

@@ -17,15 +17,17 @@ import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useLiveQuery } from "dexie-react-hooks";
 import { toast } from "sonner";
-import { Trash2, Plus } from "lucide-react";
+import { Trash2, Plus, Pencil } from "lucide-react";
 import { localDb, type LocalRivalPlantillaJugador } from "@/lib/db/local-db";
 import {
   PLANTILLA_JUGADOR_FORM_DEFAULTS,
   plantillaJugadorSchema,
+  plantillaJugadorFormValuesDesdeFila,
   type PlantillaJugadorFormValues,
 } from "@/lib/validations/rivales";
 import {
   crearJugadorPlantillaLocal,
+  actualizarJugadorPlantillaLocal,
   eliminarJugadorPlantillaLocal,
 } from "@/app/(app)/rivales/local-actions";
 import { Button } from "@/components/ui/button";
@@ -53,6 +55,9 @@ const CURSO_LABEL: Record<string, string> = {
 
 export function PlantillaRival({ rivalId }: { rivalId: string }) {
   const [mostrarForm, setMostrarForm] = useState(false);
+  // null = el formulario abierto es para añadir; con un id, está editando
+  // esa fila (jugador o cuerpo técnico) en vez de crear una nueva.
+  const [editandoId, setEditandoId] = useState<string | null>(null);
 
   const plantilla = useLiveQuery(
     () =>
@@ -91,24 +96,46 @@ export function PlantillaRival({ rivalId }: { rivalId: string }) {
 
   const rolElegido = watch("rol");
 
+  function abrirNuevo() {
+    reset(PLANTILLA_JUGADOR_FORM_DEFAULTS);
+    setEditandoId(null);
+    setMostrarForm(true);
+  }
+
+  function abrirEditar(jugador: LocalRivalPlantillaJugador) {
+    reset(plantillaJugadorFormValuesDesdeFila(jugador));
+    setEditandoId(jugador.id);
+    setMostrarForm(true);
+  }
+
+  function cerrarForm() {
+    reset(PLANTILLA_JUGADOR_FORM_DEFAULTS);
+    setEditandoId(null);
+    setMostrarForm(false);
+  }
+
   async function onSubmit(values: PlantillaJugadorFormValues) {
-    const result = await crearJugadorPlantillaLocal(rivalId, values);
+    const result = editandoId
+      ? await actualizarJugadorPlantillaLocal(editandoId, values)
+      : await crearJugadorPlantillaLocal(rivalId, values);
     if ("error" in result) {
       toast.error(result.error);
       return;
     }
     toast.success(
-      values.rol === "jugador"
-        ? "Jugador añadido a la plantilla"
-        : "Cuerpo técnico añadido",
+      editandoId
+        ? "Cambios guardados"
+        : values.rol === "jugador"
+          ? "Jugador añadido a la plantilla"
+          : "Cuerpo técnico añadido",
     );
-    reset(PLANTILLA_JUGADOR_FORM_DEFAULTS);
-    setMostrarForm(false);
+    cerrarForm();
   }
 
   async function handleDelete(id: string) {
     const result = await eliminarJugadorPlantillaLocal(id);
     if ("error" in result) toast.error(result.error);
+    if (editandoId === id) cerrarForm();
   }
 
   return (
@@ -137,10 +164,16 @@ export function PlantillaRival({ rivalId }: { rivalId: string }) {
           size="sm"
           variant="outline"
           className="shrink-0 print:hidden"
-          onClick={() => setMostrarForm((v) => !v)}
+          onClick={() => (mostrarForm ? cerrarForm() : abrirNuevo())}
         >
-          <Plus className="size-4" />
-          Añadir
+          {mostrarForm ? (
+            "Cancelar"
+          ) : (
+            <>
+              <Plus className="size-4" />
+              Añadir
+            </>
+          )}
         </Button>
       </div>
 
@@ -149,6 +182,9 @@ export function PlantillaRival({ rivalId }: { rivalId: string }) {
           onSubmit={handleSubmit(onSubmit)}
           className="space-y-3 rounded-md border p-3 print:hidden"
         >
+          <p className="text-xs font-medium text-muted-foreground">
+            {editandoId ? "Editando" : "Nuevo"}
+          </p>
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1">
               <Label htmlFor="plantilla-nombre" className="text-xs">
@@ -290,6 +326,7 @@ export function PlantillaRival({ rivalId }: { rivalId: string }) {
               categoriaAnterior={j.categoria_temporada_anterior}
               clasificacionAnterior={j.clasificacion_temporada_anterior}
               notas={j.notas}
+              onEdit={() => abrirEditar(j)}
               onDelete={() => handleDelete(j.id)}
             />
           ))}
@@ -317,6 +354,14 @@ export function PlantillaRival({ rivalId }: { rivalId: string }) {
               </div>
               <button
                 type="button"
+                onClick={() => abrirEditar(m)}
+                aria-label="Editar"
+                className="shrink-0 print:hidden"
+              >
+                <Pencil className="size-4 text-muted-foreground hover:text-foreground" />
+              </button>
+              <button
+                type="button"
                 onClick={() => handleDelete(m.id)}
                 aria-label="Eliminar"
                 className="shrink-0 print:hidden"
@@ -339,6 +384,7 @@ function PlantillaJugadorRow({
   categoriaAnterior,
   clasificacionAnterior,
   notas,
+  onEdit,
   onDelete,
 }: {
   nombre: string;
@@ -348,6 +394,7 @@ function PlantillaJugadorRow({
   categoriaAnterior: string | null;
   clasificacionAnterior: string | null;
   notas: string | null;
+  onEdit: () => void;
   onDelete: () => void;
 }) {
   const historial = [
@@ -375,6 +422,14 @@ function PlantillaJugadorRow({
         )}
         {notas && <p className="text-xs text-muted-foreground">{notas}</p>}
       </div>
+      <button
+        type="button"
+        onClick={onEdit}
+        aria-label="Editar jugador"
+        className="shrink-0 print:hidden"
+      >
+        <Pencil className="size-4 text-muted-foreground hover:text-foreground" />
+      </button>
       <button
         type="button"
         onClick={onDelete}

@@ -227,6 +227,27 @@ export async function crearJugadorPlantillaLocal(
   return { success: true, jugador: row };
 }
 
+export async function actualizarJugadorPlantillaLocal(
+  id: string,
+  values: PlantillaJugadorFormValues,
+): Promise<PlantillaResult> {
+  const parsed = plantillaJugadorSchema.safeParse(values);
+  if (!parsed.success) {
+    return { error: parsed.error.issues[0]?.message ?? "Datos no válidos" };
+  }
+
+  const patch = toPlantillaJugadorInsert(parsed.data);
+  await localDb.rivales_plantilla.update(id, patch);
+  await queueMutation("rivales_plantilla", "update", id, patch);
+
+  const jugador = await localDb.rivales_plantilla.get(id);
+  if (!jugador) {
+    return { error: "No se ha encontrado el jugador tras guardar" };
+  }
+
+  return { success: true, jugador };
+}
+
 export async function eliminarJugadorPlantillaLocal(
   id: string,
 ): Promise<SimpleResult> {
