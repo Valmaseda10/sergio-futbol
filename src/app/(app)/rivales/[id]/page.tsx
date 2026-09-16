@@ -13,6 +13,7 @@ import { EliminarRivalButton } from "@/components/rivales/eliminar-rival-button"
 import { JugadoresDestacados } from "@/components/rivales/jugadores-destacados";
 import { PlantillaRival } from "@/components/rivales/plantilla-rival";
 import { EquipacionRival } from "@/components/rivales/equipacion-rival";
+import { AlineacionRival } from "@/components/rivales/alineacion-rival";
 import { PdfWatermark } from "@/components/branding/pdf-watermark";
 
 function Seccion({ titulo, texto }: { titulo: string; texto: string | null }) {
@@ -99,12 +100,15 @@ export default function FichaRivalPage() {
         })}
       </p>
 
-      <EquipacionRival
-        rivalId={rival.id}
-        colorCamiseta={rival.color_camiseta}
-        colorPantalon={rival.color_pantalon}
-        colorMedias={rival.color_medias}
-      />
+      <div className="grid gap-4 sm:grid-cols-2">
+        <EquipacionRival
+          rivalId={rival.id}
+          colorCamiseta={rival.color_camiseta}
+          colorPantalon={rival.color_pantalon}
+          colorMedias={rival.color_medias}
+        />
+        <AlineacionRival rivalId={rival.id} />
+      </div>
 
       <Seccion titulo="Sistema de juego" texto={rival.sistema_juego} />
       <Seccion titulo="Fase ofensiva" texto={rival.fase_ofensiva} />

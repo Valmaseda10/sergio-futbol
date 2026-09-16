@@ -790,6 +790,32 @@ export interface Database {
         >;
         Relationships: [];
       };
+      rivales_alineacion: {
+        Row: {
+          id: string;
+          rival_id: string;
+          nombre: string | null;
+          dorsal: number | null;
+          posicion_jugada: string | null;
+          pos_x: number;
+          pos_y: number;
+          orden: number | null;
+        };
+        Insert: {
+          id?: string;
+          rival_id: string;
+          nombre?: string | null;
+          dorsal?: number | null;
+          posicion_jugada?: string | null;
+          pos_x: number;
+          pos_y: number;
+          orden?: number | null;
+        };
+        Update: Partial<
+          Database["public"]["Tables"]["rivales_alineacion"]["Insert"]
+        >;
+        Relationships: [];
+      };
       solicitudes_acceso: {
         Row: {
           id: string;

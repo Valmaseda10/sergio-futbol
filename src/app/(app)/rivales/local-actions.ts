@@ -9,6 +9,7 @@ import {
   type LocalRivalScouting,
   type LocalRivalJugadorDestacado,
   type LocalRivalPlantillaJugador,
+  type LocalRivalAlineacion,
 } from "@/lib/db/local-db";
 import { queueMutation } from "@/lib/db/sync";
 import { createClient } from "@/lib/supabase/client";
@@ -120,6 +121,10 @@ export async function eliminarRivalLocal(id: string): Promise<SimpleResult> {
     .where("rival_id")
     .equals(id)
     .toArray();
+  const alineacion = await localDb.rivales_alineacion
+    .where("rival_id")
+    .equals(id)
+    .toArray();
 
   await localDb.transaction(
     "rw",
@@ -127,6 +132,7 @@ export async function eliminarRivalLocal(id: string): Promise<SimpleResult> {
       localDb.rivales_scouting,
       localDb.rivales_jugadores_destacados,
       localDb.rivales_plantilla,
+      localDb.rivales_alineacion,
     ],
     async () => {
       await localDb.rivales_scouting.delete(id);
@@ -134,20 +140,24 @@ export async function eliminarRivalLocal(id: string): Promise<SimpleResult> {
         destacados.map((d) => d.id),
       );
       await localDb.rivales_plantilla.bulkDelete(plantilla.map((p) => p.id));
+      await localDb.rivales_alineacion.bulkDelete(alineacion.map((a) => a.id));
     },
   );
 
-  // Los destacados y la plantilla ya sincronizados se borran en cascada en
-  // Supabase con el borrado del rival. Pero si el rival se borra antes de
-  // que su propio insert haya llegado a sincronizarse, esa cascada nunca
-  // entra en juego: sin este paso, los inserts pendientes de sus
-  // destacados/plantilla se quedarían encolados para siempre intentando
-  // referenciar un rival que no existe en ningún sitio.
+  // Los destacados, la plantilla y la alineación ya sincronizados se borran
+  // en cascada en Supabase con el borrado del rival. Pero si el rival se
+  // borra antes de que su propio insert haya llegado a sincronizarse, esa
+  // cascada nunca entra en juego: sin este paso, los inserts pendientes de
+  // esas tablas se quedarían encolados para siempre intentando referenciar
+  // un rival que no existe en ningún sitio.
   for (const d of destacados) {
     await queueMutation("rivales_jugadores_destacados", "delete", d.id);
   }
   for (const p of plantilla) {
     await queueMutation("rivales_plantilla", "delete", p.id);
+  }
+  for (const a of alineacion) {
+    await queueMutation("rivales_alineacion", "delete", a.id);
   }
   await queueMutation("rivales_scouting", "delete", id);
 
@@ -253,5 +263,50 @@ export async function eliminarJugadorPlantillaLocal(
 ): Promise<SimpleResult> {
   await localDb.rivales_plantilla.delete(id);
   await queueMutation("rivales_plantilla", "delete", id);
+  return { success: true };
+}
+
+export interface FichaAlineacionGuardar {
+  nombre: string | null;
+  dorsal: number | null;
+  posX: number;
+  posY: number;
+}
+
+/** Alineación que puso el rival contra nosotros: como son fichas sueltas sin
+ * una fila real con la que emparejar cada una (igual que las fichas rival
+ * del campograma), se guarda reemplazando todo el conjunto cada vez en vez
+ * de comparar fila a fila con lo existente. */
+export async function guardarAlineacionRivalLocal(
+  rivalId: string,
+  fichas: FichaAlineacionGuardar[],
+): Promise<SimpleResult> {
+  const existentes = await localDb.rivales_alineacion
+    .where("rival_id")
+    .equals(rivalId)
+    .toArray();
+
+  await localDb.rivales_alineacion.bulkDelete(existentes.map((f) => f.id));
+  for (const f of existentes) {
+    await queueMutation("rivales_alineacion", "delete", f.id);
+  }
+
+  for (let i = 0; i < fichas.length; i++) {
+    const f = fichas[i];
+    const filaId = crypto.randomUUID();
+    const row: LocalRivalAlineacion = {
+      id: filaId,
+      rival_id: rivalId,
+      nombre: f.nombre,
+      dorsal: f.dorsal,
+      posicion_jugada: null,
+      pos_x: f.posX,
+      pos_y: f.posY,
+      orden: i,
+    };
+    await localDb.rivales_alineacion.put(row);
+    await queueMutation("rivales_alineacion", "insert", filaId, row);
+  }
+
   return { success: true };
 }
