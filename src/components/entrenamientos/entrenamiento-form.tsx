@@ -77,6 +77,43 @@ const CAMPO_MINUTOS = {
   tarea_4: "tarea_4_minutos",
 } as const satisfies Record<CampoTarea, keyof EntrenamientoFormValues>;
 
+// Detalle D/E/T y objetivos de cada fase, igual que en la plantilla — solo
+// para la ficha imprimible, no intervienen en el recuento de "trabajadas".
+const CAMPO_DIMENSION = {
+  tarea_1: "tarea_1_dimension",
+  tarea_2: "tarea_2_dimension",
+  tarea_3: "tarea_3_dimension",
+  tarea_4: "tarea_4_dimension",
+} as const satisfies Record<CampoTarea, keyof EntrenamientoFormValues>;
+
+const CAMPO_SERIES = {
+  tarea_1: "tarea_1_series",
+  tarea_2: "tarea_2_series",
+  tarea_3: "tarea_3_series",
+  tarea_4: "tarea_4_series",
+} as const satisfies Record<CampoTarea, keyof EntrenamientoFormValues>;
+
+const CAMPO_TIEMPO = {
+  tarea_1: "tarea_1_tiempo",
+  tarea_2: "tarea_2_tiempo",
+  tarea_3: "tarea_3_tiempo",
+  tarea_4: "tarea_4_tiempo",
+} as const satisfies Record<CampoTarea, keyof EntrenamientoFormValues>;
+
+const CAMPO_OBJETIVOS_DEF = {
+  tarea_1: "tarea_1_objetivos_def",
+  tarea_2: "tarea_2_objetivos_def",
+  tarea_3: "tarea_3_objetivos_def",
+  tarea_4: "tarea_4_objetivos_def",
+} as const satisfies Record<CampoTarea, keyof EntrenamientoFormValues>;
+
+const CAMPO_OBJETIVOS_OFE = {
+  tarea_1: "tarea_1_objetivos_ofe",
+  tarea_2: "tarea_2_objetivos_ofe",
+  tarea_3: "tarea_3_objetivos_ofe",
+  tarea_4: "tarea_4_objetivos_ofe",
+} as const satisfies Record<CampoTarea, keyof EntrenamientoFormValues>;
+
 function FieldError({ message }: { message?: string }) {
   if (!message) return null;
   return <p className="text-sm text-destructive">{message}</p>;
@@ -313,8 +350,29 @@ export function EntrenamientoForm({
 
       <Card>
         <CardContent className="space-y-4 pt-6">
+          <p className="text-xs font-medium text-muted-foreground">
+            Cabecera de la sesión (igual que en la plantilla)
+          </p>
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="rival_torneo">Rival / Torneo</Label>
+              <Input id="rival_torneo" {...register("rival_torneo")} />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="microciclo">Microciclo</Label>
+              <Input
+                id="microciclo"
+                placeholder="Ej: M04 - PdP"
+                {...register("microciclo")}
+              />
+            </div>
+          </div>
           <div className="space-y-2">
-            <Label htmlFor="objetivos">Objetivos</Label>
+            <Label htmlFor="bajas">Bajas</Label>
+            <Input id="bajas" placeholder="Ej: IA - Leo" {...register("bajas")} />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="objetivos">Obj. semanal</Label>
             <Textarea
               id="objetivos"
               rows={2}
@@ -322,10 +380,24 @@ export function EntrenamientoForm({
               {...register("objetivos")}
             />
           </div>
+          <div className="space-y-2">
+            <Label htmlFor="charla">Charla</Label>
+            <Textarea
+              id="charla"
+              rows={2}
+              placeholder="Lo que se comenta al equipo antes de empezar"
+              {...register("charla")}
+            />
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardContent className="space-y-4 pt-6">
           {CAMPOS_TAREA.map((campo, i) => {
             const registroTarea = register(campo);
             return (
-            <div key={campo} className="space-y-2">
+            <div key={campo} className="space-y-2 rounded-md border p-3">
               <div className="flex items-center justify-between">
                 <Label htmlFor={campo}>Tarea {i + 1}</Label>
                 <Button
@@ -399,9 +471,91 @@ export function EntrenamientoForm({
                   />
                 </div>
               </div>
+
+              <p className="pt-1 text-xs font-medium text-muted-foreground">
+                Detalle para el PDF (opcional)
+              </p>
+              <div className="grid grid-cols-3 gap-2">
+                <div className="space-y-1">
+                  <Label
+                    htmlFor={CAMPO_DIMENSION[campo]}
+                    className="text-xs text-muted-foreground"
+                  >
+                    D (dimensiones)
+                  </Label>
+                  <Input
+                    id={CAMPO_DIMENSION[campo]}
+                    placeholder="Ej: 40x20"
+                    {...register(CAMPO_DIMENSION[campo])}
+                  />
+                </div>
+                <div className="space-y-1">
+                  <Label
+                    htmlFor={CAMPO_SERIES[campo]}
+                    className="text-xs text-muted-foreground"
+                  >
+                    E (espacios)
+                  </Label>
+                  <Input
+                    id={CAMPO_SERIES[campo]}
+                    placeholder="Ej: 2"
+                    {...register(CAMPO_SERIES[campo])}
+                  />
+                </div>
+                <div className="space-y-1">
+                  <Label
+                    htmlFor={CAMPO_TIEMPO[campo]}
+                    className="text-xs text-muted-foreground"
+                  >
+                    T (tiempo)
+                  </Label>
+                  <Input
+                    id={CAMPO_TIEMPO[campo]}
+                    placeholder="Ej: 2x10'"
+                    {...register(CAMPO_TIEMPO[campo])}
+                  />
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-2">
+                <div className="space-y-1">
+                  <Label
+                    htmlFor={CAMPO_OBJETIVOS_DEF[campo]}
+                    className="text-xs text-muted-foreground"
+                  >
+                    Ítems fase DEF
+                  </Label>
+                  <Textarea
+                    id={CAMPO_OBJETIVOS_DEF[campo]}
+                    rows={2}
+                    {...register(CAMPO_OBJETIVOS_DEF[campo])}
+                  />
+                </div>
+                <div className="space-y-1">
+                  <Label
+                    htmlFor={CAMPO_OBJETIVOS_OFE[campo]}
+                    className="text-xs text-muted-foreground"
+                  >
+                    Ítems fase OFE
+                  </Label>
+                  <Textarea
+                    id={CAMPO_OBJETIVOS_OFE[campo]}
+                    rows={2}
+                    {...register(CAMPO_OBJETIVOS_OFE[campo])}
+                  />
+                </div>
+              </div>
             </div>
             );
           })}
+          <div className="space-y-2">
+            <Label htmlFor="material">Material</Label>
+            <Textarea
+              id="material"
+              rows={2}
+              placeholder="Ej: Balones, conos, picas, 4 miniporterías"
+              {...register("material")}
+            />
+          </div>
           <div className="space-y-2">
             <Label htmlFor="notas">Notas</Label>
             <Textarea id="notas" rows={2} {...register("notas")} />

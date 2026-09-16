@@ -224,6 +224,15 @@ export interface Database {
           hora_fin: string | null;
           lugar: string | null;
           objetivos: string | null;
+          // Cabecera de sesión al estilo de la plantilla de PowerPoint: qué
+          // rival o torneo viene esta semana, en qué microciclo del bloque
+          // de trabajo está, quién falta, la charla previa y el material a
+          // preparar. "objetivos" ya hace de "Obj. semanal".
+          rival_torneo: string | null;
+          microciclo: string | null;
+          bajas: string | null;
+          charla: string | null;
+          material: string | null;
           tarea_1: string | null;
           tarea_2: string | null;
           tarea_3: string | null;
@@ -240,6 +249,29 @@ export interface Database {
           tarea_2_minutos: number | null;
           tarea_3_minutos: number | null;
           tarea_4_minutos: number | null;
+          // Detalle de cada tarea igual que en la plantilla: dimensiones
+          // (D), series/espacios (E), tiempo tal cual se escribe ("2x10'",
+          // T) y los objetivos de cada fase por separado.
+          tarea_1_dimension: string | null;
+          tarea_1_series: string | null;
+          tarea_1_tiempo: string | null;
+          tarea_1_objetivos_def: string | null;
+          tarea_1_objetivos_ofe: string | null;
+          tarea_2_dimension: string | null;
+          tarea_2_series: string | null;
+          tarea_2_tiempo: string | null;
+          tarea_2_objetivos_def: string | null;
+          tarea_2_objetivos_ofe: string | null;
+          tarea_3_dimension: string | null;
+          tarea_3_series: string | null;
+          tarea_3_tiempo: string | null;
+          tarea_3_objetivos_def: string | null;
+          tarea_3_objetivos_ofe: string | null;
+          tarea_4_dimension: string | null;
+          tarea_4_series: string | null;
+          tarea_4_tiempo: string | null;
+          tarea_4_objetivos_def: string | null;
+          tarea_4_objetivos_ofe: string | null;
           notas: string | null;
           documento_url: string | null;
           created_at: string;
@@ -251,6 +283,11 @@ export interface Database {
           hora_fin?: string | null;
           lugar?: string | null;
           objetivos?: string | null;
+          rival_torneo?: string | null;
+          microciclo?: string | null;
+          bajas?: string | null;
+          charla?: string | null;
+          material?: string | null;
           tarea_1?: string | null;
           tarea_2?: string | null;
           tarea_3?: string | null;
@@ -267,6 +304,26 @@ export interface Database {
           tarea_2_minutos?: number | null;
           tarea_3_minutos?: number | null;
           tarea_4_minutos?: number | null;
+          tarea_1_dimension?: string | null;
+          tarea_1_series?: string | null;
+          tarea_1_tiempo?: string | null;
+          tarea_1_objetivos_def?: string | null;
+          tarea_1_objetivos_ofe?: string | null;
+          tarea_2_dimension?: string | null;
+          tarea_2_series?: string | null;
+          tarea_2_tiempo?: string | null;
+          tarea_2_objetivos_def?: string | null;
+          tarea_2_objetivos_ofe?: string | null;
+          tarea_3_dimension?: string | null;
+          tarea_3_series?: string | null;
+          tarea_3_tiempo?: string | null;
+          tarea_3_objetivos_def?: string | null;
+          tarea_3_objetivos_ofe?: string | null;
+          tarea_4_dimension?: string | null;
+          tarea_4_series?: string | null;
+          tarea_4_tiempo?: string | null;
+          tarea_4_objetivos_def?: string | null;
+          tarea_4_objetivos_ofe?: string | null;
           notas?: string | null;
           documento_url?: string | null;
           created_at?: string;

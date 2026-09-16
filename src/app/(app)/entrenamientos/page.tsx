@@ -186,7 +186,7 @@ export default function EntrenamientosPage() {
             render={<Link href="/entrenamientos/nuevo" />}
           >
             <Plus className="size-4" />
-            Nuevo
+            Crear
           </Button>
         </div>
       </div>

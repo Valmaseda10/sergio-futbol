@@ -21,6 +21,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { EliminarEntrenamientoButton } from "@/components/entrenamientos/eliminar-entrenamiento-button";
 import { AsistenciaResumen } from "@/components/entrenamientos/asistencia-resumen";
+import { EntrenamientoFichaImprimible } from "@/components/entrenamientos/entrenamiento-ficha-imprimible";
 import { FechaTile } from "@/components/ui/fecha-tile";
 
 function formatearFecha(fecha: string) {
@@ -67,7 +68,7 @@ export default function FichaEntrenamientoPage() {
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center gap-3">
+      <div className="flex items-center gap-3 print:hidden">
         <FechaTile fecha={entrenamiento.fecha} />
         <div className="min-w-0 flex-1">
           <h1 className="truncate text-xl font-semibold">
@@ -106,7 +107,7 @@ export default function FichaEntrenamientoPage() {
       </div>
 
       <Button
-        className="w-full"
+        className="w-full print:hidden"
         nativeButton={false}
         render={
           <Link href={`/entrenamientos/${entrenamiento.id}/asistencia`} />
@@ -116,10 +117,14 @@ export default function FichaEntrenamientoPage() {
         Pasar lista
       </Button>
 
-      <AsistenciaResumen entrenamientoId={entrenamiento.id} fecha={entrenamiento.fecha} />
+      <div className="print:hidden">
+        <AsistenciaResumen entrenamientoId={entrenamiento.id} fecha={entrenamiento.fecha} />
+      </div>
+
+      <EntrenamientoFichaImprimible entrenamiento={entrenamiento} />
 
       {entrenamiento.documento_url && documentoSignedUrl && (
-        <Card>
+        <Card className="print:hidden">
           <CardContent className="pt-6">
             {esPdf(entrenamiento.documento_url) ? (
               <a
@@ -144,7 +149,7 @@ export default function FichaEntrenamientoPage() {
         </Card>
       )}
 
-      <Card>
+      <Card className="print:hidden">
         <CardHeader>
           <CardTitle className="text-base">Planificación</CardTitle>
         </CardHeader>
@@ -213,7 +218,9 @@ export default function FichaEntrenamientoPage() {
         </CardContent>
       </Card>
 
-      <EliminarEntrenamientoButton id={entrenamiento.id} />
+      <div className="print:hidden">
+        <EliminarEntrenamientoButton id={entrenamiento.id} />
+      </div>
     </div>
   );
 }
