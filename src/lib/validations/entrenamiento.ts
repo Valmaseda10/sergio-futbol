@@ -80,6 +80,21 @@ export const entrenamientoSchema = z.object({
   tarea_4_tiempo: z.string().trim(),
   tarea_4_objetivos_def: z.string().trim(),
   tarea_4_objetivos_ofe: z.string().trim(),
+  // Resto de la plantilla por tarea: rotación de jugadores por grupos,
+  // reglas de provocación y observaciones. La imagen (diagrama táctico) no
+  // va aquí — se gestiona como archivo, igual que el documento de sesión.
+  tarea_1_rotacion: z.string().trim(),
+  tarea_1_reglas_provocacion: z.string().trim(),
+  tarea_1_observaciones: z.string().trim(),
+  tarea_2_rotacion: z.string().trim(),
+  tarea_2_reglas_provocacion: z.string().trim(),
+  tarea_2_observaciones: z.string().trim(),
+  tarea_3_rotacion: z.string().trim(),
+  tarea_3_reglas_provocacion: z.string().trim(),
+  tarea_3_observaciones: z.string().trim(),
+  tarea_4_rotacion: z.string().trim(),
+  tarea_4_reglas_provocacion: z.string().trim(),
+  tarea_4_observaciones: z.string().trim(),
   notas: z.string().trim(),
 });
 
@@ -132,6 +147,18 @@ export const ENTRENAMIENTO_FORM_DEFAULTS: EntrenamientoFormValues = {
   tarea_4_tiempo: "",
   tarea_4_objetivos_def: "",
   tarea_4_objetivos_ofe: "",
+  tarea_1_rotacion: "",
+  tarea_1_reglas_provocacion: "",
+  tarea_1_observaciones: "",
+  tarea_2_rotacion: "",
+  tarea_2_reglas_provocacion: "",
+  tarea_2_observaciones: "",
+  tarea_3_rotacion: "",
+  tarea_3_reglas_provocacion: "",
+  tarea_3_observaciones: "",
+  tarea_4_rotacion: "",
+  tarea_4_reglas_provocacion: "",
+  tarea_4_observaciones: "",
   notas: "",
 };
 
@@ -150,6 +177,9 @@ function tareaInsert(
   tiempo: string,
   objetivosDef: string,
   objetivosOfe: string,
+  rotacion: string,
+  reglasProvocacion: string,
+  observaciones: string,
 ) {
   const limpio = texto.trim();
   return {
@@ -165,6 +195,9 @@ function tareaInsert(
     tiempo: tiempo || null,
     objetivosDef: objetivosDef || null,
     objetivosOfe: objetivosOfe || null,
+    rotacion: rotacion || null,
+    reglasProvocacion: reglasProvocacion || null,
+    observaciones: observaciones || null,
   };
 }
 
@@ -179,6 +212,9 @@ export function toEntrenamientoInsert(values: EntrenamientoFormValues) {
     values.tarea_1_tiempo,
     values.tarea_1_objetivos_def,
     values.tarea_1_objetivos_ofe,
+    values.tarea_1_rotacion,
+    values.tarea_1_reglas_provocacion,
+    values.tarea_1_observaciones,
   );
   const t2 = tareaInsert(
     values.tarea_2,
@@ -190,6 +226,9 @@ export function toEntrenamientoInsert(values: EntrenamientoFormValues) {
     values.tarea_2_tiempo,
     values.tarea_2_objetivos_def,
     values.tarea_2_objetivos_ofe,
+    values.tarea_2_rotacion,
+    values.tarea_2_reglas_provocacion,
+    values.tarea_2_observaciones,
   );
   const t3 = tareaInsert(
     values.tarea_3,
@@ -201,6 +240,9 @@ export function toEntrenamientoInsert(values: EntrenamientoFormValues) {
     values.tarea_3_tiempo,
     values.tarea_3_objetivos_def,
     values.tarea_3_objetivos_ofe,
+    values.tarea_3_rotacion,
+    values.tarea_3_reglas_provocacion,
+    values.tarea_3_observaciones,
   );
   const t4 = tareaInsert(
     values.tarea_4,
@@ -212,6 +254,9 @@ export function toEntrenamientoInsert(values: EntrenamientoFormValues) {
     values.tarea_4_tiempo,
     values.tarea_4_objetivos_def,
     values.tarea_4_objetivos_ofe,
+    values.tarea_4_rotacion,
+    values.tarea_4_reglas_provocacion,
+    values.tarea_4_observaciones,
   );
   return {
     fecha: values.fecha,
@@ -260,6 +305,18 @@ export function toEntrenamientoInsert(values: EntrenamientoFormValues) {
     tarea_4_tiempo: t4.tiempo,
     tarea_4_objetivos_def: t4.objetivosDef,
     tarea_4_objetivos_ofe: t4.objetivosOfe,
+    tarea_1_rotacion: t1.rotacion,
+    tarea_1_reglas_provocacion: t1.reglasProvocacion,
+    tarea_1_observaciones: t1.observaciones,
+    tarea_2_rotacion: t2.rotacion,
+    tarea_2_reglas_provocacion: t2.reglasProvocacion,
+    tarea_2_observaciones: t2.observaciones,
+    tarea_3_rotacion: t3.rotacion,
+    tarea_3_reglas_provocacion: t3.reglasProvocacion,
+    tarea_3_observaciones: t3.observaciones,
+    tarea_4_rotacion: t4.rotacion,
+    tarea_4_reglas_provocacion: t4.reglasProvocacion,
+    tarea_4_observaciones: t4.observaciones,
     notas: values.notas || null,
   };
 }
@@ -314,6 +371,26 @@ export function entrenamientoFormDataToValues(
     tarea_4_tiempo: String(formData.get("tarea_4_tiempo") ?? ""),
     tarea_4_objetivos_def: String(formData.get("tarea_4_objetivos_def") ?? ""),
     tarea_4_objetivos_ofe: String(formData.get("tarea_4_objetivos_ofe") ?? ""),
+    tarea_1_rotacion: String(formData.get("tarea_1_rotacion") ?? ""),
+    tarea_1_reglas_provocacion: String(
+      formData.get("tarea_1_reglas_provocacion") ?? "",
+    ),
+    tarea_1_observaciones: String(formData.get("tarea_1_observaciones") ?? ""),
+    tarea_2_rotacion: String(formData.get("tarea_2_rotacion") ?? ""),
+    tarea_2_reglas_provocacion: String(
+      formData.get("tarea_2_reglas_provocacion") ?? "",
+    ),
+    tarea_2_observaciones: String(formData.get("tarea_2_observaciones") ?? ""),
+    tarea_3_rotacion: String(formData.get("tarea_3_rotacion") ?? ""),
+    tarea_3_reglas_provocacion: String(
+      formData.get("tarea_3_reglas_provocacion") ?? "",
+    ),
+    tarea_3_observaciones: String(formData.get("tarea_3_observaciones") ?? ""),
+    tarea_4_rotacion: String(formData.get("tarea_4_rotacion") ?? ""),
+    tarea_4_reglas_provocacion: String(
+      formData.get("tarea_4_reglas_provocacion") ?? "",
+    ),
+    tarea_4_observaciones: String(formData.get("tarea_4_observaciones") ?? ""),
     notas: String(formData.get("notas") ?? ""),
   };
 }

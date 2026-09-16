@@ -41,9 +41,48 @@ async function subirDocumento(
   await localDb.entrenamientos.update(entrenamientoId, { documento_url: path });
 }
 
+async function subirImagenTarea(
+  entrenamientoId: string,
+  numeroTarea: 1 | 2 | 3 | 4,
+  archivo: File,
+): Promise<void> {
+  const path = `entrenamientos/${entrenamientoId}-tarea-${numeroTarea}.${extensionDeArchivo(archivo)}`;
+  await subirArchivoPrivado(path, archivo);
+
+  const patch =
+    numeroTarea === 1
+      ? { tarea_1_imagen_url: path }
+      : numeroTarea === 2
+        ? { tarea_2_imagen_url: path }
+        : numeroTarea === 3
+          ? { tarea_3_imagen_url: path }
+          : { tarea_4_imagen_url: path };
+
+  const supabase = createClient();
+  await supabase.from("entrenamientos").update(patch).eq("id", entrenamientoId);
+  await localDb.entrenamientos.update(entrenamientoId, patch);
+}
+
+// Una imagen (o `null`) por tarea, en orden — `undefined`/hueco significa
+// "no tocar la imagen que ya hubiera".
+type ImagenesTareas = (File | null | undefined)[];
+
+async function subirImagenesTareas(
+  entrenamientoId: string,
+  imagenes: ImagenesTareas,
+): Promise<void> {
+  for (let i = 0; i < imagenes.length; i++) {
+    const archivo = imagenes[i];
+    if (archivo && archivo.size > 0) {
+      await subirImagenTarea(entrenamientoId, (i + 1) as 1 | 2 | 3 | 4, archivo);
+    }
+  }
+}
+
 export async function crearEntrenamientoLocal(
   values: EntrenamientoFormValues,
   documento?: File | null,
+  imagenesTareas?: ImagenesTareas,
 ): Promise<ActionResult> {
   const parsed = entrenamientoSchema.safeParse(values);
   if (!parsed.success) {
@@ -54,6 +93,10 @@ export async function crearEntrenamientoLocal(
   const row: LocalEntrenamiento = {
     id,
     ...toEntrenamientoInsert(parsed.data),
+    tarea_1_imagen_url: null,
+    tarea_2_imagen_url: null,
+    tarea_3_imagen_url: null,
+    tarea_4_imagen_url: null,
     documento_url: null,
     created_at: new Date().toISOString(),
   };
@@ -74,6 +117,19 @@ export async function crearEntrenamientoLocal(
     }
   }
 
+  if (imagenesTareas) {
+    try {
+      await subirImagenesTareas(id, imagenesTareas);
+    } catch (e) {
+      return {
+        error:
+          e instanceof Error
+            ? e.message
+            : "Entrenamiento creado, pero alguna imagen no se pudo subir",
+      };
+    }
+  }
+
   return { success: true, id };
 }
 
@@ -81,6 +137,7 @@ export async function actualizarEntrenamientoLocal(
   id: string,
   values: EntrenamientoFormValues,
   documento?: File | null,
+  imagenesTareas?: ImagenesTareas,
 ): Promise<ActionResult> {
   const parsed = entrenamientoSchema.safeParse(values);
   if (!parsed.success) {
@@ -100,6 +157,19 @@ export async function actualizarEntrenamientoLocal(
           e instanceof Error
             ? e.message
             : "Entrenamiento actualizado, pero el archivo no se pudo subir",
+      };
+    }
+  }
+
+  if (imagenesTareas) {
+    try {
+      await subirImagenesTareas(id, imagenesTareas);
+    } catch (e) {
+      return {
+        error:
+          e instanceof Error
+            ? e.message
+            : "Entrenamiento actualizado, pero alguna imagen no se pudo subir",
       };
     }
   }
@@ -234,6 +304,22 @@ export async function generarEntrenamientosLocal(
     tarea_4_tiempo: null,
     tarea_4_objetivos_def: null,
     tarea_4_objetivos_ofe: null,
+    tarea_1_imagen_url: null,
+    tarea_1_rotacion: null,
+    tarea_1_reglas_provocacion: null,
+    tarea_1_observaciones: null,
+    tarea_2_imagen_url: null,
+    tarea_2_rotacion: null,
+    tarea_2_reglas_provocacion: null,
+    tarea_2_observaciones: null,
+    tarea_3_imagen_url: null,
+    tarea_3_rotacion: null,
+    tarea_3_reglas_provocacion: null,
+    tarea_3_observaciones: null,
+    tarea_4_imagen_url: null,
+    tarea_4_rotacion: null,
+    tarea_4_reglas_provocacion: null,
+    tarea_4_observaciones: null,
     notas: null,
     documento_url: null,
     created_at: now,

@@ -272,6 +272,25 @@ export interface Database {
           tarea_4_tiempo: string | null;
           tarea_4_objetivos_def: string | null;
           tarea_4_objetivos_ofe: string | null;
+          // Imagen del ejercicio (diagrama táctico), rotación de jugadores
+          // por grupos, reglas de provocación y observaciones — el resto de
+          // la plantilla que faltaba por cada tarea.
+          tarea_1_imagen_url: string | null;
+          tarea_1_rotacion: string | null;
+          tarea_1_reglas_provocacion: string | null;
+          tarea_1_observaciones: string | null;
+          tarea_2_imagen_url: string | null;
+          tarea_2_rotacion: string | null;
+          tarea_2_reglas_provocacion: string | null;
+          tarea_2_observaciones: string | null;
+          tarea_3_imagen_url: string | null;
+          tarea_3_rotacion: string | null;
+          tarea_3_reglas_provocacion: string | null;
+          tarea_3_observaciones: string | null;
+          tarea_4_imagen_url: string | null;
+          tarea_4_rotacion: string | null;
+          tarea_4_reglas_provocacion: string | null;
+          tarea_4_observaciones: string | null;
           notas: string | null;
           documento_url: string | null;
           created_at: string;
@@ -324,6 +343,22 @@ export interface Database {
           tarea_4_tiempo?: string | null;
           tarea_4_objetivos_def?: string | null;
           tarea_4_objetivos_ofe?: string | null;
+          tarea_1_imagen_url?: string | null;
+          tarea_1_rotacion?: string | null;
+          tarea_1_reglas_provocacion?: string | null;
+          tarea_1_observaciones?: string | null;
+          tarea_2_imagen_url?: string | null;
+          tarea_2_rotacion?: string | null;
+          tarea_2_reglas_provocacion?: string | null;
+          tarea_2_observaciones?: string | null;
+          tarea_3_imagen_url?: string | null;
+          tarea_3_rotacion?: string | null;
+          tarea_3_reglas_provocacion?: string | null;
+          tarea_3_observaciones?: string | null;
+          tarea_4_imagen_url?: string | null;
+          tarea_4_rotacion?: string | null;
+          tarea_4_reglas_provocacion?: string | null;
+          tarea_4_observaciones?: string | null;
           notas?: string | null;
           documento_url?: string | null;
           created_at?: string;

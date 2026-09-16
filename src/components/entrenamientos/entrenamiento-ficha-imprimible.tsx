@@ -40,6 +40,7 @@ function Dato({ etiqueta, valor }: { etiqueta: string; valor: string | null }) {
 function BloqueTarea({
   numero,
   titulo,
+  imagenUrl,
   dimension,
   series,
   tiempo,
@@ -47,9 +48,13 @@ function BloqueTarea({
   categoria,
   objetivosDef,
   objetivosOfe,
+  rotacion,
+  reglasProvocacion,
+  observaciones,
 }: {
   numero: number;
   titulo: string | null;
+  imagenUrl: string | null;
   dimension: string | null;
   series: string | null;
   tiempo: string | null;
@@ -57,9 +62,21 @@ function BloqueTarea({
   categoria: string | null;
   objetivosDef: string | null;
   objetivosOfe: string | null;
+  rotacion: string | null;
+  reglasProvocacion: string | null;
+  observaciones: string | null;
 }) {
   const sinContenido =
-    !titulo && !dimension && !series && !tiempo && !objetivosDef && !objetivosOfe;
+    !titulo &&
+    !imagenUrl &&
+    !dimension &&
+    !series &&
+    !tiempo &&
+    !objetivosDef &&
+    !objetivosOfe &&
+    !rotacion &&
+    !reglasProvocacion &&
+    !observaciones;
   if (sinContenido) return null;
 
   return (
@@ -77,62 +94,102 @@ function BloqueTarea({
         )}
       </div>
 
-      {(dimension || series || tiempo || minutos != null) && (
-        <div className="mt-2 flex gap-4 text-xs">
-          {dimension && (
-            <span>
-              <span className="font-semibold">D</span> {dimension}
-            </span>
+      <div className="mt-2 flex gap-3">
+        {imagenUrl && (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            src={imagenUrl}
+            alt={`Diagrama de la tarea ${numero}`}
+            className="h-28 w-28 shrink-0 rounded-md border object-cover print:h-32 print:w-32"
+          />
+        )}
+        <div className="min-w-0 flex-1 space-y-2">
+          {(dimension || series || tiempo || minutos != null) && (
+            <div className="flex gap-4 text-xs">
+              {dimension && (
+                <span>
+                  <span className="font-semibold">D</span> {dimension}
+                </span>
+              )}
+              {series && (
+                <span>
+                  <span className="font-semibold">E</span> {series}
+                </span>
+              )}
+              {tiempo && (
+                <span>
+                  <span className="font-semibold">T</span> {tiempo}
+                </span>
+              )}
+              {minutos != null && (
+                <span className="text-muted-foreground">({minutos}′ en total)</span>
+              )}
+            </div>
           )}
-          {series && (
-            <span>
-              <span className="font-semibold">E</span> {series}
-            </span>
-          )}
-          {tiempo && (
-            <span>
-              <span className="font-semibold">T</span> {tiempo}
-            </span>
-          )}
-          {minutos != null && (
-            <span className="text-muted-foreground">({minutos}′ en total)</span>
-          )}
-        </div>
-      )}
 
-      {(objetivosDef || objetivosOfe) && (
-        <div className="mt-2 grid grid-cols-2 gap-3">
-          {objetivosDef && (
-            <div>
-              <p className="text-[10px] font-semibold tracking-wide text-muted-foreground uppercase">
-                Ítems fase DEF
-              </p>
-              <p className="text-xs whitespace-pre-wrap">{objetivosDef}</p>
+          {(objetivosDef || objetivosOfe) && (
+            <div className="grid grid-cols-2 gap-3">
+              {objetivosDef && (
+                <div>
+                  <p className="text-[10px] font-semibold tracking-wide text-muted-foreground uppercase">
+                    Ítems fase DEF
+                  </p>
+                  <p className="text-xs whitespace-pre-wrap">{objetivosDef}</p>
+                </div>
+              )}
+              {objetivosOfe && (
+                <div>
+                  <p className="text-[10px] font-semibold tracking-wide text-muted-foreground uppercase">
+                    Ítems fase OFE
+                  </p>
+                  <p className="text-xs whitespace-pre-wrap">{objetivosOfe}</p>
+                </div>
+              )}
             </div>
           )}
-          {objetivosOfe && (
+
+          {rotacion && (
             <div>
               <p className="text-[10px] font-semibold tracking-wide text-muted-foreground uppercase">
-                Ítems fase OFE
+                Rotación
               </p>
-              <p className="text-xs whitespace-pre-wrap">{objetivosOfe}</p>
+              <p className="text-xs whitespace-pre-wrap">{rotacion}</p>
+            </div>
+          )}
+          {reglasProvocacion && (
+            <div>
+              <p className="text-[10px] font-semibold tracking-wide text-muted-foreground uppercase">
+                Reglas de provocación
+              </p>
+              <p className="text-xs whitespace-pre-wrap">{reglasProvocacion}</p>
+            </div>
+          )}
+          {observaciones && (
+            <div>
+              <p className="text-[10px] font-semibold tracking-wide text-muted-foreground uppercase">
+                Observaciones
+              </p>
+              <p className="text-xs whitespace-pre-wrap">{observaciones}</p>
             </div>
           )}
         </div>
-      )}
+      </div>
     </div>
   );
 }
 
 export function EntrenamientoFichaImprimible({
   entrenamiento,
+  tareaImagenSignedUrls,
 }: {
   entrenamiento: LocalEntrenamiento;
+  tareaImagenSignedUrls?: (string | null)[];
 }) {
   const tareas = [
     {
       numero: 1,
       titulo: entrenamiento.tarea_1,
+      imagenUrl: tareaImagenSignedUrls?.[0] ?? null,
       dimension: entrenamiento.tarea_1_dimension,
       series: entrenamiento.tarea_1_series,
       tiempo: entrenamiento.tarea_1_tiempo,
@@ -140,10 +197,14 @@ export function EntrenamientoFichaImprimible({
       categoria: entrenamiento.tarea_1_categoria,
       objetivosDef: entrenamiento.tarea_1_objetivos_def,
       objetivosOfe: entrenamiento.tarea_1_objetivos_ofe,
+      rotacion: entrenamiento.tarea_1_rotacion,
+      reglasProvocacion: entrenamiento.tarea_1_reglas_provocacion,
+      observaciones: entrenamiento.tarea_1_observaciones,
     },
     {
       numero: 2,
       titulo: entrenamiento.tarea_2,
+      imagenUrl: tareaImagenSignedUrls?.[1] ?? null,
       dimension: entrenamiento.tarea_2_dimension,
       series: entrenamiento.tarea_2_series,
       tiempo: entrenamiento.tarea_2_tiempo,
@@ -151,10 +212,14 @@ export function EntrenamientoFichaImprimible({
       categoria: entrenamiento.tarea_2_categoria,
       objetivosDef: entrenamiento.tarea_2_objetivos_def,
       objetivosOfe: entrenamiento.tarea_2_objetivos_ofe,
+      rotacion: entrenamiento.tarea_2_rotacion,
+      reglasProvocacion: entrenamiento.tarea_2_reglas_provocacion,
+      observaciones: entrenamiento.tarea_2_observaciones,
     },
     {
       numero: 3,
       titulo: entrenamiento.tarea_3,
+      imagenUrl: tareaImagenSignedUrls?.[2] ?? null,
       dimension: entrenamiento.tarea_3_dimension,
       series: entrenamiento.tarea_3_series,
       tiempo: entrenamiento.tarea_3_tiempo,
@@ -162,10 +227,14 @@ export function EntrenamientoFichaImprimible({
       categoria: entrenamiento.tarea_3_categoria,
       objetivosDef: entrenamiento.tarea_3_objetivos_def,
       objetivosOfe: entrenamiento.tarea_3_objetivos_ofe,
+      rotacion: entrenamiento.tarea_3_rotacion,
+      reglasProvocacion: entrenamiento.tarea_3_reglas_provocacion,
+      observaciones: entrenamiento.tarea_3_observaciones,
     },
     {
       numero: 4,
       titulo: entrenamiento.tarea_4,
+      imagenUrl: tareaImagenSignedUrls?.[3] ?? null,
       dimension: entrenamiento.tarea_4_dimension,
       series: entrenamiento.tarea_4_series,
       tiempo: entrenamiento.tarea_4_tiempo,
@@ -173,6 +242,9 @@ export function EntrenamientoFichaImprimible({
       categoria: entrenamiento.tarea_4_categoria,
       objetivosDef: entrenamiento.tarea_4_objetivos_def,
       objetivosOfe: entrenamiento.tarea_4_objetivos_ofe,
+      rotacion: entrenamiento.tarea_4_rotacion,
+      reglasProvocacion: entrenamiento.tarea_4_reglas_provocacion,
+      observaciones: entrenamiento.tarea_4_observaciones,
     },
   ];
 
@@ -227,7 +299,17 @@ export function EntrenamientoFichaImprimible({
         <Dato etiqueta="Obj. semanal" valor={entrenamiento.objetivos} />
         <Dato etiqueta="Charla" valor={entrenamiento.charla} />
 
-        {tareas.some((t) => t.titulo || t.dimension || t.objetivosDef || t.objetivosOfe) && (
+        {tareas.some(
+          (t) =>
+            t.titulo ||
+            t.imagenUrl ||
+            t.dimension ||
+            t.objetivosDef ||
+            t.objetivosOfe ||
+            t.rotacion ||
+            t.reglasProvocacion ||
+            t.observaciones,
+        ) && (
           <div className="space-y-2 pt-1">
             {tareas.map((t) => (
               <BloqueTarea key={t.numero} {...t} />

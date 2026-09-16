@@ -14,6 +14,7 @@ import {
   BookOpen,
   Sparkles,
   Loader2,
+  ImagePlus,
 } from "lucide-react";
 import {
   ENTRENAMIENTO_FORM_DEFAULTS,
@@ -114,9 +115,86 @@ const CAMPO_OBJETIVOS_OFE = {
   tarea_4: "tarea_4_objetivos_ofe",
 } as const satisfies Record<CampoTarea, keyof EntrenamientoFormValues>;
 
+// Resto de la plantilla por tarea: rotación de jugadores, reglas de
+// provocación y observaciones. La imagen del ejercicio no es un campo del
+// formulario (es un File, como el documento de sesión) — se gestiona aparte.
+const CAMPO_ROTACION = {
+  tarea_1: "tarea_1_rotacion",
+  tarea_2: "tarea_2_rotacion",
+  tarea_3: "tarea_3_rotacion",
+  tarea_4: "tarea_4_rotacion",
+} as const satisfies Record<CampoTarea, keyof EntrenamientoFormValues>;
+
+const CAMPO_REGLAS_PROVOCACION = {
+  tarea_1: "tarea_1_reglas_provocacion",
+  tarea_2: "tarea_2_reglas_provocacion",
+  tarea_3: "tarea_3_reglas_provocacion",
+  tarea_4: "tarea_4_reglas_provocacion",
+} as const satisfies Record<CampoTarea, keyof EntrenamientoFormValues>;
+
+const CAMPO_OBSERVACIONES = {
+  tarea_1: "tarea_1_observaciones",
+  tarea_2: "tarea_2_observaciones",
+  tarea_3: "tarea_3_observaciones",
+  tarea_4: "tarea_4_observaciones",
+} as const satisfies Record<CampoTarea, keyof EntrenamientoFormValues>;
+
 function FieldError({ message }: { message?: string }) {
   if (!message) return null;
   return <p className="text-sm text-destructive">{message}</p>;
+}
+
+// Imagen del diagrama táctico de una tarea: recorte cuadrado con botón para
+// elegir/cambiar, al estilo de una casilla de la plantilla.
+function ImagenTarea({
+  urlActual,
+  onChange,
+}: {
+  urlActual?: string | null;
+  onChange: (archivo: File) => void;
+}) {
+  const inputRef = useRef<HTMLInputElement>(null);
+  const [previewLocal, setPreviewLocal] = useState<string | null>(null);
+
+  function handleChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setPreviewLocal(URL.createObjectURL(file));
+    onChange(file);
+  }
+
+  const preview = previewLocal ?? urlActual ?? null;
+
+  return (
+    <div className="space-y-1">
+      <Label className="text-xs text-muted-foreground">
+        Imagen del ejercicio
+      </Label>
+      <button
+        type="button"
+        onClick={() => inputRef.current?.click()}
+        className="flex h-24 w-24 shrink-0 items-center justify-center overflow-hidden rounded-md border border-dashed bg-muted/30 text-muted-foreground hover:bg-muted/50"
+      >
+        {preview ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            src={preview}
+            alt="Diagrama de la tarea"
+            className="h-full w-full object-cover"
+          />
+        ) : (
+          <ImagePlus className="size-5" />
+        )}
+      </button>
+      <input
+        ref={inputRef}
+        type="file"
+        accept="image/*"
+        className="hidden"
+        onChange={handleChange}
+      />
+    </div>
+  );
 }
 
 export function EntrenamientoForm({
@@ -125,11 +203,15 @@ export function EntrenamientoForm({
   entrenamiento?: EntrenamientoFormValues & {
     id: string;
     documentoSignedUrl?: string | null;
+    tareaImagenSignedUrls?: (string | null)[];
   };
 }) {
   const router = useRouter();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [documento, setDocumento] = useState<File | null>(null);
+  const [imagenesTareas, setImagenesTareas] = useState<
+    (File | null)[]
+  >([null, null, null, null]);
   const [pickerPara, setPickerPara] = useState<CampoTarea | null>(null);
   const [extrayendo, setExtrayendo] = useState(false);
   const [tareasDetectadas, setTareasDetectadas] = useState<
@@ -255,8 +337,13 @@ export function EntrenamientoForm({
 
   async function onSubmit(values: EntrenamientoFormValues) {
     const result = entrenamiento
-      ? await actualizarEntrenamientoLocal(entrenamiento.id, values, documento)
-      : await crearEntrenamientoLocal(values, documento);
+      ? await actualizarEntrenamientoLocal(
+          entrenamiento.id,
+          values,
+          documento,
+          imagenesTareas,
+        )
+      : await crearEntrenamientoLocal(values, documento, imagenesTareas);
 
     if ("error" in result) {
       toast.error(result.error);
@@ -410,15 +497,28 @@ export function EntrenamientoForm({
                   Elegir de la biblioteca
                 </Button>
               </div>
-              <Textarea
-                id={campo}
-                rows={2}
-                {...registroTarea}
-                onChange={(e) => {
-                  registroTarea.onChange(e);
-                  handleCambioTarea(campo, e.target.value);
-                }}
-              />
+              <div className="flex gap-3">
+                <ImagenTarea
+                  urlActual={entrenamiento?.tareaImagenSignedUrls?.[i]}
+                  onChange={(archivo) =>
+                    setImagenesTareas((prev) => {
+                      const siguiente = [...prev];
+                      siguiente[i] = archivo;
+                      return siguiente;
+                    })
+                  }
+                />
+                <Textarea
+                  id={campo}
+                  rows={4}
+                  className="flex-1"
+                  {...registroTarea}
+                  onChange={(e) => {
+                    registroTarea.onChange(e);
+                    handleCambioTarea(campo, e.target.value);
+                  }}
+                />
+              </div>
               <div className="flex items-center gap-2">
                 <div className="min-w-0 flex-1 space-y-1">
                   <Label
@@ -543,6 +643,46 @@ export function EntrenamientoForm({
                     {...register(CAMPO_OBJETIVOS_OFE[campo])}
                   />
                 </div>
+              </div>
+              <div className="space-y-1">
+                <Label
+                  htmlFor={CAMPO_ROTACION[campo]}
+                  className="text-xs text-muted-foreground"
+                >
+                  Rotación
+                </Label>
+                <Textarea
+                  id={CAMPO_ROTACION[campo]}
+                  rows={2}
+                  placeholder="Grupos de jugadores y cómo rotan"
+                  {...register(CAMPO_ROTACION[campo])}
+                />
+              </div>
+              <div className="space-y-1">
+                <Label
+                  htmlFor={CAMPO_REGLAS_PROVOCACION[campo]}
+                  className="text-xs text-muted-foreground"
+                >
+                  Reglas de provocación
+                </Label>
+                <Textarea
+                  id={CAMPO_REGLAS_PROVOCACION[campo]}
+                  rows={2}
+                  {...register(CAMPO_REGLAS_PROVOCACION[campo])}
+                />
+              </div>
+              <div className="space-y-1">
+                <Label
+                  htmlFor={CAMPO_OBSERVACIONES[campo]}
+                  className="text-xs text-muted-foreground"
+                >
+                  Observaciones
+                </Label>
+                <Textarea
+                  id={CAMPO_OBSERVACIONES[campo]}
+                  rows={2}
+                  {...register(CAMPO_OBSERVACIONES[campo])}
+                />
               </div>
             </div>
             );

@@ -44,6 +44,9 @@ export default function FichaEntrenamientoPage() {
   const [documentoSignedUrl, setDocumentoSignedUrl] = useState<string | null>(
     null,
   );
+  const [tareaImagenSignedUrls, setTareaImagenSignedUrls] = useState<
+    (string | null)[]
+  >([null, null, null, null]);
 
   useEffect(() => {
     if (!entrenamiento?.documento_url || !navigator.onLine) return;
@@ -53,6 +56,32 @@ export default function FichaEntrenamientoPage() {
       .createSignedUrl(entrenamiento.documento_url, 3600)
       .then(({ data }) => setDocumentoSignedUrl(data?.signedUrl ?? null));
   }, [entrenamiento?.documento_url]);
+
+  useEffect(() => {
+    if (!navigator.onLine) return;
+    const paths = [
+      entrenamiento?.tarea_1_imagen_url,
+      entrenamiento?.tarea_2_imagen_url,
+      entrenamiento?.tarea_3_imagen_url,
+      entrenamiento?.tarea_4_imagen_url,
+    ];
+    const supabase = createClient();
+    Promise.all(
+      paths.map((path) =>
+        path
+          ? supabase.storage
+              .from("adjuntos")
+              .createSignedUrl(path, 3600)
+              .then(({ data }) => data?.signedUrl ?? null)
+          : Promise.resolve(null),
+      ),
+    ).then(setTareaImagenSignedUrls);
+  }, [
+    entrenamiento?.tarea_1_imagen_url,
+    entrenamiento?.tarea_2_imagen_url,
+    entrenamiento?.tarea_3_imagen_url,
+    entrenamiento?.tarea_4_imagen_url,
+  ]);
 
   if (entrenamiento === undefined) {
     return <p className="text-sm text-muted-foreground">Cargando...</p>;
@@ -121,7 +150,10 @@ export default function FichaEntrenamientoPage() {
         <AsistenciaResumen entrenamientoId={entrenamiento.id} fecha={entrenamiento.fecha} />
       </div>
 
-      <EntrenamientoFichaImprimible entrenamiento={entrenamiento} />
+      <EntrenamientoFichaImprimible
+        entrenamiento={entrenamiento}
+        tareaImagenSignedUrls={tareaImagenSignedUrls}
+      />
 
       {entrenamiento.documento_url && documentoSignedUrl && (
         <Card className="print:hidden">
