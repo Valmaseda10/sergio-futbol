@@ -12,7 +12,7 @@
 // 1er año de Infantil (sube de Alevín) o de 2º, para ver de un vistazo la
 // veteranía del equipo rival.
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useLiveQuery } from "dexie-react-hooks";
@@ -58,6 +58,15 @@ export function PlantillaRival({ rivalId }: { rivalId: string }) {
   // null = el formulario abierto es para añadir; con un id, está editando
   // esa fila (jugador o cuerpo técnico) en vez de crear una nueva.
   const [editandoId, setEditandoId] = useState<string | null>(null);
+  const formRef = useRef<HTMLFormElement>(null);
+
+  // El formulario sale siempre arriba del todo, justo debajo del botón
+  // "Añadir": al editar una fila que está más abajo en una plantilla larga
+  // (18 jugadores en algún rival), se abre fuera de la pantalla que se está
+  // mirando y parece que no ha pasado nada. Este scroll lo trae a la vista.
+  useEffect(() => {
+    if (mostrarForm) formRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+  }, [mostrarForm, editandoId]);
 
   const plantilla = useLiveQuery(
     () =>
@@ -179,6 +188,7 @@ export function PlantillaRival({ rivalId }: { rivalId: string }) {
 
       {mostrarForm && (
         <form
+          ref={formRef}
           onSubmit={handleSubmit(onSubmit)}
           className="space-y-3 rounded-md border p-3 print:hidden"
         >
