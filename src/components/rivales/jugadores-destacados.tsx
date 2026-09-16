@@ -156,7 +156,16 @@ export function JugadoresDestacados({ rivalId }: { rivalId: string }) {
                 render={({ field }) => (
                   <Select value={field.value} onValueChange={handleElegirPlantilla}>
                     <SelectTrigger id="plantilla_id" className="w-full">
-                      <SelectValue placeholder="Elige de la plantilla..." />
+                      <SelectValue placeholder="Elige de la plantilla...">
+                        {(value) => {
+                          if (value === MANUAL) {
+                            return "No está en la plantilla (escribir a mano)";
+                          }
+                          const jugador = plantillaPorId.get(value as string);
+                          if (!jugador) return "Elige de la plantilla...";
+                          return `${jugador.dorsal != null ? `${jugador.dorsal} · ` : ""}${jugador.nombre}`;
+                        }}
+                      </SelectValue>
                     </SelectTrigger>
                     <SelectContent>
                       {plantilla.map((p) => (
