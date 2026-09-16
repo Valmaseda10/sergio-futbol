@@ -743,6 +743,7 @@ export interface Database {
           categoria: CategoriaJugadorDestacado;
           notas: string | null;
           created_at: string;
+          plantilla_id: string | null;
         };
         Insert: {
           id?: string;
@@ -752,6 +753,7 @@ export interface Database {
           categoria: CategoriaJugadorDestacado;
           notas?: string | null;
           created_at?: string;
+          plantilla_id?: string | null;
         };
         Update: Partial<
           Database["public"]["Tables"]["rivales_jugadores_destacados"]["Insert"]

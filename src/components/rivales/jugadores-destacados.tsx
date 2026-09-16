@@ -33,6 +33,10 @@ const CATEGORIA_LABEL: Record<string, string> = {
   flojo: "Débil",
 };
 
+// Valor especial del selector para "no está en la plantilla, escribo el
+// nombre a mano" — distinto de "" (que es el estado inicial sin elegir).
+const MANUAL = "__manual__";
+
 export function JugadoresDestacados({ rivalId }: { rivalId: string }) {
   const [mostrarForm, setMostrarForm] = useState(false);
 
@@ -44,6 +48,21 @@ export function JugadoresDestacados({ rivalId }: { rivalId: string }) {
         .toArray(),
     [rivalId],
     [],
+  );
+
+  const plantilla = useLiveQuery(
+    () =>
+      localDb.rivales_plantilla
+        .where("rival_id")
+        .equals(rivalId)
+        .filter((p) => p.rol === "jugador")
+        .toArray(),
+    [rivalId],
+    [],
+  );
+  const plantillaPorId = useMemo(
+    () => new Map(plantilla.map((p) => [p.id, p])),
+    [plantilla],
   );
 
   const { top, flojos } = useMemo(
@@ -59,14 +78,36 @@ export function JugadoresDestacados({ rivalId }: { rivalId: string }) {
     control,
     handleSubmit,
     reset,
+    setValue,
+    watch,
     formState: { isSubmitting },
   } = useForm<JugadorDestacadoFormValues>({
     resolver: zodResolver(jugadorDestacadoSchema),
     defaultValues: JUGADOR_DESTACADO_FORM_DEFAULTS,
   });
 
+  const plantillaIdElegido = watch("plantilla_id");
+  const esManual = plantillaIdElegido === MANUAL || plantilla.length === 0;
+
+  function handleElegirPlantilla(valor: string | null) {
+    if (!valor) return;
+    setValue("plantilla_id", valor);
+    if (valor === MANUAL) {
+      setValue("nombre", "");
+      setValue("dorsal", "");
+      return;
+    }
+    const jugador = plantillaPorId.get(valor);
+    if (!jugador) return;
+    setValue("nombre", jugador.nombre);
+    setValue("dorsal", jugador.dorsal != null ? String(jugador.dorsal) : "");
+  }
+
   async function onSubmit(values: JugadorDestacadoFormValues) {
-    const result = await crearJugadorDestacadoLocal(rivalId, values);
+    const result = await crearJugadorDestacadoLocal(rivalId, {
+      ...values,
+      plantilla_id: values.plantilla_id === MANUAL ? "" : values.plantilla_id,
+    });
     if ("error" in result) {
       toast.error(result.error);
       return;
@@ -104,27 +145,60 @@ export function JugadoresDestacados({ rivalId }: { rivalId: string }) {
           onSubmit={handleSubmit(onSubmit)}
           className="space-y-3 rounded-md border p-3 print:hidden"
         >
-          <div className="grid grid-cols-2 gap-3">
+          {plantilla.length > 0 && (
             <div className="space-y-1">
-              <Label htmlFor="nombre" className="text-xs">
-                Nombre
+              <Label htmlFor="plantilla_id" className="text-xs">
+                Jugador de la plantilla
               </Label>
-              <Input id="nombre" {...register("nombre")} />
-            </div>
-            <div className="space-y-1">
-              <Label htmlFor="dorsal" className="text-xs">
-                Dorsal
-              </Label>
-              <Input
-                id="dorsal"
-                type="number"
-                min={1}
-                max={99}
-                inputMode="numeric"
-                {...register("dorsal")}
+              <Controller
+                control={control}
+                name="plantilla_id"
+                render={({ field }) => (
+                  <Select value={field.value} onValueChange={handleElegirPlantilla}>
+                    <SelectTrigger id="plantilla_id" className="w-full">
+                      <SelectValue placeholder="Elige de la plantilla..." />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {plantilla.map((p) => (
+                        <SelectItem key={p.id} value={p.id}>
+                          {p.dorsal != null ? `${p.dorsal} · ` : ""}
+                          {p.nombre}
+                        </SelectItem>
+                      ))}
+                      <SelectItem value={MANUAL}>
+                        No está en la plantilla (escribir a mano)
+                      </SelectItem>
+                    </SelectContent>
+                  </Select>
+                )}
               />
             </div>
-          </div>
+          )}
+
+          {esManual && (
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1">
+                <Label htmlFor="nombre" className="text-xs">
+                  Nombre
+                </Label>
+                <Input id="nombre" {...register("nombre")} />
+              </div>
+              <div className="space-y-1">
+                <Label htmlFor="dorsal" className="text-xs">
+                  Dorsal
+                </Label>
+                <Input
+                  id="dorsal"
+                  type="number"
+                  min={1}
+                  max={99}
+                  inputMode="numeric"
+                  {...register("dorsal")}
+                />
+              </div>
+            </div>
+          )}
+
           <div className="space-y-1">
             <Label htmlFor="categoria" className="text-xs">
               Categoría
@@ -166,10 +240,24 @@ export function JugadoresDestacados({ rivalId }: { rivalId: string }) {
       ) : (
         <div className="space-y-2">
           {top.map((d) => (
-            <JugadorDestacadoRow key={d.id} nombre={d.nombre} dorsal={d.dorsal} notas={d.notas} tono="top" onDelete={() => handleDelete(d.id)} />
+            <JugadorDestacadoRow
+              key={d.id}
+              nombre={plantillaPorId.get(d.plantilla_id ?? "")?.nombre ?? d.nombre}
+              dorsal={plantillaPorId.get(d.plantilla_id ?? "")?.dorsal ?? d.dorsal}
+              notas={d.notas}
+              tono="top"
+              onDelete={() => handleDelete(d.id)}
+            />
           ))}
           {flojos.map((d) => (
-            <JugadorDestacadoRow key={d.id} nombre={d.nombre} dorsal={d.dorsal} notas={d.notas} tono="flojo" onDelete={() => handleDelete(d.id)} />
+            <JugadorDestacadoRow
+              key={d.id}
+              nombre={plantillaPorId.get(d.plantilla_id ?? "")?.nombre ?? d.nombre}
+              dorsal={plantillaPorId.get(d.plantilla_id ?? "")?.dorsal ?? d.dorsal}
+              notas={d.notas}
+              tono="flojo"
+              onDelete={() => handleDelete(d.id)}
+            />
           ))}
         </div>
       )}

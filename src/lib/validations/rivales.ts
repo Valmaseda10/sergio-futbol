@@ -37,6 +37,11 @@ export const jugadorDestacadoSchema = z.object({
   dorsal: z.string().trim(),
   categoria: z.enum(["top", "flojo"]),
   notas: z.string().trim(),
+  // Enlace opcional con la plantilla del rival ya cargada: si se elige un
+  // jugador de ahí, nombre/dorsal se rellenan solos (ver más abajo). Queda
+  // en "" cuando se escribe el nombre a mano porque el jugador todavía no
+  // está de alta en la plantilla.
+  plantilla_id: z.string().trim(),
 });
 
 export type JugadorDestacadoFormValues = z.infer<typeof jugadorDestacadoSchema>;
@@ -46,6 +51,7 @@ export const JUGADOR_DESTACADO_FORM_DEFAULTS: JugadorDestacadoFormValues = {
   dorsal: "",
   categoria: "top",
   notas: "",
+  plantilla_id: "",
 };
 
 export function toJugadorDestacadoInsert(values: JugadorDestacadoFormValues) {
@@ -54,6 +60,7 @@ export function toJugadorDestacadoInsert(values: JugadorDestacadoFormValues) {
     dorsal: values.dorsal !== "" ? Number(values.dorsal) : null,
     categoria: values.categoria as CategoriaJugadorDestacado,
     notas: values.notas || null,
+    plantilla_id: values.plantilla_id || null,
   };
 }
 
