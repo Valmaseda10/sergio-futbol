@@ -352,22 +352,26 @@ export function PlantillaRival({ rivalId }: { rivalId: string }) {
                   <p className="text-xs text-muted-foreground">{m.notas}</p>
                 )}
               </div>
-              <button
+              <Button
                 type="button"
+                variant="ghost"
+                size="icon-sm"
+                className="shrink-0 print:hidden"
                 onClick={() => abrirEditar(m)}
                 aria-label="Editar"
-                className="shrink-0 print:hidden"
               >
-                <Pencil className="size-4 text-muted-foreground hover:text-foreground" />
-              </button>
-              <button
+                <Pencil className="size-4 text-muted-foreground" />
+              </Button>
+              <Button
                 type="button"
+                variant="ghost"
+                size="icon-sm"
+                className="shrink-0 print:hidden"
                 onClick={() => handleDelete(m.id)}
                 aria-label="Eliminar"
-                className="shrink-0 print:hidden"
               >
-                <Trash2 className="size-4 text-muted-foreground hover:text-destructive" />
-              </button>
+                <Trash2 className="size-4 text-muted-foreground" />
+              </Button>
             </div>
           ))}
         </div>
@@ -422,22 +426,26 @@ function PlantillaJugadorRow({
         )}
         {notas && <p className="text-xs text-muted-foreground">{notas}</p>}
       </div>
-      <button
+      <Button
         type="button"
+        variant="ghost"
+        size="icon-sm"
+        className="shrink-0 print:hidden"
         onClick={onEdit}
         aria-label="Editar jugador"
-        className="shrink-0 print:hidden"
       >
-        <Pencil className="size-4 text-muted-foreground hover:text-foreground" />
-      </button>
-      <button
+        <Pencil className="size-4 text-muted-foreground" />
+      </Button>
+      <Button
         type="button"
+        variant="ghost"
+        size="icon-sm"
+        className="shrink-0 print:hidden"
         onClick={onDelete}
         aria-label="Eliminar jugador"
-        className="shrink-0 print:hidden"
       >
-        <Trash2 className="size-4 text-muted-foreground hover:text-destructive" />
-      </button>
+        <Trash2 className="size-4 text-muted-foreground" />
+      </Button>
     </div>
   );
 }
