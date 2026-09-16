@@ -175,6 +175,17 @@ export async function actualizarEquipacionRivalLocal(
   return { success: true };
 }
 
+export async function actualizarNotasRivalLocal(
+  id: string,
+  patch: Partial<
+    Pick<LocalRivalScouting, "fase_ofensiva" | "fase_defensiva" | "abp" | "notas">
+  >,
+): Promise<SimpleResult> {
+  await localDb.rivales_scouting.update(id, patch);
+  await queueMutation("rivales_scouting", "update", id, patch);
+  return { success: true };
+}
+
 type DestacadoResult =
   | { error: string }
   | { success: true; destacado: LocalRivalJugadorDestacado };

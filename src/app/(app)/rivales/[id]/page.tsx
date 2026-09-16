@@ -14,6 +14,7 @@ import { JugadoresDestacados } from "@/components/rivales/jugadores-destacados";
 import { PlantillaRival } from "@/components/rivales/plantilla-rival";
 import { EquipacionRival } from "@/components/rivales/equipacion-rival";
 import { AlineacionRival } from "@/components/rivales/alineacion-rival";
+import { NotasRival } from "@/components/rivales/notas-rival";
 import { PdfWatermark } from "@/components/branding/pdf-watermark";
 
 function Seccion({ titulo, texto }: { titulo: string; texto: string | null }) {
@@ -100,7 +101,7 @@ export default function FichaRivalPage() {
         })}
       </p>
 
-      <div className="grid gap-4 sm:grid-cols-2">
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         <EquipacionRival
           rivalId={rival.id}
           colorCamiseta={rival.color_camiseta}
@@ -108,13 +109,18 @@ export default function FichaRivalPage() {
           colorMedias={rival.color_medias}
         />
         <AlineacionRival rivalId={rival.id} />
+        <div className="sm:col-span-2 lg:col-span-1">
+          <NotasRival
+            rivalId={rival.id}
+            faseOfensiva={rival.fase_ofensiva}
+            faseDefensiva={rival.fase_defensiva}
+            abp={rival.abp}
+            notas={rival.notas}
+          />
+        </div>
       </div>
 
       <Seccion titulo="Sistema de juego" texto={rival.sistema_juego} />
-      <Seccion titulo="Fase ofensiva" texto={rival.fase_ofensiva} />
-      <Seccion titulo="Fase defensiva" texto={rival.fase_defensiva} />
-      <Seccion titulo="ABP" texto={rival.abp} />
-      <Seccion titulo="Notas" texto={rival.notas} />
 
       <Card>
         <CardHeader>
