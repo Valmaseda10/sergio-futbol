@@ -518,7 +518,12 @@ export function EntrenamientoForm({
             </div>
             <div className="space-y-2">
               <Label htmlFor="material">Material</Label>
-              <Textarea id="material" rows={4} {...register("material")} />
+              <Textarea
+                id="material"
+                rows={4}
+                placeholder="Ej: Balones, conos, picas, 4 miniporterías"
+                {...register("material")}
+              />
             </div>
           </div>
         </CardContent>

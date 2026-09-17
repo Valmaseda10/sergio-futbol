@@ -10,6 +10,7 @@
 import { Printer } from "lucide-react";
 import { clubConfig } from "@/lib/club-config";
 import { CATEGORIA_TAREA_LABEL } from "@/lib/validations/categoria-tarea";
+import { grupoEntrenoDeFecha } from "@/lib/grupos-entreno";
 import type { LocalEntrenamiento } from "@/lib/db/local-db";
 import { Button } from "@/components/ui/button";
 import { PdfWatermark } from "@/components/branding/pdf-watermark";
@@ -306,6 +307,7 @@ export function EntrenamientoFichaImprimible({
     },
   ];
   const hayRoles = roles.some((r) => r.campos || r.paco);
+  const grupoHoy = grupoEntrenoDeFecha(entrenamiento.fecha);
 
   return (
     <div className="space-y-3">
@@ -355,16 +357,25 @@ export function EntrenamientoFichaImprimible({
           className="border-b border-border"
         />
 
-        {(entrenamiento.charla || entrenamiento.material) && (
+        {(entrenamiento.charla || grupoHoy) && (
           <div className="grid grid-cols-1 divide-border border-b border-border sm:grid-cols-2 sm:divide-x print:grid-cols-2 print:divide-x">
             <div className="border-b border-border sm:border-b-0 print:border-b-0">
               <TituloSeccion>Charla</TituloSeccion>
               <p className="p-2 text-xs whitespace-pre-wrap">{entrenamiento.charla}</p>
             </div>
             <div>
-              <TituloSeccion>Material</TituloSeccion>
-              <p className="p-2 text-xs whitespace-pre-wrap">{entrenamiento.material}</p>
+              <TituloSeccion>Quién entrena hoy</TituloSeccion>
+              <p className="p-2 text-xs whitespace-pre-wrap">
+                {grupoHoy ? grupoHoy.join(", ") : "—"}
+              </p>
             </div>
+          </div>
+        )}
+
+        {entrenamiento.material && (
+          <div className="border-b border-border">
+            <TituloSeccion>Material</TituloSeccion>
+            <p className="p-2 text-xs whitespace-pre-wrap">{entrenamiento.material}</p>
           </div>
         )}
 

@@ -120,11 +120,7 @@ export const ENTRENAMIENTO_FORM_DEFAULTS: EntrenamientoFormValues = {
   microciclo: "",
   bajas: "",
   charla: "",
-  // Se precarga siempre con quién entrena cada día, para no tener que
-  // teclearlo en cada sesión — se puede editar o completar con el resto
-  // del material antes de guardar.
-  material:
-    "Martes: Iker, Gabriel, Carlos, Erik, Diego y Teo — Recoge material: \nJueves: Oliver, Manu, Leo, Alex y Gonzalo — Recoge material: \nViernes: Bruno, Pablo, Nico, Alejandro y Barrera — Recoge material: ",
+  material: "",
   tarea_1: "",
   tarea_2: "",
   tarea_3: "",
