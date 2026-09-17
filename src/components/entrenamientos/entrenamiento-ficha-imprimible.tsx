@@ -9,7 +9,6 @@
 
 import { Printer } from "lucide-react";
 import { clubConfig } from "@/lib/club-config";
-import { capitalizarPrimera } from "@/lib/date";
 import { CATEGORIA_TAREA_LABEL } from "@/lib/validations/categoria-tarea";
 import type { LocalEntrenamiento } from "@/lib/db/local-db";
 import { Button } from "@/components/ui/button";
@@ -21,14 +20,6 @@ function formatearFechaCorta(fecha: string) {
     month: "2-digit",
     year: "numeric",
   });
-}
-
-function nombreDia(fecha: string) {
-  return capitalizarPrimera(
-    new Date(`${fecha}T00:00:00`).toLocaleDateString("es-ES", {
-      weekday: "long",
-    }),
-  );
 }
 
 // Celda de cabecera al estilo de la tabla FECHA SESIÓN / RIVAL / MICROCICLO
@@ -76,6 +67,7 @@ function BloqueTarea({
   rotacion,
   reglasProvocacion,
   observaciones,
+  saltoPagina,
 }: {
   numero: number;
   titulo: string | null;
@@ -90,6 +82,10 @@ function BloqueTarea({
   rotacion: string | null;
   reglasProvocacion: string | null;
   observaciones: string | null;
+  // Tareas 3 y 4 van en la segunda hoja (Tarea 1 y 2 en la primera), igual
+  // que en la plantilla — así la ficha imprime siempre en dos páginas, para
+  // poder sacarla a doble cara.
+  saltoPagina?: boolean;
 }) {
   const sinContenido =
     !titulo &&
@@ -105,7 +101,11 @@ function BloqueTarea({
   if (sinContenido) return null;
 
   return (
-    <div className="flex min-h-[280px] flex-col break-inside-avoid border-t border-border first:border-t-0 print:min-h-[300px]">
+    <div
+      className={`flex min-h-[240px] flex-col break-inside-avoid border-t border-border first:border-t-0 print:min-h-[250px] ${
+        saltoPagina ? "print:break-before-page" : ""
+      }`}
+    >
       <div className="flex flex-wrap items-center justify-between gap-2 bg-primary px-2 py-1 text-primary-foreground">
         <p className="text-sm font-bold tracking-wide uppercase">
           Tarea {numero}
@@ -148,13 +148,13 @@ function BloqueTarea({
               <div className="grid grid-cols-2 divide-x divide-border border-b border-border">
                 <div className="p-2">
                   <p className="text-[9px] font-semibold text-muted-foreground uppercase underline underline-offset-2">
-                    Ítems fase DEF
+                    Ítems fase defensiva
                   </p>
                   <p className="text-xs whitespace-pre-wrap">{objetivosDef}</p>
                 </div>
                 <div className="p-2">
                   <p className="text-[9px] font-semibold text-muted-foreground uppercase underline underline-offset-2">
-                    Ítems fase OFE
+                    Ítems fase ofensiva
                   </p>
                   <p className="text-xs whitespace-pre-wrap">{objetivosOfe}</p>
                 </div>
@@ -201,7 +201,7 @@ function CampoNotas() {
   return (
     <div className="border-t border-border">
       <TituloSeccion>Notas / pizarra</TituloSeccion>
-      <div className="relative mx-auto my-2 aspect-[16/9] w-full max-w-2xl overflow-hidden rounded-md bg-pitch print:rounded-none">
+      <div className="relative mx-auto my-2 aspect-[16/9] w-full max-w-xl overflow-hidden rounded-md bg-pitch print:rounded-none">
         <div className="absolute inset-y-0 left-1/2 w-px -translate-x-1/2 bg-white/40" />
         <div className="absolute top-1/2 left-1/2 size-16 -translate-x-1/2 -translate-y-1/2 rounded-full border border-white/40" />
         <div className="absolute inset-y-[18%] left-0 w-[10%] border-y border-r border-white/40" />
@@ -340,21 +340,8 @@ export function EntrenamientoFichaImprimible({
             etiqueta="Fecha sesión"
             valor={formatearFechaCorta(entrenamiento.fecha)}
           />
-          <CampoCelda etiqueta="Día" valor={nombreDia(entrenamiento.fecha)} />
           <CampoCelda etiqueta="Rival / Torneo" valor={entrenamiento.rival_torneo} />
           <CampoCelda etiqueta="Microciclo" valor={entrenamiento.microciclo} />
-          <CampoCelda
-            etiqueta="Hora"
-            valor={
-              entrenamiento.hora_inicio
-                ? `${entrenamiento.hora_inicio.slice(0, 5)}${
-                    entrenamiento.hora_fin
-                      ? ` - ${entrenamiento.hora_fin.slice(0, 5)}`
-                      : ""
-                  }`
-                : null
-            }
-          />
           <CampoCelda etiqueta="Lugar" valor={entrenamiento.lugar} />
         </div>
         <CampoCelda
@@ -403,7 +390,7 @@ export function EntrenamientoFichaImprimible({
         )}
 
         {tareas.map((t) => (
-          <BloqueTarea key={t.numero} {...t} />
+          <BloqueTarea key={t.numero} {...t} saltoPagina={t.numero === 3} />
         ))}
 
         {entrenamiento.notas && (

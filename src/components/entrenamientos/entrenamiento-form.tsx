@@ -702,7 +702,7 @@ export function EntrenamientoForm({
                     htmlFor={CAMPO_OBJETIVOS_DEF[campo]}
                     className="text-xs text-muted-foreground"
                   >
-                    Ítems fase DEF
+                    Ítems fase defensiva
                   </Label>
                   <Textarea
                     id={CAMPO_OBJETIVOS_DEF[campo]}
@@ -715,7 +715,7 @@ export function EntrenamientoForm({
                     htmlFor={CAMPO_OBJETIVOS_OFE[campo]}
                     className="text-xs text-muted-foreground"
                   >
-                    Ítems fase OFE
+                    Ítems fase ofensiva
                   </Label>
                   <Textarea
                     id={CAMPO_OBJETIVOS_OFE[campo]}
