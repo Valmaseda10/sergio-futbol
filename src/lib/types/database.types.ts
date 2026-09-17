@@ -291,6 +291,16 @@ export interface Database {
           tarea_4_rotacion: string | null;
           tarea_4_reglas_provocacion: string | null;
           tarea_4_observaciones: string | null;
+          // Quién de los dos entrenadores lleva cada tarea (Campos/Paco),
+          // igual que la fila "Campos: / Paco:" de la plantilla.
+          tarea_1_rol_campos: string | null;
+          tarea_1_rol_paco: string | null;
+          tarea_2_rol_campos: string | null;
+          tarea_2_rol_paco: string | null;
+          tarea_3_rol_campos: string | null;
+          tarea_3_rol_paco: string | null;
+          tarea_4_rol_campos: string | null;
+          tarea_4_rol_paco: string | null;
           notas: string | null;
           documento_url: string | null;
           created_at: string;
@@ -359,6 +369,14 @@ export interface Database {
           tarea_4_rotacion?: string | null;
           tarea_4_reglas_provocacion?: string | null;
           tarea_4_observaciones?: string | null;
+          tarea_1_rol_campos?: string | null;
+          tarea_1_rol_paco?: string | null;
+          tarea_2_rol_campos?: string | null;
+          tarea_2_rol_paco?: string | null;
+          tarea_3_rol_campos?: string | null;
+          tarea_3_rol_paco?: string | null;
+          tarea_4_rol_campos?: string | null;
+          tarea_4_rol_paco?: string | null;
           notas?: string | null;
           documento_url?: string | null;
           created_at?: string;

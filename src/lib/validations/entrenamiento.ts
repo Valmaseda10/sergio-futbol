@@ -95,6 +95,16 @@ export const entrenamientoSchema = z.object({
   tarea_4_rotacion: z.string().trim(),
   tarea_4_reglas_provocacion: z.string().trim(),
   tarea_4_observaciones: z.string().trim(),
+  // Quién de los dos entrenadores lleva cada tarea, igual que la fila
+  // "Campos: / Paco:" de la plantilla.
+  tarea_1_rol_campos: z.string().trim(),
+  tarea_1_rol_paco: z.string().trim(),
+  tarea_2_rol_campos: z.string().trim(),
+  tarea_2_rol_paco: z.string().trim(),
+  tarea_3_rol_campos: z.string().trim(),
+  tarea_3_rol_paco: z.string().trim(),
+  tarea_4_rol_campos: z.string().trim(),
+  tarea_4_rol_paco: z.string().trim(),
   notas: z.string().trim(),
 });
 
@@ -110,7 +120,11 @@ export const ENTRENAMIENTO_FORM_DEFAULTS: EntrenamientoFormValues = {
   microciclo: "",
   bajas: "",
   charla: "",
-  material: "",
+  // Se precarga siempre con quién entrena cada día, para no tener que
+  // teclearlo en cada sesión — se puede editar o completar con el resto
+  // del material antes de guardar.
+  material:
+    "Martes: Iker, Gabriel, Carlos, Erik, Diego y Teo\nJueves: Oliver, Manu, Leo, Alex y Gonzalo\nViernes: Bruno, Pablo, Nico, Alejandro y Barrera.",
   tarea_1: "",
   tarea_2: "",
   tarea_3: "",
@@ -159,6 +173,14 @@ export const ENTRENAMIENTO_FORM_DEFAULTS: EntrenamientoFormValues = {
   tarea_4_rotacion: "",
   tarea_4_reglas_provocacion: "",
   tarea_4_observaciones: "",
+  tarea_1_rol_campos: "",
+  tarea_1_rol_paco: "",
+  tarea_2_rol_campos: "",
+  tarea_2_rol_paco: "",
+  tarea_3_rol_campos: "",
+  tarea_3_rol_paco: "",
+  tarea_4_rol_campos: "",
+  tarea_4_rol_paco: "",
   notas: "",
 };
 
@@ -180,6 +202,8 @@ function tareaInsert(
   rotacion: string,
   reglasProvocacion: string,
   observaciones: string,
+  rolCampos: string,
+  rolPaco: string,
 ) {
   const limpio = texto.trim();
   return {
@@ -198,6 +222,8 @@ function tareaInsert(
     rotacion: rotacion || null,
     reglasProvocacion: reglasProvocacion || null,
     observaciones: observaciones || null,
+    rolCampos: rolCampos || null,
+    rolPaco: rolPaco || null,
   };
 }
 
@@ -215,6 +241,8 @@ export function toEntrenamientoInsert(values: EntrenamientoFormValues) {
     values.tarea_1_rotacion,
     values.tarea_1_reglas_provocacion,
     values.tarea_1_observaciones,
+    values.tarea_1_rol_campos,
+    values.tarea_1_rol_paco,
   );
   const t2 = tareaInsert(
     values.tarea_2,
@@ -229,6 +257,8 @@ export function toEntrenamientoInsert(values: EntrenamientoFormValues) {
     values.tarea_2_rotacion,
     values.tarea_2_reglas_provocacion,
     values.tarea_2_observaciones,
+    values.tarea_2_rol_campos,
+    values.tarea_2_rol_paco,
   );
   const t3 = tareaInsert(
     values.tarea_3,
@@ -243,6 +273,8 @@ export function toEntrenamientoInsert(values: EntrenamientoFormValues) {
     values.tarea_3_rotacion,
     values.tarea_3_reglas_provocacion,
     values.tarea_3_observaciones,
+    values.tarea_3_rol_campos,
+    values.tarea_3_rol_paco,
   );
   const t4 = tareaInsert(
     values.tarea_4,
@@ -257,6 +289,8 @@ export function toEntrenamientoInsert(values: EntrenamientoFormValues) {
     values.tarea_4_rotacion,
     values.tarea_4_reglas_provocacion,
     values.tarea_4_observaciones,
+    values.tarea_4_rol_campos,
+    values.tarea_4_rol_paco,
   );
   return {
     fecha: values.fecha,
@@ -317,6 +351,14 @@ export function toEntrenamientoInsert(values: EntrenamientoFormValues) {
     tarea_4_rotacion: t4.rotacion,
     tarea_4_reglas_provocacion: t4.reglasProvocacion,
     tarea_4_observaciones: t4.observaciones,
+    tarea_1_rol_campos: t1.rolCampos,
+    tarea_1_rol_paco: t1.rolPaco,
+    tarea_2_rol_campos: t2.rolCampos,
+    tarea_2_rol_paco: t2.rolPaco,
+    tarea_3_rol_campos: t3.rolCampos,
+    tarea_3_rol_paco: t3.rolPaco,
+    tarea_4_rol_campos: t4.rolCampos,
+    tarea_4_rol_paco: t4.rolPaco,
     notas: values.notas || null,
   };
 }
@@ -391,6 +433,14 @@ export function entrenamientoFormDataToValues(
       formData.get("tarea_4_reglas_provocacion") ?? "",
     ),
     tarea_4_observaciones: String(formData.get("tarea_4_observaciones") ?? ""),
+    tarea_1_rol_campos: String(formData.get("tarea_1_rol_campos") ?? ""),
+    tarea_1_rol_paco: String(formData.get("tarea_1_rol_paco") ?? ""),
+    tarea_2_rol_campos: String(formData.get("tarea_2_rol_campos") ?? ""),
+    tarea_2_rol_paco: String(formData.get("tarea_2_rol_paco") ?? ""),
+    tarea_3_rol_campos: String(formData.get("tarea_3_rol_campos") ?? ""),
+    tarea_3_rol_paco: String(formData.get("tarea_3_rol_paco") ?? ""),
+    tarea_4_rol_campos: String(formData.get("tarea_4_rol_campos") ?? ""),
+    tarea_4_rol_paco: String(formData.get("tarea_4_rol_paco") ?? ""),
     notas: String(formData.get("notas") ?? ""),
   };
 }

@@ -105,9 +105,9 @@ function BloqueTarea({
   if (sinContenido) return null;
 
   return (
-    <div className="break-inside-avoid border-t border-border first:border-t-0">
+    <div className="flex min-h-[280px] flex-col break-inside-avoid border-t border-border first:border-t-0 print:min-h-[300px]">
       <div className="flex flex-wrap items-center justify-between gap-2 bg-primary px-2 py-1 text-primary-foreground">
-        <p className="text-xs font-semibold tracking-wide uppercase">
+        <p className="text-sm font-bold tracking-wide uppercase">
           Tarea {numero}
           {titulo ? ` · ${titulo}` : ""}
         </p>
@@ -140,12 +140,12 @@ function BloqueTarea({
         </div>
       )}
 
-      <div className="grid grid-cols-1 divide-border border-b border-border sm:grid-cols-[1fr_180px] sm:divide-x print:grid-cols-[1fr_180px] print:divide-x">
-        <div>
+      <div className="grid flex-1 grid-cols-1 divide-border border-b border-border sm:grid-cols-[1fr_260px] sm:divide-x print:grid-cols-[1fr_260px] print:divide-x">
+        <div className="border border-border sm:border-y-0 sm:border-l-0">
           {(objetivosDef || objetivosOfe) && (
             <>
               <TituloSeccion>Objetivos</TituloSeccion>
-              <div className="grid grid-cols-2 divide-x divide-border">
+              <div className="grid grid-cols-2 divide-x divide-border border-b border-border">
                 <div className="p-2">
                   <p className="text-[9px] font-semibold text-muted-foreground uppercase underline underline-offset-2">
                     Ítems fase DEF
@@ -174,7 +174,7 @@ function BloqueTarea({
           {rotacion && (
             <div className="flex-1">
               <TituloSeccion>Rotación</TituloSeccion>
-              <p className="p-2 text-[11px] whitespace-pre-wrap">{rotacion}</p>
+              <p className="p-2 text-xs whitespace-pre-wrap">{rotacion}</p>
             </div>
           )}
         </div>
@@ -192,6 +192,23 @@ function BloqueTarea({
           </div>
         </div>
       )}
+    </div>
+  );
+}
+
+// Campo horizontal en blanco, para tomar notas a mano sobre el PDF impreso.
+function CampoNotas() {
+  return (
+    <div className="border-t border-border">
+      <TituloSeccion>Notas / pizarra</TituloSeccion>
+      <div className="relative mx-auto my-2 aspect-[16/9] w-full max-w-2xl overflow-hidden rounded-md bg-pitch print:rounded-none">
+        <div className="absolute inset-y-0 left-1/2 w-px -translate-x-1/2 bg-white/40" />
+        <div className="absolute top-1/2 left-1/2 size-16 -translate-x-1/2 -translate-y-1/2 rounded-full border border-white/40" />
+        <div className="absolute inset-y-[18%] left-0 w-[10%] border-y border-r border-white/40" />
+        <div className="absolute inset-y-[18%] right-0 w-[10%] border-y border-l border-white/40" />
+        <div className="absolute inset-y-[38%] left-0 w-[4%] border-y border-r border-white/40" />
+        <div className="absolute inset-y-[38%] right-0 w-[4%] border-y border-l border-white/40" />
+      </div>
     </div>
   );
 }
@@ -266,6 +283,30 @@ export function EntrenamientoFichaImprimible({
     },
   ];
 
+  const roles = [
+    {
+      numero: 1,
+      campos: entrenamiento.tarea_1_rol_campos,
+      paco: entrenamiento.tarea_1_rol_paco,
+    },
+    {
+      numero: 2,
+      campos: entrenamiento.tarea_2_rol_campos,
+      paco: entrenamiento.tarea_2_rol_paco,
+    },
+    {
+      numero: 3,
+      campos: entrenamiento.tarea_3_rol_campos,
+      paco: entrenamiento.tarea_3_rol_paco,
+    },
+    {
+      numero: 4,
+      campos: entrenamiento.tarea_4_rol_campos,
+      paco: entrenamiento.tarea_4_rol_paco,
+    },
+  ];
+  const hayRoles = roles.some((r) => r.campos || r.paco);
+
   return (
     <div className="space-y-3">
       <PdfWatermark />
@@ -285,17 +326,13 @@ export function EntrenamientoFichaImprimible({
       </div>
 
       <div className="relative overflow-hidden rounded-md border border-border bg-card print:rounded-none print:border-none">
-        <div className="flex items-center justify-between gap-3 bg-primary px-3 py-1.5 text-primary-foreground">
-          <p className="font-heading text-sm tracking-wide uppercase">
+        <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-0.5 bg-primary px-3 py-1.5 text-primary-foreground">
+          <p className="min-w-0 font-heading text-sm tracking-wide uppercase">
             {clubConfig.nombreEquipo} — Sesión de entrenamiento
           </p>
-          {entrenamiento.hora_inicio && (
-            <p className="text-right text-[10px]">
-              {entrenamiento.hora_inicio.slice(0, 5)}
-              {entrenamiento.hora_fin && ` - ${entrenamiento.hora_fin.slice(0, 5)}`}
-              {entrenamiento.lugar && ` · ${entrenamiento.lugar}`}
-            </p>
-          )}
+          <p className="min-w-0 text-right text-[10px] font-semibold tracking-wide uppercase">
+            {clubConfig.nombreClub}
+          </p>
         </div>
 
         <div className="grid grid-cols-2 divide-x divide-y divide-border border-b border-border sm:grid-cols-4 sm:divide-y-0 print:grid-cols-4 print:divide-y-0">
@@ -306,6 +343,19 @@ export function EntrenamientoFichaImprimible({
           <CampoCelda etiqueta="Día" valor={nombreDia(entrenamiento.fecha)} />
           <CampoCelda etiqueta="Rival / Torneo" valor={entrenamiento.rival_torneo} />
           <CampoCelda etiqueta="Microciclo" valor={entrenamiento.microciclo} />
+          <CampoCelda
+            etiqueta="Hora"
+            valor={
+              entrenamiento.hora_inicio
+                ? `${entrenamiento.hora_inicio.slice(0, 5)}${
+                    entrenamiento.hora_fin
+                      ? ` - ${entrenamiento.hora_fin.slice(0, 5)}`
+                      : ""
+                  }`
+                : null
+            }
+          />
+          <CampoCelda etiqueta="Lugar" valor={entrenamiento.lugar} />
         </div>
         <CampoCelda
           etiqueta="Bajas"
@@ -318,10 +368,37 @@ export function EntrenamientoFichaImprimible({
           className="border-b border-border"
         />
 
-        {entrenamiento.charla && (
+        {(entrenamiento.charla || entrenamiento.material) && (
+          <div className="grid grid-cols-1 divide-border border-b border-border sm:grid-cols-2 sm:divide-x print:grid-cols-2 print:divide-x">
+            <div className="border-b border-border sm:border-b-0 print:border-b-0">
+              <TituloSeccion>Charla</TituloSeccion>
+              <p className="p-2 text-xs whitespace-pre-wrap">{entrenamiento.charla}</p>
+            </div>
+            <div>
+              <TituloSeccion>Material</TituloSeccion>
+              <p className="p-2 text-xs whitespace-pre-wrap">{entrenamiento.material}</p>
+            </div>
+          </div>
+        )}
+
+        {hayRoles && (
           <div className="border-b border-border">
-            <TituloSeccion>Charla</TituloSeccion>
-            <p className="p-2 text-xs whitespace-pre-wrap">{entrenamiento.charla}</p>
+            <TituloSeccion>Roles entrenador</TituloSeccion>
+            <div className="grid grid-cols-2 divide-x divide-y divide-border sm:grid-cols-4 sm:divide-y-0 print:grid-cols-4 print:divide-y-0">
+              {roles.map((r) => (
+                <div key={r.numero} className="p-2 text-xs">
+                  <p className="text-[9px] font-semibold text-muted-foreground uppercase">
+                    Tarea {r.numero}
+                  </p>
+                  <p>
+                    <span className="font-semibold">Campos:</span> {r.campos}
+                  </p>
+                  <p>
+                    <span className="font-semibold">Paco:</span> {r.paco}
+                  </p>
+                </div>
+              ))}
+            </div>
           </div>
         )}
 
@@ -329,18 +406,14 @@ export function EntrenamientoFichaImprimible({
           <BloqueTarea key={t.numero} {...t} />
         ))}
 
-        {entrenamiento.material && (
-          <div className="border-t border-border">
-            <TituloSeccion>Material</TituloSeccion>
-            <p className="p-2 text-xs whitespace-pre-wrap">{entrenamiento.material}</p>
-          </div>
-        )}
         {entrenamiento.notas && (
           <div className="border-t border-border">
             <TituloSeccion>Notas</TituloSeccion>
             <p className="p-2 text-xs whitespace-pre-wrap">{entrenamiento.notas}</p>
           </div>
         )}
+
+        <CampoNotas />
       </div>
     </div>
   );
