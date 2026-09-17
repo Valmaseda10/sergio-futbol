@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import { useLiveQuery } from "dexie-react-hooks";
-import { localDb } from "@/lib/db/local-db";
+import { localDb, type LocalEntrenamiento } from "@/lib/db/local-db";
 import { createClient } from "@/lib/supabase/client";
 import { EntrenamientoForm } from "@/components/entrenamientos/entrenamiento-form";
 
@@ -13,49 +13,6 @@ export default function EditarEntrenamientoPage() {
     async () => (await localDb.entrenamientos.get(id)) ?? null,
     [id],
   );
-  const [documentoSignedUrl, setDocumentoSignedUrl] = useState<string | null>(
-    null,
-  );
-  const [tareaImagenSignedUrls, setTareaImagenSignedUrls] = useState<
-    (string | null)[]
-  >([null, null, null, null]);
-
-  useEffect(() => {
-    if (!entrenamiento?.documento_url || !navigator.onLine) return;
-    const supabase = createClient();
-    supabase.storage
-      .from("adjuntos")
-      .createSignedUrl(entrenamiento.documento_url, 3600)
-      .then(({ data }) => setDocumentoSignedUrl(data?.signedUrl ?? null));
-  }, [entrenamiento?.documento_url]);
-
-  const imagenesTareasUrls = [
-    entrenamiento?.tarea_1_imagen_url,
-    entrenamiento?.tarea_2_imagen_url,
-    entrenamiento?.tarea_3_imagen_url,
-    entrenamiento?.tarea_4_imagen_url,
-  ];
-
-  useEffect(() => {
-    if (!navigator.onLine) return;
-    const supabase = createClient();
-    Promise.all(
-      imagenesTareasUrls.map((path) =>
-        path
-          ? supabase.storage
-              .from("adjuntos")
-              .createSignedUrl(path, 3600)
-              .then(({ data }) => data?.signedUrl ?? null)
-          : Promise.resolve(null),
-      ),
-    ).then(setTareaImagenSignedUrls);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [
-    entrenamiento?.tarea_1_imagen_url,
-    entrenamiento?.tarea_2_imagen_url,
-    entrenamiento?.tarea_3_imagen_url,
-    entrenamiento?.tarea_4_imagen_url,
-  ]);
 
   if (entrenamiento === undefined) {
     return <p className="text-sm text-muted-foreground">Cargando...</p>;
@@ -68,6 +25,61 @@ export default function EditarEntrenamientoPage() {
       </p>
     );
   }
+
+  // La key fuerza a remontar al cambiar de entrenamiento — ver el mismo
+  // comentario en la ficha ([id]/page.tsx): sin ella, las URLs firmadas del
+  // entrenamiento anterior se quedaban viéndose en el formulario.
+  return (
+    <EditarEntrenamientoDetalle key={entrenamiento.id} entrenamiento={entrenamiento} />
+  );
+}
+
+function EditarEntrenamientoDetalle({
+  entrenamiento,
+}: {
+  entrenamiento: LocalEntrenamiento;
+}) {
+  const [documentoSignedUrl, setDocumentoSignedUrl] = useState<string | null>(
+    null,
+  );
+  const [tareaImagenSignedUrls, setTareaImagenSignedUrls] = useState<
+    (string | null)[]
+  >([null, null, null, null]);
+
+  useEffect(() => {
+    if (!entrenamiento.documento_url || !navigator.onLine) return;
+    const supabase = createClient();
+    supabase.storage
+      .from("adjuntos")
+      .createSignedUrl(entrenamiento.documento_url, 3600)
+      .then(({ data }) => setDocumentoSignedUrl(data?.signedUrl ?? null));
+  }, [entrenamiento.documento_url]);
+
+  useEffect(() => {
+    if (!navigator.onLine) return;
+    const paths = [
+      entrenamiento.tarea_1_imagen_url,
+      entrenamiento.tarea_2_imagen_url,
+      entrenamiento.tarea_3_imagen_url,
+      entrenamiento.tarea_4_imagen_url,
+    ];
+    const supabase = createClient();
+    Promise.all(
+      paths.map((path) =>
+        path
+          ? supabase.storage
+              .from("adjuntos")
+              .createSignedUrl(path, 3600)
+              .then(({ data }) => data?.signedUrl ?? null)
+          : Promise.resolve(null),
+      ),
+    ).then(setTareaImagenSignedUrls);
+  }, [
+    entrenamiento.tarea_1_imagen_url,
+    entrenamiento.tarea_2_imagen_url,
+    entrenamiento.tarea_3_imagen_url,
+    entrenamiento.tarea_4_imagen_url,
+  ]);
 
   return (
     <div className="space-y-4">

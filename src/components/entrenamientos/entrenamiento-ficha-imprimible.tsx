@@ -35,11 +35,11 @@ function CampoCelda({
   className?: string;
 }) {
   return (
-    <div className={`border-border p-2 ${className}`}>
-      <p className="text-[9px] font-semibold tracking-wide text-muted-foreground uppercase">
+    <div className={`border-border p-2 print:p-1 ${className}`}>
+      <p className="text-[9px] font-semibold tracking-wide text-muted-foreground uppercase print:text-[7px]">
         {etiqueta}
       </p>
-      <p className="text-xs whitespace-pre-wrap">{valor}</p>
+      <p className="text-xs whitespace-pre-wrap print:text-[9px]">{valor}</p>
     </div>
   );
 }
@@ -48,7 +48,7 @@ function CampoCelda({
 // "REGLAS DE PROVOCACIÓN" en la plantilla.
 function TituloSeccion({ children }: { children: React.ReactNode }) {
   return (
-    <p className="border-b border-border bg-muted/70 px-2 py-0.5 text-center text-[9px] font-semibold tracking-wide text-muted-foreground uppercase">
+    <p className="border-b border-border bg-muted/70 px-2 py-0.5 text-center text-[9px] font-semibold tracking-wide text-muted-foreground uppercase print:px-1 print:py-0 print:text-[7px]">
       {children}
     </p>
   );
@@ -103,18 +103,18 @@ function BloqueTarea({
 
   return (
     <div
-      className={`flex min-h-[240px] flex-col break-inside-avoid border-t border-border first:border-t-0 print:min-h-[250px] ${
+      className={`flex min-h-[240px] flex-col break-inside-avoid border-t border-border first:border-t-0 print:min-h-0 ${
         saltoPagina ? "print:break-before-page" : ""
       }`}
     >
-      <div className="flex flex-wrap items-center justify-between gap-2 bg-primary px-2 py-1 text-primary-foreground">
-        <p className="text-sm font-bold tracking-wide uppercase">
+      <div className="flex flex-wrap items-center justify-between gap-2 bg-primary px-2 py-1 text-primary-foreground print:px-1.5 print:py-0.5">
+        <p className="text-sm font-bold tracking-wide uppercase print:text-[11px]">
           Tarea {numero}
           {titulo ? ` · ${titulo}` : ""}
         </p>
-        <div className="flex items-center gap-2 text-[10px]">
+        <div className="flex items-center gap-2 text-[10px] print:text-[8px]">
           {categoria && (
-            <span className="rounded-full bg-primary-foreground/20 px-2 py-0.5 font-medium">
+            <span className="rounded-full bg-primary-foreground/20 px-2 py-0.5 font-medium print:px-1 print:py-0">
               {CATEGORIA_TAREA_LABEL[
                 categoria as keyof typeof CATEGORIA_TAREA_LABEL
               ] ?? categoria}
@@ -125,39 +125,39 @@ function BloqueTarea({
       </div>
 
       {(dimension || series || tiempo) && (
-        <div className="grid grid-cols-3 divide-x divide-border border-b border-border text-xs">
-          <div className="flex items-baseline gap-1 p-1.5">
+        <div className="grid grid-cols-3 divide-x divide-border border-b border-border text-xs print:text-[9px]">
+          <div className="flex items-baseline gap-1 p-1.5 print:p-1">
             <span className="font-semibold">D</span>
             <span className="whitespace-pre-wrap">{dimension}</span>
           </div>
-          <div className="flex items-baseline gap-1 p-1.5">
+          <div className="flex items-baseline gap-1 p-1.5 print:p-1">
             <span className="font-semibold">E</span>
             <span className="whitespace-pre-wrap">{series}</span>
           </div>
-          <div className="flex items-baseline gap-1 p-1.5">
+          <div className="flex items-baseline gap-1 p-1.5 print:p-1">
             <span className="font-semibold">T</span>
             <span className="whitespace-pre-wrap">{tiempo}</span>
           </div>
         </div>
       )}
 
-      <div className="grid flex-1 grid-cols-1 divide-border border-b border-border sm:grid-cols-[1fr_260px] sm:divide-x print:grid-cols-[1fr_260px] print:divide-x">
+      <div className="grid flex-1 grid-cols-1 divide-border border-b border-border sm:grid-cols-[1fr_260px] sm:divide-x print:grid-cols-[1fr_130px] print:divide-x">
         <div className="border border-border sm:border-y-0 sm:border-l-0">
           {(objetivosDef || objetivosOfe) && (
             <>
               <TituloSeccion>Objetivos</TituloSeccion>
               <div className="grid grid-cols-2 divide-x divide-border border-b border-border">
-                <div className="p-2">
-                  <p className="text-[9px] font-semibold text-muted-foreground uppercase underline underline-offset-2">
+                <div className="p-2 print:p-1">
+                  <p className="text-[9px] font-semibold text-muted-foreground uppercase underline underline-offset-2 print:text-[7px]">
                     Ítems fase defensiva
                   </p>
-                  <p className="text-xs whitespace-pre-wrap">{objetivosDef}</p>
+                  <p className="text-xs whitespace-pre-wrap print:text-[9px]">{objetivosDef}</p>
                 </div>
-                <div className="p-2">
-                  <p className="text-[9px] font-semibold text-muted-foreground uppercase underline underline-offset-2">
+                <div className="p-2 print:p-1">
+                  <p className="text-[9px] font-semibold text-muted-foreground uppercase underline underline-offset-2 print:text-[7px]">
                     Ítems fase ofensiva
                   </p>
-                  <p className="text-xs whitespace-pre-wrap">{objetivosOfe}</p>
+                  <p className="text-xs whitespace-pre-wrap print:text-[9px]">{objetivosOfe}</p>
                 </div>
               </div>
             </>
@@ -169,13 +169,15 @@ function BloqueTarea({
             <img
               src={imagenUrl}
               alt={`Diagrama de la tarea ${numero}`}
-              className="aspect-[4/3] w-full border-b border-border object-cover"
+              className="aspect-[4/3] w-full border-b border-border object-cover print:aspect-[3/2]"
             />
           )}
           {rotacion && (
             <div className="flex-1">
               <TituloSeccion>Rotación</TituloSeccion>
-              <p className="p-2 text-xs whitespace-pre-wrap">{rotacion}</p>
+              <p className="p-2 text-xs whitespace-pre-wrap print:p-1 print:text-[9px]">
+                {rotacion}
+              </p>
             </div>
           )}
         </div>
@@ -185,11 +187,15 @@ function BloqueTarea({
         <div className="grid grid-cols-1 divide-border sm:grid-cols-2 sm:divide-x print:grid-cols-2 print:divide-x">
           <div className="border-t border-border sm:border-t-0 print:border-t-0">
             <TituloSeccion>Reglas de provocación</TituloSeccion>
-            <p className="p-2 text-xs whitespace-pre-wrap">{reglasProvocacion}</p>
+            <p className="p-2 text-xs whitespace-pre-wrap print:p-1 print:text-[9px]">
+              {reglasProvocacion}
+            </p>
           </div>
           <div className="border-t border-border">
             <TituloSeccion>Observaciones</TituloSeccion>
-            <p className="p-2 text-xs whitespace-pre-wrap">{observaciones}</p>
+            <p className="p-2 text-xs whitespace-pre-wrap print:p-1 print:text-[9px]">
+              {observaciones}
+            </p>
           </div>
         </div>
       )}
@@ -202,7 +208,7 @@ function CampoNotas() {
   return (
     <div className="border-t border-border">
       <TituloSeccion>Notas / pizarra</TituloSeccion>
-      <div className="relative mx-auto my-2 aspect-[16/9] w-full max-w-xl overflow-hidden rounded-md bg-pitch print:rounded-none">
+      <div className="relative mx-auto my-2 aspect-[16/9] w-full max-w-xl overflow-hidden rounded-md bg-pitch print:my-1 print:max-w-sm print:rounded-none">
         <div className="absolute inset-y-0 left-1/2 w-px -translate-x-1/2 bg-white/40" />
         <div className="absolute top-1/2 left-1/2 size-16 -translate-x-1/2 -translate-y-1/2 rounded-full border border-white/40" />
         <div className="absolute inset-y-[18%] left-0 w-[10%] border-y border-r border-white/40" />
@@ -328,11 +334,11 @@ export function EntrenamientoFichaImprimible({
       </div>
 
       <div className="relative overflow-hidden rounded-md border border-border bg-card print:rounded-none print:border-none">
-        <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-0.5 bg-primary px-3 py-1.5 text-primary-foreground">
-          <p className="min-w-0 font-heading text-sm tracking-wide uppercase">
+        <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-0.5 bg-primary px-3 py-1.5 text-primary-foreground print:px-2 print:py-1">
+          <p className="min-w-0 font-heading text-sm tracking-wide uppercase print:text-xs">
             {clubConfig.nombreEquipo} — Sesión de entrenamiento
           </p>
-          <p className="min-w-0 text-right text-[10px] font-semibold tracking-wide uppercase">
+          <p className="min-w-0 text-right text-[10px] font-semibold tracking-wide uppercase print:text-[8px]">
             {clubConfig.nombreClub}
           </p>
         </div>
@@ -361,11 +367,13 @@ export function EntrenamientoFichaImprimible({
           <div className="grid grid-cols-1 divide-border border-b border-border sm:grid-cols-2 sm:divide-x print:grid-cols-2 print:divide-x">
             <div className="border-b border-border sm:border-b-0 print:border-b-0">
               <TituloSeccion>Charla</TituloSeccion>
-              <p className="p-2 text-xs whitespace-pre-wrap">{entrenamiento.charla}</p>
+              <p className="p-2 text-xs whitespace-pre-wrap print:p-1 print:text-[9px]">
+                {entrenamiento.charla}
+              </p>
             </div>
             <div>
               <TituloSeccion>Recoge y lleva el material hoy</TituloSeccion>
-              <p className="p-2 text-xs whitespace-pre-wrap">
+              <p className="p-2 text-xs whitespace-pre-wrap print:p-1 print:text-[9px]">
                 {grupoMaterialHoy ? grupoMaterialHoy.join(", ") : "—"}
               </p>
             </div>
@@ -375,7 +383,9 @@ export function EntrenamientoFichaImprimible({
         {entrenamiento.material && (
           <div className="border-b border-border">
             <TituloSeccion>Material</TituloSeccion>
-            <p className="p-2 text-xs whitespace-pre-wrap">{entrenamiento.material}</p>
+            <p className="p-2 text-xs whitespace-pre-wrap print:p-1 print:text-[9px]">
+              {entrenamiento.material}
+            </p>
           </div>
         )}
 
@@ -384,8 +394,8 @@ export function EntrenamientoFichaImprimible({
             <TituloSeccion>Roles entrenador</TituloSeccion>
             <div className="grid grid-cols-2 divide-x divide-y divide-border sm:grid-cols-4 sm:divide-y-0 print:grid-cols-4 print:divide-y-0">
               {roles.map((r) => (
-                <div key={r.numero} className="p-2 text-xs">
-                  <p className="text-[9px] font-semibold text-muted-foreground uppercase">
+                <div key={r.numero} className="p-2 text-xs print:p-1 print:text-[8px]">
+                  <p className="text-[9px] font-semibold text-muted-foreground uppercase print:text-[7px]">
                     Tarea {r.numero}
                   </p>
                   <p>
@@ -407,7 +417,9 @@ export function EntrenamientoFichaImprimible({
         {entrenamiento.notas && (
           <div className="border-t border-border">
             <TituloSeccion>Notas</TituloSeccion>
-            <p className="p-2 text-xs whitespace-pre-wrap">{entrenamiento.notas}</p>
+            <p className="p-2 text-xs whitespace-pre-wrap print:p-1 print:text-[9px]">
+              {entrenamiento.notas}
+            </p>
           </div>
         )}
 

@@ -12,7 +12,7 @@ import {
   FileText,
   ExternalLink,
 } from "lucide-react";
-import { localDb } from "@/lib/db/local-db";
+import { localDb, type LocalEntrenamiento } from "@/lib/db/local-db";
 import { capitalizarPrimera } from "@/lib/date";
 import { createClient } from "@/lib/supabase/client";
 import { esPdf } from "@/lib/storage";
@@ -41,6 +41,32 @@ export default function FichaEntrenamientoPage() {
     async () => (await localDb.entrenamientos.get(id)) ?? null,
     [id],
   );
+
+  if (entrenamiento === undefined) {
+    return <p className="text-sm text-muted-foreground">Cargando...</p>;
+  }
+
+  if (entrenamiento === null) {
+    return (
+      <p className="text-sm text-muted-foreground">
+        Entrenamiento no encontrado.
+      </p>
+    );
+  }
+
+  // La key fuerza a remontar este bloque al cambiar de entrenamiento: sin
+  // ella, Next.js reutiliza el mismo componente al navegar de una sesión a
+  // otra y las URLs firmadas (documento, imágenes de las tareas) de la
+  // sesión anterior se quedaban viéndose hasta que llegaban las nuevas — o
+  // para siempre si no había conexión.
+  return <FichaEntrenamientoDetalle key={entrenamiento.id} entrenamiento={entrenamiento} />;
+}
+
+function FichaEntrenamientoDetalle({
+  entrenamiento,
+}: {
+  entrenamiento: LocalEntrenamiento;
+}) {
   const [documentoSignedUrl, setDocumentoSignedUrl] = useState<string | null>(
     null,
   );
@@ -49,21 +75,21 @@ export default function FichaEntrenamientoPage() {
   >([null, null, null, null]);
 
   useEffect(() => {
-    if (!entrenamiento?.documento_url || !navigator.onLine) return;
+    if (!entrenamiento.documento_url || !navigator.onLine) return;
     const supabase = createClient();
     supabase.storage
       .from("adjuntos")
       .createSignedUrl(entrenamiento.documento_url, 3600)
       .then(({ data }) => setDocumentoSignedUrl(data?.signedUrl ?? null));
-  }, [entrenamiento?.documento_url]);
+  }, [entrenamiento.documento_url]);
 
   useEffect(() => {
     if (!navigator.onLine) return;
     const paths = [
-      entrenamiento?.tarea_1_imagen_url,
-      entrenamiento?.tarea_2_imagen_url,
-      entrenamiento?.tarea_3_imagen_url,
-      entrenamiento?.tarea_4_imagen_url,
+      entrenamiento.tarea_1_imagen_url,
+      entrenamiento.tarea_2_imagen_url,
+      entrenamiento.tarea_3_imagen_url,
+      entrenamiento.tarea_4_imagen_url,
     ];
     const supabase = createClient();
     Promise.all(
@@ -77,23 +103,11 @@ export default function FichaEntrenamientoPage() {
       ),
     ).then(setTareaImagenSignedUrls);
   }, [
-    entrenamiento?.tarea_1_imagen_url,
-    entrenamiento?.tarea_2_imagen_url,
-    entrenamiento?.tarea_3_imagen_url,
-    entrenamiento?.tarea_4_imagen_url,
+    entrenamiento.tarea_1_imagen_url,
+    entrenamiento.tarea_2_imagen_url,
+    entrenamiento.tarea_3_imagen_url,
+    entrenamiento.tarea_4_imagen_url,
   ]);
-
-  if (entrenamiento === undefined) {
-    return <p className="text-sm text-muted-foreground">Cargando...</p>;
-  }
-
-  if (entrenamiento === null) {
-    return (
-      <p className="text-sm text-muted-foreground">
-        Entrenamiento no encontrado.
-      </p>
-    );
-  }
 
   return (
     <div className="space-y-4">
