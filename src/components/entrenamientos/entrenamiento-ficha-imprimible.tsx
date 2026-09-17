@@ -103,7 +103,7 @@ function BloqueTarea({
 
   return (
     <div
-      className={`flex min-h-[240px] flex-col break-inside-avoid border-t border-border first:border-t-0 print:min-h-0 ${
+      className={`flex min-h-[240px] flex-col break-inside-avoid border-t border-border first:border-t-0 print:min-h-[210px] ${
         saltoPagina ? "print:break-before-page" : ""
       }`}
     >
@@ -141,7 +141,7 @@ function BloqueTarea({
         </div>
       )}
 
-      <div className="grid flex-1 grid-cols-1 divide-border border-b border-border sm:grid-cols-[1fr_260px] sm:divide-x print:grid-cols-[1fr_130px] print:divide-x">
+      <div className="grid flex-1 grid-cols-1 divide-border border-b border-border sm:grid-cols-[1fr_260px] sm:divide-x print:grid-cols-[1fr_170px] print:divide-x">
         <div className="border border-border sm:border-y-0 sm:border-l-0">
           {(objetivosDef || objetivosOfe) && (
             <>
@@ -151,13 +151,13 @@ function BloqueTarea({
                   <p className="text-[9px] font-semibold text-muted-foreground uppercase underline underline-offset-2 print:text-[7px]">
                     Ítems fase defensiva
                   </p>
-                  <p className="text-xs whitespace-pre-wrap print:text-[9px]">{objetivosDef}</p>
+                  <p className="text-xs whitespace-pre-wrap print:text-[10px]">{objetivosDef}</p>
                 </div>
                 <div className="p-2 print:p-1">
                   <p className="text-[9px] font-semibold text-muted-foreground uppercase underline underline-offset-2 print:text-[7px]">
                     Ítems fase ofensiva
                   </p>
-                  <p className="text-xs whitespace-pre-wrap print:text-[9px]">{objetivosOfe}</p>
+                  <p className="text-xs whitespace-pre-wrap print:text-[10px]">{objetivosOfe}</p>
                 </div>
               </div>
             </>
@@ -169,13 +169,13 @@ function BloqueTarea({
             <img
               src={imagenUrl}
               alt={`Diagrama de la tarea ${numero}`}
-              className="aspect-[4/3] w-full border-b border-border object-cover print:aspect-[3/2]"
+              className="aspect-[4/3] w-full border-b border-border object-cover"
             />
           )}
           {rotacion && (
             <div className="flex-1">
               <TituloSeccion>Rotación</TituloSeccion>
-              <p className="p-2 text-xs whitespace-pre-wrap print:p-1 print:text-[9px]">
+              <p className="p-2 text-xs whitespace-pre-wrap print:p-1 print:text-[10px]">
                 {rotacion}
               </p>
             </div>
@@ -187,13 +187,13 @@ function BloqueTarea({
         <div className="grid grid-cols-1 divide-border sm:grid-cols-2 sm:divide-x print:grid-cols-2 print:divide-x">
           <div className="border-t border-border sm:border-t-0 print:border-t-0">
             <TituloSeccion>Reglas de provocación</TituloSeccion>
-            <p className="p-2 text-xs whitespace-pre-wrap print:p-1 print:text-[9px]">
+            <p className="p-2 text-xs whitespace-pre-wrap print:p-1 print:text-[10px]">
               {reglasProvocacion}
             </p>
           </div>
           <div className="border-t border-border">
             <TituloSeccion>Observaciones</TituloSeccion>
-            <p className="p-2 text-xs whitespace-pre-wrap print:p-1 print:text-[9px]">
+            <p className="p-2 text-xs whitespace-pre-wrap print:p-1 print:text-[10px]">
               {observaciones}
             </p>
           </div>
@@ -208,7 +208,7 @@ function CampoNotas() {
   return (
     <div className="border-t border-border">
       <TituloSeccion>Notas / pizarra</TituloSeccion>
-      <div className="relative mx-auto my-2 aspect-[16/9] w-full max-w-xl overflow-hidden rounded-md bg-pitch print:my-1 print:max-w-sm print:rounded-none">
+      <div className="relative mx-auto my-2 aspect-[16/9] w-full max-w-xl overflow-hidden rounded-md bg-pitch print:my-1.5 print:max-w-md print:rounded-none">
         <div className="absolute inset-y-0 left-1/2 w-px -translate-x-1/2 bg-white/40" />
         <div className="absolute top-1/2 left-1/2 size-16 -translate-x-1/2 -translate-y-1/2 rounded-full border border-white/40" />
         <div className="absolute inset-y-[18%] left-0 w-[10%] border-y border-r border-white/40" />
@@ -360,16 +360,14 @@ export function EntrenamientoFichaImprimible({
           <CampoCelda etiqueta="Microciclo" valor={entrenamiento.microciclo} />
           <CampoCelda etiqueta="Lugar" valor={entrenamiento.lugar} />
         </div>
-        <CampoCelda
-          etiqueta="Bajas"
-          valor={entrenamiento.bajas}
-          className="border-b border-border"
-        />
-        <CampoCelda
-          etiqueta="Obj. semanal"
-          valor={entrenamiento.objetivos}
-          className="border-b border-border"
-        />
+        <div className="grid grid-cols-1 divide-border border-b border-border sm:grid-cols-2 sm:divide-x print:grid-cols-2 print:divide-x">
+          <CampoCelda
+            etiqueta="Bajas"
+            valor={entrenamiento.bajas}
+            className="border-b border-border sm:border-b-0 print:border-b-0"
+          />
+          <CampoCelda etiqueta="Obj. semanal" valor={entrenamiento.objetivos} />
+        </div>
 
         {(entrenamiento.charla || materialTexto) && (
           <div className="grid grid-cols-1 divide-border border-b border-border sm:grid-cols-2 sm:divide-x print:grid-cols-2 print:divide-x">
