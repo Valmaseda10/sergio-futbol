@@ -314,6 +314,14 @@ export function EntrenamientoFichaImprimible({
   ];
   const hayRoles = roles.some((r) => r.campos || r.paco);
   const grupoMaterialHoy = grupoMaterialDeFecha(entrenamiento.fecha);
+  // Quién recoge el material va dentro del propio apartado de Material, no
+  // en uno aparte — así ese hueco lo aprovecha el resto de la ficha.
+  const materialTexto = [
+    grupoMaterialHoy ? `Recoge y lleva: ${grupoMaterialHoy.join(", ")}` : null,
+    entrenamiento.material,
+  ]
+    .filter(Boolean)
+    .join("\n");
 
   return (
     <div className="space-y-3">
@@ -363,7 +371,7 @@ export function EntrenamientoFichaImprimible({
           className="border-b border-border"
         />
 
-        {(entrenamiento.charla || grupoMaterialHoy) && (
+        {(entrenamiento.charla || materialTexto) && (
           <div className="grid grid-cols-1 divide-border border-b border-border sm:grid-cols-2 sm:divide-x print:grid-cols-2 print:divide-x">
             <div className="border-b border-border sm:border-b-0 print:border-b-0">
               <TituloSeccion>Charla</TituloSeccion>
@@ -372,20 +380,11 @@ export function EntrenamientoFichaImprimible({
               </p>
             </div>
             <div>
-              <TituloSeccion>Recoge y lleva el material hoy</TituloSeccion>
+              <TituloSeccion>Material</TituloSeccion>
               <p className="p-2 text-xs whitespace-pre-wrap print:p-1 print:text-[9px]">
-                {grupoMaterialHoy ? grupoMaterialHoy.join(", ") : "—"}
+                {materialTexto}
               </p>
             </div>
-          </div>
-        )}
-
-        {entrenamiento.material && (
-          <div className="border-b border-border">
-            <TituloSeccion>Material</TituloSeccion>
-            <p className="p-2 text-xs whitespace-pre-wrap print:p-1 print:text-[9px]">
-              {entrenamiento.material}
-            </p>
           </div>
         )}
 
