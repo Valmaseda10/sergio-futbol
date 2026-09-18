@@ -206,9 +206,9 @@ function BloqueTarea({
 // Campo horizontal en blanco, para tomar notas a mano sobre el PDF impreso.
 function CampoNotas() {
   return (
-    <div className="border-t border-border">
+    <div className="break-inside-avoid border-t border-border print:break-inside-avoid">
       <TituloSeccion>Notas / pizarra</TituloSeccion>
-      <div className="relative mx-auto my-2 aspect-[16/9] w-full max-w-xl overflow-hidden rounded-md bg-pitch print:my-1.5 print:max-w-md print:rounded-none">
+      <div className="relative mx-auto my-2 aspect-[16/9] w-full max-w-xl overflow-hidden rounded-md bg-pitch print:my-1 print:max-w-sm print:rounded-none">
         <div className="absolute inset-y-0 left-1/2 w-px -translate-x-1/2 bg-white/40" />
         <div className="absolute top-1/2 left-1/2 size-16 -translate-x-1/2 -translate-y-1/2 rounded-full border border-white/40" />
         <div className="absolute inset-y-[18%] left-0 w-[10%] border-y border-r border-white/40" />
