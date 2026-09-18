@@ -341,7 +341,7 @@ export function EntrenamientoFichaImprimible({
         </Button>
       </div>
 
-      <div className="relative overflow-hidden rounded-md border border-border bg-card print:rounded-none print:border-none">
+      <div className="relative overflow-hidden rounded-md border border-border bg-card print:overflow-visible print:rounded-none print:border-none">
         <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-0.5 bg-primary px-3 py-1.5 text-primary-foreground print:px-2 print:py-1">
           <p className="min-w-0 font-heading text-sm tracking-wide uppercase print:text-xs">
             {clubConfig.nombreEquipo} — Sesión de entrenamiento
