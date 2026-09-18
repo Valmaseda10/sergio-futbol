@@ -105,6 +105,12 @@ export const entrenamientoSchema = z.object({
   tarea_3_rol_paco: z.string().trim(),
   tarea_4_rol_campos: z.string().trim(),
   tarea_4_rol_paco: z.string().trim(),
+  // Trabajo extra que no forma parte de ninguna de las 4 tareas con
+  // diagrama (p.ej. un repaso de ABP al final de la sesión): se describe a
+  // mano en "notas", pero necesita categoría y minutos propios para contar
+  // en el resumen de "Tareas trabajadas".
+  extra_categoria: z.string().trim(),
+  extra_minutos: z.string().trim(),
   notas: z.string().trim(),
 });
 
@@ -177,6 +183,8 @@ export const ENTRENAMIENTO_FORM_DEFAULTS: EntrenamientoFormValues = {
   tarea_3_rol_paco: "",
   tarea_4_rol_campos: "",
   tarea_4_rol_paco: "",
+  extra_categoria: "",
+  extra_minutos: "",
   notas: "",
 };
 
@@ -355,6 +363,9 @@ export function toEntrenamientoInsert(values: EntrenamientoFormValues) {
     tarea_3_rol_paco: t3.rolPaco,
     tarea_4_rol_campos: t4.rolCampos,
     tarea_4_rol_paco: t4.rolPaco,
+    extra_categoria: (values.extra_categoria || null) as CategoriaTarea | null,
+    extra_minutos:
+      values.extra_minutos !== "" ? Number(values.extra_minutos) : null,
     notas: values.notas || null,
   };
 }
@@ -437,6 +448,8 @@ export function entrenamientoFormDataToValues(
     tarea_3_rol_paco: String(formData.get("tarea_3_rol_paco") ?? ""),
     tarea_4_rol_campos: String(formData.get("tarea_4_rol_campos") ?? ""),
     tarea_4_rol_paco: String(formData.get("tarea_4_rol_paco") ?? ""),
+    extra_categoria: String(formData.get("extra_categoria") ?? ""),
+    extra_minutos: String(formData.get("extra_minutos") ?? ""),
     notas: String(formData.get("notas") ?? ""),
   };
 }

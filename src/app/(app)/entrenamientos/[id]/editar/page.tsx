@@ -157,6 +157,8 @@ function EditarEntrenamientoDetalle({
           tarea_3_rol_paco: entrenamiento.tarea_3_rol_paco ?? "",
           tarea_4_rol_campos: entrenamiento.tarea_4_rol_campos ?? "",
           tarea_4_rol_paco: entrenamiento.tarea_4_rol_paco ?? "",
+          extra_categoria: entrenamiento.extra_categoria ?? "",
+          extra_minutos: entrenamiento.extra_minutos?.toString() ?? "",
           notas: entrenamiento.notas ?? "",
           documentoSignedUrl,
           tareaImagenSignedUrls,

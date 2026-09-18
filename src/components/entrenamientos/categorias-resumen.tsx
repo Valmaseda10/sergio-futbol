@@ -15,6 +15,9 @@ const SLOTS_TAREA = [
   ["tarea_2_categoria", "tarea_2_minutos"],
   ["tarea_3_categoria", "tarea_3_minutos"],
   ["tarea_4_categoria", "tarea_4_minutos"],
+  // Trabajo extra que no tiene su propio bloque con diagrama (se describe
+  // a mano en "notas"), pero también cuenta aquí.
+  ["extra_categoria", "extra_minutos"],
 ] as const;
 
 export function CategoriasTareasResumen({

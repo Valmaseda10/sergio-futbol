@@ -302,6 +302,12 @@ export interface Database {
           tarea_3_rol_paco: string | null;
           tarea_4_rol_campos: string | null;
           tarea_4_rol_paco: string | null;
+          // Trabajo extra que no forma parte de ninguna de las 4 tareas con
+          // diagrama (p.ej. un repaso de ABP al final de la sesión): se
+          // describe a mano en "notas", pero necesita categoría y minutos
+          // propios para contar en el resumen de "Tareas trabajadas".
+          extra_categoria: CategoriaTarea | null;
+          extra_minutos: number | null;
           notas: string | null;
           documento_url: string | null;
           created_at: string;
@@ -378,6 +384,8 @@ export interface Database {
           tarea_3_rol_paco?: string | null;
           tarea_4_rol_campos?: string | null;
           tarea_4_rol_paco?: string | null;
+          extra_categoria?: CategoriaTarea | null;
+          extra_minutos?: number | null;
           notas?: string | null;
           documento_url?: string | null;
           created_at?: string;

@@ -328,6 +328,8 @@ export async function generarEntrenamientosLocal(
     tarea_3_rol_paco: null,
     tarea_4_rol_campos: null,
     tarea_4_rol_paco: null,
+    extra_categoria: null,
+    extra_minutos: null,
     notas: null,
     documento_url: null,
     created_at: now,

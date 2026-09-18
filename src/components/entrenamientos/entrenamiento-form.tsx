@@ -776,6 +776,61 @@ export function EntrenamientoForm({
             <Label htmlFor="notas">Notas</Label>
             <Textarea id="notas" rows={2} {...register("notas")} />
           </div>
+          <div className="space-y-1">
+            <p className="text-xs font-medium text-muted-foreground">
+              Trabajo extra (no forma parte de las 4 tareas, p.ej. un repaso
+              descrito en Notas) — solo para que cuente en Estadísticas
+            </p>
+            <div className="flex items-center gap-2">
+              <div className="min-w-0 flex-1 space-y-1">
+                <Label
+                  htmlFor="extra_categoria"
+                  className="text-xs text-muted-foreground"
+                >
+                  Categoría
+                </Label>
+                <Controller
+                  control={control}
+                  name="extra_categoria"
+                  render={({ field }) => (
+                    <Select value={field.value} onValueChange={field.onChange}>
+                      <SelectTrigger id="extra_categoria" className="w-full">
+                        <SelectValue placeholder="Sin categoría">
+                          {(value) =>
+                            CATEGORIAS_TAREA.find((c) => c.value === value)
+                              ?.label ?? (value as string)
+                          }
+                        </SelectValue>
+                      </SelectTrigger>
+                      <SelectContent>
+                        {CATEGORIAS_TAREA.map((c) => (
+                          <SelectItem key={c.value} value={c.value}>
+                            {c.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  )}
+                />
+              </div>
+              <div className="w-24 shrink-0 space-y-1">
+                <Label
+                  htmlFor="extra_minutos"
+                  className="text-xs text-muted-foreground"
+                >
+                  Minutos
+                </Label>
+                <Input
+                  id="extra_minutos"
+                  type="number"
+                  min={0}
+                  max={180}
+                  placeholder="Ej: 15"
+                  {...register("extra_minutos")}
+                />
+              </div>
+            </div>
+          </div>
         </CardContent>
       </Card>
 
