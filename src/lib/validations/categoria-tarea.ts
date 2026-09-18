@@ -15,6 +15,7 @@ export const CATEGORIAS_TAREA: { value: CategoriaTarea; label: string }[] = [
   { value: "partidos", label: "Partidos" },
   { value: "rueda_pases", label: "Rueda de Pases" },
   { value: "abp", label: "ABP" },
+  { value: "plan_partido", label: "Plan de Partido" },
 ];
 
 export const CATEGORIA_TAREA_LABEL: Record<CategoriaTarea, string> =
@@ -92,6 +93,7 @@ const PALABRAS_CLAVE_CATEGORIA: Record<CategoriaTarea, string[]> = {
     "saque de banda",
     "estrategia",
   ],
+  plan_partido: ["plan de partido", "plan partido"],
 };
 
 /** Busca en el texto de una tarea alguna palabra clave de las categorías

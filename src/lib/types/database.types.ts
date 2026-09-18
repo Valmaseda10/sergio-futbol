@@ -42,7 +42,8 @@ export type CategoriaTarea =
   | "finalizacion"
   | "partidos"
   | "rueda_pases"
-  | "abp";
+  | "abp"
+  | "plan_partido";
 
 export type Json =
   | string
