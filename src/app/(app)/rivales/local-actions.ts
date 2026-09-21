@@ -10,7 +10,9 @@ import {
   type LocalRivalJugadorDestacado,
   type LocalRivalPlantillaJugador,
   type LocalRivalAlineacion,
+  type LocalRivalGolIntervalo,
 } from "@/lib/db/local-db";
+import type { IntervaloGol } from "@/lib/types/database.types";
 import { queueMutation } from "@/lib/db/sync";
 import { createClient } from "@/lib/supabase/client";
 import { subirArchivoPrivado, extensionDeArchivo } from "@/lib/storage";
@@ -125,6 +127,10 @@ export async function eliminarRivalLocal(id: string): Promise<SimpleResult> {
     .where("rival_id")
     .equals(id)
     .toArray();
+  const golesIntervalo = await localDb.rivales_goles_intervalo
+    .where("rival_id")
+    .equals(id)
+    .toArray();
 
   await localDb.transaction(
     "rw",
@@ -133,6 +139,7 @@ export async function eliminarRivalLocal(id: string): Promise<SimpleResult> {
       localDb.rivales_jugadores_destacados,
       localDb.rivales_plantilla,
       localDb.rivales_alineacion,
+      localDb.rivales_goles_intervalo,
     ],
     async () => {
       await localDb.rivales_scouting.delete(id);
@@ -141,6 +148,9 @@ export async function eliminarRivalLocal(id: string): Promise<SimpleResult> {
       );
       await localDb.rivales_plantilla.bulkDelete(plantilla.map((p) => p.id));
       await localDb.rivales_alineacion.bulkDelete(alineacion.map((a) => a.id));
+      await localDb.rivales_goles_intervalo.bulkDelete(
+        golesIntervalo.map((g) => g.id),
+      );
     },
   );
 
@@ -159,6 +169,9 @@ export async function eliminarRivalLocal(id: string): Promise<SimpleResult> {
   for (const a of alineacion) {
     await queueMutation("rivales_alineacion", "delete", a.id);
   }
+  for (const g of golesIntervalo) {
+    await queueMutation("rivales_goles_intervalo", "delete", g.id);
+  }
   await queueMutation("rivales_scouting", "delete", id);
 
   return { success: true };
@@ -172,6 +185,40 @@ export async function actualizarEquipacionRivalLocal(
 ): Promise<SimpleResult> {
   await localDb.rivales_scouting.update(id, patch);
   await queueMutation("rivales_scouting", "update", id, patch);
+  return { success: true };
+}
+
+// Un tramo (0-15, 15-30...) se guarda solo cuando se toca por primera vez
+// para ese rival — de ahí el upsert manual en vez de asumir que la fila ya
+// existe, a diferencia de actualizarNotasRivalLocal que sí actualiza un
+// campo que rivales_scouting siempre tiene desde que se crea el rival.
+export async function actualizarGolesIntervaloRivalLocal(
+  rivalId: string,
+  intervalo: IntervaloGol,
+  patch: Partial<Pick<LocalRivalGolIntervalo, "goles_favor" | "goles_contra">>,
+): Promise<SimpleResult> {
+  const existente = await localDb.rivales_goles_intervalo
+    .where("rival_id")
+    .equals(rivalId)
+    .filter((g) => g.intervalo === intervalo)
+    .first();
+
+  if (existente) {
+    await localDb.rivales_goles_intervalo.update(existente.id, patch);
+    await queueMutation("rivales_goles_intervalo", "update", existente.id, patch);
+    return { success: true };
+  }
+
+  const id = crypto.randomUUID();
+  const row: LocalRivalGolIntervalo = {
+    id,
+    rival_id: rivalId,
+    intervalo,
+    goles_favor: patch.goles_favor ?? 0,
+    goles_contra: patch.goles_contra ?? 0,
+  };
+  await localDb.rivales_goles_intervalo.put(row);
+  await queueMutation("rivales_goles_intervalo", "insert", id, row);
   return { success: true };
 }
 

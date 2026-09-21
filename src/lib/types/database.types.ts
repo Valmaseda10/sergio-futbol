@@ -7,6 +7,7 @@ export type TipoEstado = "entrenamiento" | "general";
 export type PiernaDominante = "izquierda" | "derecha" | "ambidiestro";
 export type Competicion = "liga" | "amistoso" | "copa";
 export type FaseTemporada = "pretemporada" | "liga";
+export type IntervaloGol = "0-15" | "15-30" | "30-45" | "45-60" | "60+";
 export type LocalVisitante = "local" | "visitante";
 export type TipoEventoPartido =
   | "gol"
@@ -845,6 +846,26 @@ export interface Database {
         };
         Update: Partial<
           Database["public"]["Tables"]["rivales_alineacion"]["Insert"]
+        >;
+        Relationships: [];
+      };
+      rivales_goles_intervalo: {
+        Row: {
+          id: string;
+          rival_id: string;
+          intervalo: IntervaloGol;
+          goles_favor: number;
+          goles_contra: number;
+        };
+        Insert: {
+          id?: string;
+          rival_id: string;
+          intervalo: IntervaloGol;
+          goles_favor?: number;
+          goles_contra?: number;
+        };
+        Update: Partial<
+          Database["public"]["Tables"]["rivales_goles_intervalo"]["Insert"]
         >;
         Relationships: [];
       };

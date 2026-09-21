@@ -318,14 +318,16 @@ export function calcularStatsJugadores(
   });
 }
 
-const INTERVALOS_GOL = [
-  { desde: 0, hasta: 10 },
-  { desde: 10, hasta: 20 },
-  { desde: 20, hasta: 30 },
-  { desde: 30, hasta: 40 },
-  { desde: 40, hasta: 50 },
-  { desde: 50, hasta: 60 },
-  { desde: 60, hasta: 70 },
+// Tramos por cuartos de cada parte (0-15/15-30 en la primera, 30-45/45-60
+// en la segunda) más un último tramo abierto para el descuento/prórroga:
+// mismo criterio que rivales_goles_intervalo, para poder comparar directamente
+// la tabla propia con la de un rival.
+const INTERVALOS_GOL: { etiqueta: string; desde: number; hasta: number | null }[] = [
+  { etiqueta: "0-15", desde: 0, hasta: 15 },
+  { etiqueta: "15-30", desde: 15, hasta: 30 },
+  { etiqueta: "30-45", desde: 30, hasta: 45 },
+  { etiqueta: "45-60", desde: 45, hasta: 60 },
+  { etiqueta: "60-70+", desde: 60, hasta: null },
 ];
 
 export interface GolMinutoRow {
@@ -334,15 +336,15 @@ export interface GolMinutoRow {
 }
 
 export function calcularGolesPorIntervalo(goles: GolMinutoRow[]) {
-  return INTERVALOS_GOL.map(({ desde, hasta }) => {
+  return INTERVALOS_GOL.map(({ etiqueta, desde, hasta }) => {
     const enIntervalo = goles.filter(
       (g) =>
         g.minuto != null &&
         g.minuto >= desde &&
-        (hasta === 70 ? g.minuto <= hasta : g.minuto < hasta),
+        (hasta === null ? true : g.minuto < hasta),
     );
     return {
-      intervalo: `${desde}-${hasta}`,
+      intervalo: etiqueta,
       Favor: enIntervalo.filter((g) => g.a_favor).length,
       Contra: enIntervalo.filter((g) => !g.a_favor).length,
     };

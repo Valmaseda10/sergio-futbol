@@ -33,6 +33,7 @@ export type LocalRivalJugadorDestacado =
   Tables["rivales_jugadores_destacados"]["Row"];
 export type LocalRivalPlantillaJugador = Tables["rivales_plantilla"]["Row"];
 export type LocalRivalAlineacion = Tables["rivales_alineacion"]["Row"];
+export type LocalRivalGolIntervalo = Tables["rivales_goles_intervalo"]["Row"];
 export type LocalHorarioEntrenamiento = Tables["horario_entrenamiento"]["Row"];
 export type LocalRecordatorio = Tables["recordatorios"]["Row"];
 export type LocalNota = Tables["notas"]["Row"];
@@ -64,6 +65,7 @@ export const SYNCED_TABLES = [
   "rivales_jugadores_destacados",
   "rivales_plantilla",
   "rivales_alineacion",
+  "rivales_goles_intervalo",
   "horario_entrenamiento",
   "recordatorios",
   "notas",
@@ -90,6 +92,7 @@ export const CONFLICT_TARGETS: Partial<Record<SyncedTable, string>> = {
   alineaciones_finales: "partido_id,jugador_id",
   campograma_jugadores: "campograma_id,jugador_id",
   videos_sesion_clips: "sesion_id,video_id",
+  rivales_goles_intervalo: "rival_id,intervalo",
 };
 
 export interface OutboxEntry {
@@ -126,6 +129,7 @@ class LocalDb extends Dexie {
   rivales_jugadores_destacados!: Table<LocalRivalJugadorDestacado, string>;
   rivales_plantilla!: Table<LocalRivalPlantillaJugador, string>;
   rivales_alineacion!: Table<LocalRivalAlineacion, string>;
+  rivales_goles_intervalo!: Table<LocalRivalGolIntervalo, string>;
   horario_entrenamiento!: Table<LocalHorarioEntrenamiento, string>;
   recordatorios!: Table<LocalRecordatorio, string>;
   notas!: Table<LocalNota, string>;
@@ -220,6 +224,10 @@ class LocalDb extends Dexie {
 
     this.version(15).stores({
       notas: "id, created_at",
+    });
+
+    this.version(16).stores({
+      rivales_goles_intervalo: "id, rival_id",
     });
   }
 }

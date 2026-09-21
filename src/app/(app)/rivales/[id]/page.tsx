@@ -12,6 +12,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { EliminarRivalButton } from "@/components/rivales/eliminar-rival-button";
 import { JugadoresDestacados } from "@/components/rivales/jugadores-destacados";
 import { PlantillaRival } from "@/components/rivales/plantilla-rival";
+import { GolesIntervaloRival } from "@/components/rivales/goles-intervalo-rival";
 import { EquipacionRival } from "@/components/rivales/equipacion-rival";
 import { AlineacionRival } from "@/components/rivales/alineacion-rival";
 import { NotasRival } from "@/components/rivales/notas-rival";
@@ -130,6 +131,8 @@ export default function FichaRivalPage() {
           <PlantillaRival rivalId={rival.id} />
         </CardContent>
       </Card>
+
+      <GolesIntervaloRival rivalId={rival.id} />
 
       <Card>
         <CardHeader>
