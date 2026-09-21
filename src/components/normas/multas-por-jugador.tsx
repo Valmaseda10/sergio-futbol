@@ -4,12 +4,19 @@
 // repasarlo con él. Vive en /normas junto al régimen interno; el registro
 // rápido de multas está en Inicio.
 
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { useLiveQuery } from "dexie-react-hooks";
+import { toast } from "sonner";
+import { RotateCcw, Trash2 } from "lucide-react";
+import {
+  eliminarMultaLocal,
+  resolverTodasLasMultasLocal,
+} from "@/app/(app)/inicio/local-actions";
 import { localDb } from "@/lib/db/local-db";
 import { CATEGORIA_NORMA_LABEL, PUNTOS_CASTIGO } from "@/lib/validations/norma";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import {
   Table,
   TableBody,
@@ -56,10 +63,47 @@ export function MultasPorJugador() {
       .filter((g) => g.multas.length > 0);
   }, [jugadores, multas]);
 
+  const [pendiente, setPendiente] = useState<string | null>(null);
+  const [reseteando, setReseteando] = useState(false);
+
+  const hayPendientes = multas.some((m) => !m.resuelta);
+
+  async function handleEliminar(id: string) {
+    setPendiente(id);
+    await eliminarMultaLocal(id);
+    setPendiente(null);
+  }
+
+  async function handleResetear() {
+    if (
+      !window.confirm(
+        "Se van a poner a 0 los puntos pendientes de todos los jugadores (el historial no se borra). ¿Continuar?",
+      )
+    ) {
+      return;
+    }
+    setReseteando(true);
+    await resolverTodasLasMultasLocal();
+    setReseteando(false);
+    toast.success("Puntos del mes reseteados");
+  }
+
   return (
     <Card>
-      <CardHeader>
+      <CardHeader className="flex flex-row items-center justify-between">
         <CardTitle className="text-base">Por jugador</CardTitle>
+        {hayPendientes && (
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            disabled={reseteando}
+            onClick={handleResetear}
+          >
+            <RotateCcw className="size-4" />
+            Resetear mes
+          </Button>
+        )}
       </CardHeader>
       <CardContent className="space-y-6">
         {grupos.length === 0 ? (
@@ -98,6 +142,7 @@ export function MultasPorJugador() {
                       <TableHead>Motivo</TableHead>
                       <TableHead>Puntos</TableHead>
                       <TableHead>Estado</TableHead>
+                      <TableHead className="w-10" />
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -126,6 +171,18 @@ export function MultasPorJugador() {
                           ) : (
                             <span className="text-destructive">Pendiente</span>
                           )}
+                        </TableCell>
+                        <TableCell>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="icon-sm"
+                            disabled={pendiente === m.id}
+                            onClick={() => handleEliminar(m.id)}
+                            aria-label="Eliminar multa"
+                          >
+                            <Trash2 className="size-4 text-muted-foreground" />
+                          </Button>
                         </TableCell>
                       </TableRow>
                     ))}

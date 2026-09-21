@@ -131,3 +131,15 @@ export async function resolverMultasJugadorLocal(
 
   return { success: true };
 }
+
+/** Resetea a 0 los puntos pendientes de todos los jugadores (reinicio mensual). */
+export async function resolverTodasLasMultasLocal(): Promise<SimpleResult> {
+  const pendientes = await localDb.multas.filter((m) => !m.resuelta).toArray();
+
+  for (const m of pendientes) {
+    await localDb.multas.update(m.id, { resuelta: true });
+    await queueMutation("multas", "update", m.id, { resuelta: true });
+  }
+
+  return { success: true };
+}

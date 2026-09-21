@@ -1,22 +1,17 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import Link from "next/link";
 import { useLiveQuery } from "dexie-react-hooks";
 import { toast } from "sonner";
-import { Gavel, Trash2 } from "lucide-react";
+import { Gavel } from "lucide-react";
 import {
   crearMultaLocal,
-  eliminarMultaLocal,
   resolverMultasJugadorLocal,
 } from "@/app/(app)/inicio/local-actions";
 import { localDb } from "@/lib/db/local-db";
 import { cn } from "@/lib/utils";
-import {
-  CATEGORIAS_NORMA,
-  CATEGORIA_NORMA_LABEL,
-  NORMAS,
-  PUNTOS_CASTIGO,
-} from "@/lib/validations/norma";
+import { CATEGORIAS_NORMA, NORMAS, PUNTOS_CASTIGO } from "@/lib/validations/norma";
 import type { CategoriaNorma } from "@/lib/types/database.types";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -110,12 +105,6 @@ export function MultasPanel() {
   async function handleResolver(id: string) {
     setPendiente(id);
     await resolverMultasJugadorLocal(id);
-    setPendiente(null);
-  }
-
-  async function handleEliminar(id: string) {
-    setPendiente(id);
-    await eliminarMultaLocal(id);
     setPendiente(null);
   }
 
@@ -253,30 +242,14 @@ export function MultasPanel() {
           </div>
         )}
 
-        {multas.length > 0 && (
-          <ul className="space-y-1 border-t pt-3">
-            {multas.map((m) => (
-              <li key={m.id} className="flex items-center gap-2 py-0.5 text-sm">
-                <span className="min-w-0 flex-1 truncate text-muted-foreground">
-                  <span className="font-medium text-foreground">
-                    {nombreJugador(m.jugador_id)}
-                  </span>{" "}
-                  — {m.norma} ({CATEGORIA_NORMA_LABEL[m.categoria]}, {m.puntos} pt
-                  {m.puntos > 1 ? "s" : ""})
-                </span>
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="icon-sm"
-                  disabled={pendiente === m.id}
-                  onClick={() => handleEliminar(m.id)}
-                  aria-label="Eliminar multa"
-                >
-                  <Trash2 className="size-4 text-muted-foreground" />
-                </Button>
-              </li>
-            ))}
-          </ul>
+        {totalesPorJugador.length > 0 && (
+          <p className="text-xs text-muted-foreground">
+            Ver detalle e historial en{" "}
+            <Link href="/normas" className="underline underline-offset-2">
+              Normas
+            </Link>
+            .
+          </p>
         )}
       </CardContent>
     </Card>
