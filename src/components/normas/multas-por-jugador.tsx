@@ -13,6 +13,7 @@ import {
   resolverTodasLasMultasLocal,
 } from "@/app/(app)/inicio/local-actions";
 import { localDb } from "@/lib/db/local-db";
+import { capitalizarPrimera } from "@/lib/date";
 import { CATEGORIA_NORMA_LABEL, PUNTOS_CASTIGO } from "@/lib/validations/norma";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -32,6 +33,19 @@ function formatearFechaCorta(fecha: string) {
     month: "2-digit",
     year: "numeric",
   });
+}
+
+function mesDeFecha(fecha: string) {
+  return fecha.slice(0, 7); // "YYYY-MM"
+}
+
+function etiquetaMes(mesKey: string) {
+  return capitalizarPrimera(
+    new Date(`${mesKey}-01T00:00:00`).toLocaleDateString("es-ES", {
+      month: "long",
+      year: "numeric",
+    }),
+  );
 }
 
 export function MultasPorJugador() {
@@ -115,6 +129,18 @@ export function MultasPorJugador() {
             const pendientes = multas
               .filter((m) => !m.resuelta)
               .reduce((acc, m) => acc + m.puntos, 0);
+
+            const porMes = new Map<string, typeof multas>();
+            for (const m of multas) {
+              const key = mesDeFecha(m.fecha);
+              const lista = porMes.get(key) ?? [];
+              lista.push(m);
+              porMes.set(key, lista);
+            }
+            const meses = [...porMes.entries()].sort((a, b) =>
+              b[0].localeCompare(a[0]),
+            );
+
             return (
               <div key={jugador.id}>
                 <div className="mb-2 flex items-center gap-2">
@@ -135,59 +161,74 @@ export function MultasPorJugador() {
                     </Badge>
                   )}
                 </div>
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Fecha</TableHead>
-                      <TableHead>Motivo</TableHead>
-                      <TableHead>Puntos</TableHead>
-                      <TableHead>Estado</TableHead>
-                      <TableHead className="w-10" />
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {multas.map((m) => (
-                      <TableRow key={m.id}>
-                        <TableCell className="whitespace-nowrap">
-                          {formatearFechaCorta(m.fecha)}
-                        </TableCell>
-                        <TableCell>
-                          {m.norma}
-                          <span className="text-muted-foreground">
-                            {" "}
-                            · {CATEGORIA_NORMA_LABEL[m.categoria]}
-                          </span>
-                          {m.notas && (
-                            <span className="text-muted-foreground italic">
-                              {" "}
-                              · {m.notas}
-                            </span>
-                          )}
-                        </TableCell>
-                        <TableCell className="tabular-nums">{m.puntos}</TableCell>
-                        <TableCell>
-                          {m.resuelta ? (
-                            <span className="text-muted-foreground">Resuelta</span>
-                          ) : (
-                            <span className="text-destructive">Pendiente</span>
-                          )}
-                        </TableCell>
-                        <TableCell>
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            size="icon-sm"
-                            disabled={pendiente === m.id}
-                            onClick={() => handleEliminar(m.id)}
-                            aria-label="Eliminar multa"
-                          >
-                            <Trash2 className="size-4 text-muted-foreground" />
-                          </Button>
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
+                <div className="space-y-4">
+                  {meses.map(([mesKey, multasMes]) => (
+                    <div key={mesKey}>
+                      <p className="mb-1 text-xs font-medium text-muted-foreground">
+                        {etiquetaMes(mesKey)}
+                      </p>
+                      <Table>
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead>Fecha</TableHead>
+                            <TableHead>Motivo</TableHead>
+                            <TableHead>Puntos</TableHead>
+                            <TableHead>Estado</TableHead>
+                            <TableHead className="w-10" />
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {multasMes.map((m) => (
+                            <TableRow key={m.id}>
+                              <TableCell className="whitespace-nowrap">
+                                {formatearFechaCorta(m.fecha)}
+                              </TableCell>
+                              <TableCell>
+                                {m.norma}
+                                <span className="text-muted-foreground">
+                                  {" "}
+                                  · {CATEGORIA_NORMA_LABEL[m.categoria]}
+                                </span>
+                                {m.notas && (
+                                  <span className="text-muted-foreground italic">
+                                    {" "}
+                                    · {m.notas}
+                                  </span>
+                                )}
+                              </TableCell>
+                              <TableCell className="tabular-nums">
+                                {m.puntos}
+                              </TableCell>
+                              <TableCell>
+                                {m.resuelta ? (
+                                  <span className="text-muted-foreground">
+                                    Resuelta
+                                  </span>
+                                ) : (
+                                  <span className="text-destructive">
+                                    Pendiente
+                                  </span>
+                                )}
+                              </TableCell>
+                              <TableCell>
+                                <Button
+                                  type="button"
+                                  variant="ghost"
+                                  size="icon-sm"
+                                  disabled={pendiente === m.id}
+                                  onClick={() => handleEliminar(m.id)}
+                                  aria-label="Eliminar multa"
+                                >
+                                  <Trash2 className="size-4 text-muted-foreground" />
+                                </Button>
+                              </TableCell>
+                            </TableRow>
+                          ))}
+                        </TableBody>
+                      </Table>
+                    </div>
+                  ))}
+                </div>
               </div>
             );
           })
