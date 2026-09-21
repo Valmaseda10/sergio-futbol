@@ -429,6 +429,29 @@ export async function guardarAlineacionFinalLocal(
   return { success: true };
 }
 
+// Recuenta los goles (gol a favor/en contra + autogol, que siempre es en
+// contra) de un partido y actualiza resultado_favor/resultado_contra para
+// que reflejen siempre lo que hay tagueado en Eventos, sin tener que
+// mantenerlo a mano por separado. Si el partido todavía no tiene ningún gol
+// tagueado, no se toca (para no pisar un resultado ya escrito a mano de un
+// partido antiguo sin eventos detallados).
+async function recalcularResultadoLocal(partidoId: string): Promise<void> {
+  const eventosGol = await localDb.eventos_partido
+    .where("partido_id")
+    .equals(partidoId)
+    .filter((e) => e.tipo === "gol" || e.tipo === "autogol")
+    .toArray();
+
+  if (eventosGol.length === 0) return;
+
+  const favor = eventosGol.filter((e) => e.a_favor).length;
+  const contra = eventosGol.filter((e) => !e.a_favor).length;
+
+  const patch = { resultado_favor: favor, resultado_contra: contra };
+  await localDb.partidos.update(partidoId, patch);
+  await queueMutation("partidos", "update", partidoId, patch);
+}
+
 type EventoResult = { error: string } | { success: true; evento: LocalEventoPartido };
 
 export async function crearEventoLocal(
@@ -469,12 +492,22 @@ export async function crearEventoLocal(
   await localDb.eventos_partido.put(row);
   await queueMutation("eventos_partido", "insert", id, row);
 
+  if (tipo === "gol" || tipo === "autogol") {
+    await recalcularResultadoLocal(partidoId);
+  }
+
   return { success: true, evento: row };
 }
 
 export async function eliminarEventoLocal(eventoId: string): Promise<SimpleResult> {
+  const evento = await localDb.eventos_partido.get(eventoId);
   await localDb.eventos_partido.delete(eventoId);
   await queueMutation("eventos_partido", "delete", eventoId);
+
+  if (evento && (evento.tipo === "gol" || evento.tipo === "autogol")) {
+    await recalcularResultadoLocal(evento.partido_id);
+  }
+
   return { success: true };
 }
 

@@ -18,6 +18,7 @@ import { ValoracionesJugador } from "@/components/plantilla/valoraciones-jugador
 import { AsistenciaJugador } from "@/components/plantilla/asistencia-jugador";
 import { LesionesJugador } from "@/components/plantilla/lesiones-jugador";
 import { VideosJugador } from "@/components/plantilla/videos-jugador";
+import { EventosJugador } from "@/components/plantilla/eventos-jugador";
 import { PdfWatermark } from "@/components/branding/pdf-watermark";
 import { posicionLabel } from "@/lib/posiciones";
 
@@ -315,6 +316,8 @@ export default function FichaJugadorPage() {
           </CardContent>
         </Card>
       )}
+
+      <EventosJugador jugadorId={jugador.id} />
 
       <AsistenciaJugador jugadorId={jugador.id} />
 

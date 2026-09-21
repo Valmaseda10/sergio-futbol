@@ -127,12 +127,26 @@ export function EventosList({
   const [enviando, setEnviando] = useState(false);
   const [borrando, setBorrando] = useState<string | null>(null);
   const [eventoVer, setEventoVer] = useState<LocalEventoPartido | null>(null);
+  // Tras guardar un gol a favor, se ofrece elegir quién dio la asistencia
+  // sin tener que abrir el formulario de nuevo — queda con el mismo minuto
+  // que el gol y cuenta como una "asistencia" más en las estadísticas.
+  const [pedirAsistencia, setPedirAsistencia] = useState<{
+    minuto: string;
+    goleadorId: string;
+  } | null>(null);
+  const [asistenteId, setAsistenteId] = useState("");
+  const [guardandoAsistencia, setGuardandoAsistencia] = useState(false);
 
   const jugadoresPorId = new Map(convocados.map((j) => [j.id, j]));
 
   const esGol = tipo === "gol" || tipo === "autogol";
   const jugadorRequerido = tipo !== "gol" || aFavor;
-  const usaDoblePunto = tipoGol === "centro_lateral" || tipoGol === "abp";
+  const esPenalti = tipoGol === "abp" && abpTipo === "penalti";
+  // El penalti siempre se lanza desde el mismo punto, así que no hace
+  // falta tocar el campo para marcarlo: se coloca solo.
+  const usaDoblePunto =
+    (tipoGol === "centro_lateral" || tipoGol === "abp") && !esPenalti;
+  const PUNTO_PENALTI = { top: 32, left: 50 };
 
   function resetGolCampos() {
     setAFavor(true);
@@ -189,9 +203,32 @@ export function EventosList({
     }
 
     toast.success("Evento añadido");
+    if (tipo === "gol" && aFavor) {
+      setPedirAsistencia({ minuto, goleadorId: jugadorId });
+      setAsistenteId("");
+    }
     setJugadorId("");
     setMinuto("");
     resetGolCampos();
+  }
+
+  async function handleGuardarAsistencia() {
+    if (!pedirAsistencia || !asistenteId) return;
+    setGuardandoAsistencia(true);
+    const result = await crearEventoLocal(
+      partidoId,
+      asistenteId,
+      "asistencia",
+      pedirAsistencia.minuto,
+    );
+    setGuardandoAsistencia(false);
+    if ("error" in result) {
+      toast.error(result.error);
+      return;
+    }
+    toast.success("Asistencia añadida");
+    setPedirAsistencia(null);
+    setAsistenteId("");
   }
 
   async function handleDelete(e: React.MouseEvent, eventoId: string) {
@@ -328,7 +365,12 @@ export function EventosList({
                   <Label>Tipo de ABP</Label>
                   <Select
                     value={abpTipo}
-                    onValueChange={(v) => setAbpTipo((v as TipoAbp) ?? "")}
+                    onValueChange={(v) => {
+                      const nuevo = (v as TipoAbp) ?? "";
+                      setAbpTipo(nuevo);
+                      setPosicionCentro(null);
+                      setPosicionGol(nuevo === "penalti" ? PUNTO_PENALTI : null);
+                    }}
                   >
                     <SelectTrigger className="w-full">
                       <SelectValue placeholder="Sin especificar">
@@ -346,7 +388,15 @@ export function EventosList({
                 </div>
               )}
 
-              {usaDoblePunto ? (
+              {esPenalti ? (
+                <div className="space-y-2">
+                  <Label>¿Desde dónde ha sido?</Label>
+                  <p className="text-xs text-muted-foreground">
+                    Se marca solo en el punto de penalti.
+                  </p>
+                  <CampoMiniDisplay gol={posicionGol} />
+                </div>
+              ) : usaDoblePunto ? (
                 <div className="space-y-2">
                   <Label>¿Desde dónde ha sido? (opcional)</Label>
                   <p className="text-xs text-muted-foreground">
@@ -527,6 +577,58 @@ export function EventosList({
               )}
             </div>
           )}
+        </DialogContent>
+      </Dialog>
+
+      <Dialog
+        open={pedirAsistencia !== null}
+        onOpenChange={(open) => !open && setPedirAsistencia(null)}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>¿Quién ha dado la asistencia?</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3">
+            <Select value={asistenteId} onValueChange={(v) => setAsistenteId(v ?? "")}>
+              <SelectTrigger className="w-full">
+                <SelectValue placeholder="Selecciona un convocado">
+                  {(value) => {
+                    const j = jugadoresPorId.get(value as string);
+                    if (!j) return "Selecciona un convocado";
+                    return `${j.dorsal != null ? `${j.dorsal} · ` : ""}${nombreMostrado(j)}`;
+                  }}
+                </SelectValue>
+              </SelectTrigger>
+              <SelectContent>
+                {convocados
+                  .filter((j) => j.id !== pedirAsistencia?.goleadorId)
+                  .map((j) => (
+                    <SelectItem key={j.id} value={j.id}>
+                      {j.dorsal != null ? `${j.dorsal} · ` : ""}
+                      {nombreMostrado(j)}
+                    </SelectItem>
+                  ))}
+              </SelectContent>
+            </Select>
+            <div className="flex gap-2">
+              <Button
+                type="button"
+                variant="outline"
+                className="flex-1"
+                onClick={() => setPedirAsistencia(null)}
+              >
+                Sin asistencia
+              </Button>
+              <Button
+                type="button"
+                className="flex-1"
+                disabled={!asistenteId || guardandoAsistencia}
+                onClick={handleGuardarAsistencia}
+              >
+                {guardandoAsistencia ? "Guardando..." : "Guardar"}
+              </Button>
+            </div>
+          </div>
         </DialogContent>
       </Dialog>
     </div>
