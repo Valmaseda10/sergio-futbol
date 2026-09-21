@@ -138,7 +138,13 @@ export function MultasPanel() {
           <div className="flex flex-col gap-2 sm:flex-row">
             <Select value={jugadorId} onValueChange={(v) => setJugadorId(v ?? "")}>
               <SelectTrigger className="sm:flex-1">
-                <SelectValue placeholder="Jugador" />
+                <SelectValue placeholder="Jugador">
+                  {(value) => {
+                    const j = jugadoresPorId.get(value as string);
+                    if (!j) return "Jugador";
+                    return `${j.dorsal != null ? `${j.dorsal} · ` : ""}${j.nombre} ${j.apellidos}`;
+                  }}
+                </SelectValue>
               </SelectTrigger>
               <SelectContent>
                 {jugadores.map((j) => (
@@ -152,7 +158,15 @@ export function MultasPanel() {
 
             <Select value={normaSel} onValueChange={(v) => setNormaSel(v ?? "")}>
               <SelectTrigger className="sm:flex-[2]">
-                <SelectValue placeholder="Falta cometida" />
+                <SelectValue placeholder="Falta cometida">
+                  {(value) => {
+                    if (value === NORMA_OTRA) return "Otra falta...";
+                    const n = NORMAS.find(
+                      (n) => `${n.categoria}::${n.texto}` === value,
+                    );
+                    return n ? n.texto : "Falta cometida";
+                  }}
+                </SelectValue>
               </SelectTrigger>
               <SelectContent>
                 {CATEGORIAS_NORMA.map((cat) => (
