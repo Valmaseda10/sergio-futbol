@@ -6,6 +6,7 @@
 // (CLAUDE.md: "suficiente para 2 usuarios").
 
 import { useSyncExternalStore } from "react";
+import { useLiveQuery } from "dexie-react-hooks";
 import type { Table } from "dexie";
 import { createClient } from "@/lib/supabase/client";
 import {
@@ -69,6 +70,19 @@ export function useSyncStatus() {
   const online = useOnlineStatus();
 
   return { pending: pendingCount, online, syncing, lastError };
+}
+
+/**
+ * true solo cuando este dispositivo ya ha completado alguna vez un pullAll
+ * (existe "lastPullAt" en meta). Antes de eso no se puede distinguir "todavía
+ * no ha llegado nada de Supabase" de "no hay datos" — sin esto, páginas como
+ * Estadísticas enseñan un parpadeo de "sin datos todavía" seguido del
+ * contenido real nada más arrancar la app o entrar por primera vez en un
+ * dispositivo.
+ */
+export function useSincronizacionInicialCompleta() {
+  const meta = useLiveQuery(() => localDb.meta.get("lastPullAt"), [], null);
+  return meta !== null && meta !== undefined;
 }
 
 /** Encola una mutación local y trata de enviarla ya mismo si hay conexión. */

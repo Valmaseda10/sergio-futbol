@@ -4,6 +4,7 @@ export const partidoSchema = z.object({
   fecha: z.string().trim().min(1, "Introduce la fecha"),
   hora: z.string().trim(),
   competicion: z.enum(["liga", "amistoso", "copa"]),
+  fase: z.enum(["pretemporada", "liga"]),
   rival: z.string().trim().min(1, "Introduce el rival"),
   local_visitante: z.enum(["local", "visitante"]),
   lugar: z.string().trim(),
@@ -19,6 +20,7 @@ export const PARTIDO_FORM_DEFAULTS: PartidoFormValues = {
   fecha: "",
   hora: "",
   competicion: "liga",
+  fase: "liga",
   rival: "",
   local_visitante: "local",
   lugar: "",
@@ -33,6 +35,7 @@ export function toPartidoInsert(values: PartidoFormValues) {
     fecha: values.fecha,
     hora: values.hora || null,
     competicion: values.competicion,
+    fase: values.fase,
     rival: values.rival,
     local_visitante: values.local_visitante,
     lugar: values.lugar || null,
@@ -52,6 +55,7 @@ export function partidoFormDataToValues(formData: FormData): PartidoFormValues {
     competicion: String(
       formData.get("competicion") ?? "liga",
     ) as PartidoFormValues["competicion"],
+    fase: String(formData.get("fase") ?? "liga") as PartidoFormValues["fase"],
     rival: String(formData.get("rival") ?? ""),
     local_visitante: String(
       formData.get("local_visitante") ?? "local",

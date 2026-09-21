@@ -6,6 +6,7 @@ export type Rol = "admin" | "staff";
 export type TipoEstado = "entrenamiento" | "general";
 export type PiernaDominante = "izquierda" | "derecha" | "ambidiestro";
 export type Competicion = "liga" | "amistoso" | "copa";
+export type FaseTemporada = "pretemporada" | "liga";
 export type LocalVisitante = "local" | "visitante";
 export type TipoEventoPartido =
   | "gol"
@@ -421,6 +422,7 @@ export interface Database {
           fecha: string;
           hora: string | null;
           competicion: Competicion;
+          fase: FaseTemporada;
           rival: string;
           local_visitante: LocalVisitante;
           lugar: string | null;
@@ -436,6 +438,7 @@ export interface Database {
           fecha: string;
           hora?: string | null;
           competicion: Competicion;
+          fase?: FaseTemporada;
           rival: string;
           local_visitante: LocalVisitante;
           lugar?: string | null;
@@ -973,6 +976,20 @@ export interface Database {
         Update: Partial<
           Database["public"]["Tables"]["recordatorios"]["Insert"]
         >;
+        Relationships: [];
+      };
+      notas: {
+        Row: {
+          id: string;
+          texto: string;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          texto: string;
+          created_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["notas"]["Insert"]>;
         Relationships: [];
       };
     };

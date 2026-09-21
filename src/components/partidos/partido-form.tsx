@@ -42,6 +42,11 @@ const COMPETICION_LABEL: Record<string, string> = {
   copa: "Copa",
 };
 
+const FASE_LABEL: Record<string, string> = {
+  pretemporada: "Pretemporada",
+  liga: "Temporada",
+};
+
 const LOCAL_VISITANTE_LABEL: Record<string, string> = {
   local: "Local",
   visitante: "Visitante",
@@ -272,6 +277,27 @@ export function PartidoForm({
                 )}
               />
             </div>
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="fase">Fase</Label>
+            <Controller
+              control={control}
+              name="fase"
+              render={({ field }) => (
+                <Select value={field.value} onValueChange={field.onChange}>
+                  <SelectTrigger id="fase" className="w-full">
+                    <SelectValue>
+                      {(value) => FASE_LABEL[value as string] ?? value}
+                    </SelectValue>
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="pretemporada">Pretemporada</SelectItem>
+                    <SelectItem value="liga">Temporada</SelectItem>
+                  </SelectContent>
+                </Select>
+              )}
+            />
           </div>
 
           <div className="space-y-2">

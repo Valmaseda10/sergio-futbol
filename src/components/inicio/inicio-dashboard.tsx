@@ -28,6 +28,7 @@ import { Button } from "@/components/ui/button";
 import { FechaTile } from "@/components/ui/fecha-tile";
 import { HorarioSemanalResumen } from "@/components/entrenamientos/horario-semanal-resumen";
 import { RecordatoriosPanel } from "@/components/inicio/recordatorios-panel";
+import { NotasPanel } from "@/components/inicio/notas-panel";
 
 function hoyISO() {
   const now = new Date();
@@ -270,6 +271,8 @@ export function InicioDashboard({
       </div>
 
       <RecordatoriosPanel />
+
+      <NotasPanel />
 
       {hayAvisos && (
         <Card className="border-destructive/40">

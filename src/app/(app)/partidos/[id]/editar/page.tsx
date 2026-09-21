@@ -43,6 +43,7 @@ export default function EditarPartidoPage() {
           fecha: partido.fecha,
           hora: partido.hora?.slice(0, 5) ?? "",
           competicion: partido.competicion,
+          fase: partido.fase,
           rival: partido.rival,
           local_visitante: partido.local_visitante,
           lugar: partido.lugar ?? "",

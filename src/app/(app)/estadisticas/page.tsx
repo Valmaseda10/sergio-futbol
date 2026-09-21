@@ -1,8 +1,9 @@
 "use client";
 
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { useLiveQuery } from "dexie-react-hooks";
 import { localDb } from "@/lib/db/local-db";
+import { useSincronizacionInicialCompleta, useOnlineStatus } from "@/lib/db/sync";
 import { TemporadaSelector } from "@/components/temporada-selector";
 import { useTemporadaSeleccionada } from "@/lib/hooks/use-temporada-seleccionada";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -16,6 +17,13 @@ import { JugadoresTable } from "@/components/estadisticas/jugadores-table";
 import { BalanceTemporada } from "@/components/estadisticas/balance-temporada";
 import { EtiquetasResumen } from "@/components/estadisticas/etiquetas-resumen";
 import { Button } from "@/components/ui/button";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Printer } from "lucide-react";
 import { PdfWatermark } from "@/components/branding/pdf-watermark";
 import {
@@ -36,6 +44,11 @@ function hoyISO() {
 
 export default function EstadisticasPage() {
   const hoy = hoyISO();
+  const haSincronizado = useSincronizacionInicialCompleta();
+  const online = useOnlineStatus();
+  const [faseSel, setFaseSel] = useState<"todas" | "pretemporada" | "liga">(
+    "todas",
+  );
 
   const jugadores = useLiveQuery(
     () => localDb.jugadores.filter((j) => j.activo).toArray(),
@@ -83,8 +96,13 @@ export default function EstadisticasPage() {
   const { temporada: temporadaSel } = useTemporadaSeleccionada();
 
   const partidosTemporada = useMemo(
-    () => partidos.filter((p) => temporadaDeFecha(p.fecha) === temporadaSel),
-    [partidos, temporadaSel],
+    () =>
+      partidos.filter(
+        (p) =>
+          temporadaDeFecha(p.fecha) === temporadaSel &&
+          (faseSel === "todas" || p.fase === faseSel),
+      ),
+    [partidos, temporadaSel, faseSel],
   );
   const partidoIdsTemporada = useMemo(
     () => new Set(partidosTemporada.map((p) => p.id)),
@@ -300,12 +318,35 @@ export default function EstadisticasPage() {
     partidoIdsTemporada,
   ]);
 
+  if (!haSincronizado) {
+    return (
+      <p className="text-sm text-muted-foreground">
+        {online
+          ? "Cargando estadísticas..."
+          : "Sin conexión — conéctate al menos una vez para poder cargar las estadísticas en este dispositivo."}
+      </p>
+    );
+  }
+
   return (
     <div className="space-y-4">
       <PdfWatermark />
       <div className="flex items-center justify-between gap-3">
         <h1 className="text-2xl font-semibold">Estadísticas</h1>
         <div className="flex items-center gap-2">
+          <Select
+            value={faseSel}
+            onValueChange={(v) => setFaseSel(v as typeof faseSel)}
+          >
+            <SelectTrigger className="w-36 print:hidden">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="todas">Toda la temporada</SelectItem>
+              <SelectItem value="pretemporada">Pretemporada</SelectItem>
+              <SelectItem value="liga">Solo liga</SelectItem>
+            </SelectContent>
+          </Select>
           <TemporadaSelector className="print:hidden" />
           <Button
             variant="outline"
@@ -320,6 +361,8 @@ export default function EstadisticasPage() {
       </div>
       <p className="hidden text-sm text-muted-foreground print:block">
         Temporada {temporadaSel}
+        {faseSel !== "todas" &&
+          ` · ${faseSel === "pretemporada" ? "Pretemporada" : "Solo liga"}`}
       </p>
 
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
