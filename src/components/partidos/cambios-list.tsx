@@ -26,7 +26,7 @@
 
 import { useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
-import { ArrowLeftRight, Save, Trash2 } from "lucide-react";
+import { ArrowLeftRight, Plus, Save, Trash2 } from "lucide-react";
 import {
   crearCambioLocal,
   eliminarCambioLocal,
@@ -105,8 +105,15 @@ export function CambiosList({
   );
 
   const [saleKey, setSaleKey] = useState<string | null>(null);
-  const [entraId, setEntraId] = useState("");
+  const [entraKey, setEntraKey] = useState<string | null>(null);
   const [minuto, setMinuto] = useState("");
+  // Invitados ("solo por hoy") ofrecidos para entrar de cambio, además del
+  // banquillo de convocados reales — p.ej. alguien a prueba que llega tarde
+  // y no estaba convocado. Solo dura mientras se rellena el formulario: en
+  // cuanto se confirma el cambio, el invitado ya queda en el once (se
+  // calcula a partir de los eventos, no de esta lista).
+  const [invitadosEntrada, setInvitadosEntrada] = useState<string[]>([]);
+  const [nombreInvitado, setNombreInvitado] = useState("");
   const [enviando, setEnviando] = useState(false);
   const [borrando, setBorrando] = useState<string | null>(null);
   const [formacionValue, setFormacionValue] = useState(FORMACIONES[0].value);
@@ -227,13 +234,16 @@ export function CambiosList({
   }
 
   async function handleConfirmar() {
-    if (!saleKey || !entraId) return;
+    if (!saleKey || !entraKey) return;
     const salida = saleKey.startsWith("jugador:")
       ? { jugadorId: saleKey.slice("jugador:".length) }
       : { nombreLibre: saleKey.slice("libre:".length) };
+    const entrada = entraKey.startsWith("jugador:")
+      ? { jugadorId: entraKey.slice("jugador:".length) }
+      : { nombreLibre: entraKey.slice("libre:".length) };
 
     setEnviando(true);
-    const result = await crearCambioLocal(partidoId, salida, entraId, minuto);
+    const result = await crearCambioLocal(partidoId, salida, entrada, minuto);
     setEnviando(false);
 
     if ("error" in result) {
@@ -243,8 +253,21 @@ export function CambiosList({
 
     toast.success("Cambio registrado");
     setSaleKey(null);
-    setEntraId("");
+    setEntraKey(null);
     setMinuto("");
+    if (!("jugadorId" in entrada)) {
+      setInvitadosEntrada((prev) => prev.filter((n) => n !== entrada.nombreLibre));
+    }
+  }
+
+  function handleAñadirInvitadoEntrada() {
+    const nombre = nombreInvitado.trim();
+    if (!nombre) return;
+    if (!invitadosEntrada.includes(nombre)) {
+      setInvitadosEntrada((prev) => [...prev, nombre]);
+    }
+    setEntraKey(`libre:${nombre}`);
+    setNombreInvitado("");
   }
 
   async function handleBorrar(grupoId: string) {
@@ -372,21 +395,22 @@ export function CambiosList({
         <p className="text-sm font-medium text-muted-foreground">
           Banquillo ({banquillo.length}) — toca quién entra
         </p>
-        {banquillo.length === 0 ? (
+        {banquillo.length === 0 && invitadosEntrada.length === 0 ? (
           <p className="text-sm text-muted-foreground">
             No queda nadie en el banquillo.
           </p>
         ) : (
           <ul className="flex flex-wrap gap-2">
             {banquillo.map((j) => {
+              const clave = `jugador:${j.id}`;
               const salio = yaSalieron.has(j.id);
-              const seleccionado = entraId === j.id;
+              const seleccionado = entraKey === clave;
               return (
-                <li key={j.id}>
+                <li key={clave}>
                   <button
                     type="button"
                     onClick={() =>
-                      setEntraId((prev) => (prev === j.id ? "" : j.id))
+                      setEntraKey((prev) => (prev === clave ? null : clave))
                     }
                     className={cn(
                       "flex items-center gap-2 rounded-full border py-1 pr-3 pl-2 text-sm",
@@ -412,8 +436,56 @@ export function CambiosList({
                 </li>
               );
             })}
+            {invitadosEntrada.map((nombre) => {
+              const clave = `libre:${nombre}`;
+              const seleccionado = entraKey === clave;
+              return (
+                <li key={clave}>
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setEntraKey((prev) => (prev === clave ? null : clave))
+                    }
+                    className={cn(
+                      "flex items-center gap-2 rounded-full border border-dashed py-1 pr-3 pl-2 text-sm",
+                      seleccionado
+                        ? "border-pitch bg-pitch/10 text-pitch"
+                        : "hover:bg-muted",
+                    )}
+                  >
+                    <span className="flex size-6 items-center justify-center rounded-full bg-muted text-[10px] font-medium">
+                      {nombre[0]}
+                    </span>
+                    {nombre} (invitado)
+                  </button>
+                </li>
+              );
+            })}
           </ul>
         )}
+        <div className="flex gap-2">
+          <Input
+            placeholder="O escribe a alguien solo para hoy..."
+            value={nombreInvitado}
+            onChange={(e) => setNombreInvitado(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") {
+                e.preventDefault();
+                handleAñadirInvitadoEntrada();
+              }
+            }}
+          />
+          <Button
+            type="button"
+            variant="outline"
+            size="icon"
+            disabled={!nombreInvitado.trim()}
+            onClick={handleAñadirInvitadoEntrada}
+            aria-label="Añadir invitado al banquillo"
+          >
+            <Plus className="size-4" />
+          </Button>
+        </div>
       </div>
 
       <div className="space-y-2 rounded-md border p-3">
@@ -428,7 +500,7 @@ export function CambiosList({
         />
         <Button
           className="w-full"
-          disabled={!saleKey || !entraId || enviando}
+          disabled={!saleKey || !entraKey || enviando}
           onClick={handleConfirmar}
         >
           <ArrowLeftRight className="size-4" />
@@ -448,6 +520,9 @@ export function CambiosList({
             const jEntra = entra?.jugador_id
               ? jugadoresPorId.get(entra.jugador_id)
               : null;
+            const nombreEntra = jEntra
+              ? nombreMostrado(jEntra)
+              : (entra?.nombre_libre ?? "?");
             return (
               <li key={grupoId} className="flex items-center gap-3 p-3 text-sm">
                 <span className="w-9 shrink-0 font-heading tabular-nums text-muted-foreground">
@@ -456,9 +531,7 @@ export function CambiosList({
                 <span className="min-w-0 flex-1 truncate">
                   <span className="text-destructive">{nombreSale}</span>
                   {" → "}
-                  <span className="text-pitch">
-                    {jEntra ? nombreMostrado(jEntra) : "?"}
-                  </span>
+                  <span className="text-pitch">{nombreEntra}</span>
                 </span>
                 <Button
                   variant="ghost"

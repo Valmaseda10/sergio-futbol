@@ -123,7 +123,12 @@ export function CampoJugadorSelector({
       : { nombreLibre: saleKey.slice("libre:".length) };
 
     setEnviando(true);
-    const result = await crearCambioLocal(partidoId, salida, entraId, minuto);
+    const result = await crearCambioLocal(
+      partidoId,
+      salida,
+      { jugadorId: entraId },
+      minuto,
+    );
     setEnviando(false);
 
     if ("error" in result) {

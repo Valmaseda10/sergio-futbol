@@ -20,11 +20,12 @@ export interface OnceFinal {
  * dejó libre la última salida. No contempla expulsiones (tarjeta_roja).
  *
  * Los jugadores "solo por hoy" (sin fila real en `jugadores`, jugador_id
- * null) sí se pueden dar de baja: como no tienen jugador_id con el que
- * referenciar el evento (eventos_partido solo admite jugadores reales por
- * FK), su cambio_sale se guarda con nombre_libre y se busca por nombre en
- * vez de por id. Solo pueden entrar jugadores reales (siempre desde el
- * banquillo), así que cambio_entra sigue siendo siempre por jugador_id.
+ * null) se pueden dar de baja igual que uno real: como no tienen jugador_id
+ * con el que referenciar el evento (eventos_partido solo admite jugadores
+ * reales por FK), su cambio_sale/cambio_entra se guarda con nombre_libre y
+ * se busca por nombre en vez de por id. También pueden entrar como
+ * incorporación (p.ej. un jugador a prueba que llega tarde y no estaba en
+ * el once inicial ni en el banquillo de convocados reales).
  */
 export function calcularOnceFinal(
   titularesIniciales: Pick<
@@ -33,7 +34,7 @@ export function calcularOnceFinal(
   >[],
   eventos: Pick<
     LocalEventoPartido,
-    "jugador_id" | "nombre_libre" | "tipo" | "minuto"
+    "id" | "jugador_id" | "nombre_libre" | "tipo" | "minuto"
   >[],
 ): OnceFinal {
   const lineup = new Map<string, SlotOnceFinal>();
@@ -88,16 +89,32 @@ export function calcularOnceFinal(
           vacantes.push(entrada[1]);
         }
       }
-    } else if (evento.jugador_id != null) {
+    } else {
+      // cambio_entra
       const vacante = vacantes.shift();
-      if (vacante) {
-        lineup.set(evento.jugador_id, {
-          ...vacante,
-          jugadorId: evento.jugador_id,
-          nombreLibre: null,
-        });
-      } else {
-        entrantesSinHueco.push(evento.jugador_id);
+      if (evento.jugador_id != null) {
+        if (vacante) {
+          lineup.set(evento.jugador_id, {
+            ...vacante,
+            jugadorId: evento.jugador_id,
+            nombreLibre: null,
+          });
+        } else {
+          entrantesSinHueco.push(evento.jugador_id);
+        }
+      } else if (evento.nombre_libre != null) {
+        if (vacante) {
+          // Clave única por el propio evento: no hay un jugador_id con el
+          // que identificar a este invitado, y su nombre podría repetirse
+          // si sale y vuelve a entrar más tarde.
+          lineup.set(`libre-entra:${evento.id}`, {
+            ...vacante,
+            jugadorId: null,
+            nombreLibre: evento.nombre_libre,
+          });
+        } else {
+          entrantesSinHueco.push(evento.nombre_libre);
+        }
       }
     }
   }

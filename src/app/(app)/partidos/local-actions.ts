@@ -516,15 +516,16 @@ export async function eliminarEventoLocal(eventoId: string): Promise<SimpleResul
 // una sola acción desde el apartado "Cambios" en vez de dar de alta cada
 // evento por separado en Eventos.
 //
-// La salida puede ser un jugador real (jugadorId) o uno "solo por hoy" sin
-// ficha en Plantilla (nombreLibre): eventos_partido exige jugador_id real
-// por FK, así que para estos últimos se deja jugador_id a null y se guarda
-// el nombre en su lugar. La entrada siempre es un jugador real (viene del
-// banquillo de convocados).
+// Tanto la salida como la entrada pueden ser un jugador real (jugadorId) o
+// uno "solo por hoy" sin ficha en Plantilla (nombreLibre) — p.ej. alguien a
+// prueba que llega tarde y entra directamente de cambio, sin haber estado
+// en el once inicial ni en el banquillo de convocados reales.
+// eventos_partido exige jugador_id real por FK, así que para estos se deja
+// jugador_id a null y se guarda el nombre en su lugar.
 export async function crearCambioLocal(
   partidoId: string,
   salida: { jugadorId: string } | { nombreLibre: string },
-  jugadorEntraId: string,
+  entrada: { jugadorId: string } | { nombreLibre: string },
   minuto: string,
 ): Promise<SimpleResult> {
   const grupoId = crypto.randomUUID();
@@ -558,7 +559,10 @@ export async function crearCambioLocal(
     "jugadorId" in salida
       ? fila("cambio_sale", salida.jugadorId, null)
       : fila("cambio_sale", null, salida.nombreLibre);
-  const filaEntra = fila("cambio_entra", jugadorEntraId, null);
+  const filaEntra =
+    "jugadorId" in entrada
+      ? fila("cambio_entra", entrada.jugadorId, null)
+      : fila("cambio_entra", null, entrada.nombreLibre);
 
   await localDb.eventos_partido.bulkPut([filaSale, filaEntra]);
   await queueMutation("eventos_partido", "insert", filaSale.id, filaSale);
