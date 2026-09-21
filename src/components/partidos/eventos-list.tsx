@@ -161,14 +161,16 @@ export function EventosList({
   const esGol = tipo === "gol" || tipo === "autogol";
   const jugadorRequerido = tipo !== "gol" || aFavor;
   const esPenalti = tipoGol === "abp" && abpTipo === "penalti";
-  const esCentroDentroDeJuegoAsociativo =
-    tipoGol === "juego_asociativo" && juegoAsociativoTipo === "centro_lateral";
+  // "De dónde ha venido" (tiro exterior/centro lateral/rechace) es
+  // independiente del "Cómo ha sido" principal: sale para cualquier gol, no
+  // solo cuando el tipo es "Juego asociativo".
+  const esCentroLateralPorSubtipo = juegoAsociativoTipo === "centro_lateral";
   // El penalti siempre se lanza desde el mismo punto, así que no hace
   // falta tocar el campo para marcarlo: se coloca solo.
   const usaDoblePunto =
     (tipoGol === "centro_lateral" ||
       tipoGol === "abp" ||
-      esCentroDentroDeJuegoAsociativo) &&
+      esCentroLateralPorSubtipo) &&
     !esPenalti;
   const PUNTO_PENALTI = { top: 32, left: 50 };
 
@@ -218,8 +220,7 @@ export function EventosList({
             posXCentro: usaDoblePunto ? posicionCentro?.left ?? null : null,
             posYCentro: usaDoblePunto ? posicionCentro?.top ?? null : null,
             notas: notaGol.trim() || null,
-            juegoAsociativoTipo:
-              tipoGol === "juego_asociativo" ? juegoAsociativoTipo || null : null,
+            juegoAsociativoTipo: juegoAsociativoTipo || null,
             superficieGol: superficieGol || null,
           }
         : undefined,
@@ -370,7 +371,6 @@ export function EventosList({
                   onValueChange={(v) => {
                     setTipoGol((v as TipoGol) ?? "");
                     setAbpTipo("");
-                    setJuegoAsociativoTipo("");
                     setPosicionGol(null);
                     setPosicionCentro(null);
                   }}
@@ -418,36 +418,34 @@ export function EventosList({
                 </div>
               )}
 
-              {tipoGol === "juego_asociativo" && (
-                <div className="space-y-2">
-                  <Label>De dónde ha venido</Label>
-                  <Select
-                    value={juegoAsociativoTipo}
-                    onValueChange={(v) => {
-                      const nuevo = (v as JuegoAsociativoTipo) ?? "";
-                      setJuegoAsociativoTipo(nuevo);
-                      setPosicionCentro(null);
-                      setPosicionGol(null);
-                    }}
-                  >
-                    <SelectTrigger className="w-full">
-                      <SelectValue placeholder="Sin especificar">
-                        {(value) =>
-                          TIPO_JUEGO_ASOCIATIVO_LABEL[value as JuegoAsociativoTipo] ??
-                          "Sin especificar"
-                        }
-                      </SelectValue>
-                    </SelectTrigger>
-                    <SelectContent>
-                      {TIPOS_JUEGO_ASOCIATIVO.map((t) => (
-                        <SelectItem key={t.value} value={t.value}>
-                          {t.label}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-              )}
+              <div className="space-y-2">
+                <Label>De dónde ha venido (opcional)</Label>
+                <Select
+                  value={juegoAsociativoTipo}
+                  onValueChange={(v) => {
+                    const nuevo = (v as JuegoAsociativoTipo) ?? "";
+                    setJuegoAsociativoTipo(nuevo);
+                    setPosicionCentro(null);
+                    setPosicionGol(null);
+                  }}
+                >
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder="Sin especificar">
+                      {(value) =>
+                        TIPO_JUEGO_ASOCIATIVO_LABEL[value as JuegoAsociativoTipo] ??
+                        "Sin especificar"
+                      }
+                    </SelectValue>
+                  </SelectTrigger>
+                  <SelectContent>
+                    {TIPOS_JUEGO_ASOCIATIVO.map((t) => (
+                      <SelectItem key={t.value} value={t.value}>
+                        {t.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
 
               {esPenalti ? (
                 <div className="space-y-2">
@@ -461,7 +459,7 @@ export function EventosList({
                 <div className="space-y-2">
                   <Label>¿Desde dónde ha sido? (opcional)</Label>
                   <p className="text-xs text-muted-foreground">
-                    {tipoGol === "centro_lateral" || esCentroDentroDeJuegoAsociativo
+                    {tipoGol === "centro_lateral" || esCentroLateralPorSubtipo
                       ? "Toca primero el origen del centro (C), luego dónde ha sido el gol (G)."
                       : "Toca primero desde dónde se ha sacado la ABP (C), luego dónde ha sido el gol (G)."}
                   </p>
@@ -564,8 +562,12 @@ export function EventosList({
                         {" "}
                         · {TIPO_GOL_LABEL[evento.tipo_gol]}
                         {evento.abp_tipo && ` (${TIPO_ABP_LABEL[evento.abp_tipo]})`}
-                        {evento.juego_asociativo_tipo &&
-                          ` (${TIPO_JUEGO_ASOCIATIVO_LABEL[evento.juego_asociativo_tipo]})`}
+                      </span>
+                    )}
+                    {evento.juego_asociativo_tipo && (
+                      <span className="text-muted-foreground">
+                        {" "}
+                        · {TIPO_JUEGO_ASOCIATIVO_LABEL[evento.juego_asociativo_tipo]}
                       </span>
                     )}
                     {evento.superficie_gol && (
@@ -630,8 +632,12 @@ export function EventosList({
                   <span className="text-muted-foreground">Cómo ha sido: </span>
                   {TIPO_GOL_LABEL[eventoVer.tipo_gol]}
                   {eventoVer.abp_tipo && ` — ${TIPO_ABP_LABEL[eventoVer.abp_tipo]}`}
-                  {eventoVer.juego_asociativo_tipo &&
-                    ` — ${TIPO_JUEGO_ASOCIATIVO_LABEL[eventoVer.juego_asociativo_tipo]}`}
+                </p>
+              )}
+              {eventoVer.juego_asociativo_tipo && (
+                <p>
+                  <span className="text-muted-foreground">De dónde ha venido: </span>
+                  {TIPO_JUEGO_ASOCIATIVO_LABEL[eventoVer.juego_asociativo_tipo]}
                 </p>
               )}
               {eventoVer.superficie_gol && (
