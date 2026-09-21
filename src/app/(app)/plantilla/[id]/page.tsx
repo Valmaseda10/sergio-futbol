@@ -11,6 +11,13 @@ import { calcularStatsJugadores } from "@/lib/estadisticas";
 import { temporadaActual, enTemporada } from "@/lib/temporada";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { JugadorAvatar } from "@/components/plantilla/jugador-avatar";
 import { BajaReactivarButton } from "@/components/plantilla/baja-reactivar-button";
@@ -61,6 +68,9 @@ export default function FichaJugadorPage() {
 
   const hoy = hoyISO();
   const temporada = temporadaActual(hoy);
+  const [faseSel, setFaseSel] = useState<"todas" | "pretemporada" | "liga">(
+    "todas",
+  );
 
   const eventos = useLiveQuery(() => localDb.eventos_partido.toArray(), [], []);
   const convocatorias = useLiveQuery(
@@ -86,7 +96,13 @@ export default function FichaJugadorPage() {
     if (!jugador) return null;
 
     const partidoIdsTemporada = new Set(
-      partidos.filter((p) => enTemporada(p.fecha, temporada)).map((p) => p.id),
+      partidos
+        .filter(
+          (p) =>
+            enTemporada(p.fecha, temporada) &&
+            (faseSel === "todas" || p.fase === faseSel),
+        )
+        .map((p) => p.id),
     );
     const entrenamientosTemporada = entrenamientos.filter((e) =>
       enTemporada(e.fecha, temporada),
@@ -124,6 +140,7 @@ export default function FichaJugadorPage() {
     convocatorias,
     alineaciones,
     temporada,
+    faseSel,
     hoy,
   ]);
 
@@ -192,8 +209,23 @@ export default function FichaJugadorPage() {
 
       {statsTemporada && (
         <Card>
-          <CardHeader>
+          <CardHeader className="flex flex-row items-center justify-between">
             <CardTitle className="text-base">Temporada {temporada}</CardTitle>
+            <Select
+              value={faseSel}
+              onValueChange={(v) => setFaseSel(v as typeof faseSel)}
+            >
+              <SelectTrigger className="w-[10.5rem] print:hidden">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="todas">Total</SelectItem>
+                <SelectItem value="pretemporada">
+                  Pretemporada (amistosos)
+                </SelectItem>
+                <SelectItem value="liga">Liga</SelectItem>
+              </SelectContent>
+            </Select>
           </CardHeader>
           <CardContent className="grid grid-cols-4 gap-y-3 text-center">
             {[
