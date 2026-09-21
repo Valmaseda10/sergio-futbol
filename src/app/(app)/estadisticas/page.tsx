@@ -338,13 +338,13 @@ export default function EstadisticasPage() {
             value={faseSel}
             onValueChange={(v) => setFaseSel(v as typeof faseSel)}
           >
-            <SelectTrigger className="w-36 print:hidden">
+            <SelectTrigger className="w-[10.5rem] print:hidden">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="todas">Toda la temporada</SelectItem>
-              <SelectItem value="pretemporada">Pretemporada</SelectItem>
-              <SelectItem value="liga">Solo liga</SelectItem>
+              <SelectItem value="todas">Total</SelectItem>
+              <SelectItem value="pretemporada">Pretemporada (amistosos)</SelectItem>
+              <SelectItem value="liga">Liga</SelectItem>
             </SelectContent>
           </Select>
           <TemporadaSelector className="print:hidden" />
@@ -362,7 +362,7 @@ export default function EstadisticasPage() {
       <p className="hidden text-sm text-muted-foreground print:block">
         Temporada {temporadaSel}
         {faseSel !== "todas" &&
-          ` · ${faseSel === "pretemporada" ? "Pretemporada" : "Solo liga"}`}
+          ` · ${faseSel === "pretemporada" ? "Pretemporada (amistosos)" : "Liga"}`}
       </p>
 
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
