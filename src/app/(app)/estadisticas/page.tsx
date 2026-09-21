@@ -494,8 +494,23 @@ export default function EstadisticasPage() {
       </Card>
 
       <Card>
-        <CardHeader>
+        <CardHeader className="flex flex-row items-center justify-between">
           <CardTitle className="text-base">Por jugador</CardTitle>
+          <Select
+            value={faseSel}
+            onValueChange={(v) => setFaseSel(v as typeof faseSel)}
+          >
+            <SelectTrigger className="w-[10.5rem] print:hidden">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="todas">Total</SelectItem>
+              <SelectItem value="pretemporada">
+                Pretemporada (amistosos)
+              </SelectItem>
+              <SelectItem value="liga">Liga</SelectItem>
+            </SelectContent>
+          </Select>
         </CardHeader>
         <CardContent>
           {statsJugadores.length === 0 ? (
