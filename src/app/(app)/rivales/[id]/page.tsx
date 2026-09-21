@@ -132,7 +132,7 @@ export default function FichaRivalPage() {
         </CardContent>
       </Card>
 
-      <GolesIntervaloRival rivalId={rival.id} />
+      <GolesIntervaloRival rivalId={rival.id} rivalNombre={rival.nombre} />
 
       <Card>
         <CardHeader>

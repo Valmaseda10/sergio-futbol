@@ -1,8 +1,8 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { toPng } from "html-to-image";
 import { toast } from "sonner";
+import { capturarComoPng, descargarDataUrl } from "@/lib/capturar-imagen";
 import {
   RotateCcw,
   Pencil,
@@ -398,11 +398,8 @@ export function PizarraTactica({ jugadores }: { jugadores: Jugador[] }) {
     if (!pitchRef.current) return;
     setCapturando(true);
     try {
-      const dataUrl = await toPng(pitchRef.current, { pixelRatio: 2 });
-      const enlace = document.createElement("a");
-      enlace.download = `pizarra-${new Date().toISOString().slice(0, 10)}.png`;
-      enlace.href = dataUrl;
-      enlace.click();
+      const dataUrl = await capturarComoPng(pitchRef.current);
+      descargarDataUrl(dataUrl, `pizarra-${new Date().toISOString().slice(0, 10)}.png`);
     } catch {
       toast.error("No se ha podido generar la captura");
     } finally {
