@@ -19,6 +19,7 @@ import { useLiveQuery } from "dexie-react-hooks";
 import { toast } from "sonner";
 import { Trash2, Plus, Pencil } from "lucide-react";
 import { localDb, type LocalRivalPlantillaJugador } from "@/lib/db/local-db";
+import { cn } from "@/lib/utils";
 import {
   PLANTILLA_JUGADOR_FORM_DEFAULTS,
   plantillaJugadorSchema,
@@ -79,6 +80,28 @@ export function PlantillaRival({ rivalId }: { rivalId: string }) {
         ),
     [rivalId],
     [] as LocalRivalPlantillaJugador[],
+  );
+
+  // Categoría (destacado/débil) de cada jugador de la plantilla, para
+  // subrayarlo aquí igual que en el apartado de Jugadores destacados —
+  // así se ve de un vistazo sin tener que bajar a esa lista aparte.
+  const destacados = useLiveQuery(
+    () =>
+      localDb.rivales_jugadores_destacados
+        .where("rival_id")
+        .equals(rivalId)
+        .toArray(),
+    [rivalId],
+    [],
+  );
+  const categoriaPorPlantillaId = useMemo(
+    () =>
+      new Map(
+        destacados
+          .filter((d) => d.plantilla_id)
+          .map((d) => [d.plantilla_id as string, d.categoria]),
+      ),
+    [destacados],
   );
 
   const { jugadores, cuerpoTecnico, primerAno, segundoAno } = useMemo(() => {
@@ -336,6 +359,7 @@ export function PlantillaRival({ rivalId }: { rivalId: string }) {
               categoriaAnterior={j.categoria_temporada_anterior}
               clasificacionAnterior={j.clasificacion_temporada_anterior}
               notas={j.notas}
+              destacado={categoriaPorPlantillaId.get(j.id) ?? null}
               onEdit={() => abrirEditar(j)}
               onDelete={() => handleDelete(j.id)}
             />
@@ -398,6 +422,7 @@ function PlantillaJugadorRow({
   categoriaAnterior,
   clasificacionAnterior,
   notas,
+  destacado,
   onEdit,
   onDelete,
 }: {
@@ -408,6 +433,7 @@ function PlantillaJugadorRow({
   categoriaAnterior: string | null;
   clasificacionAnterior: string | null;
   notas: string | null;
+  destacado: "top" | "flojo" | null;
   onEdit: () => void;
   onDelete: () => void;
 }) {
@@ -418,9 +444,23 @@ function PlantillaJugadorRow({
   ].filter(Boolean);
 
   return (
-    <div className="flex items-start gap-3 rounded-md border p-3">
+    <div
+      className={cn(
+        "flex items-start gap-3 rounded-md border p-3",
+        destacado === "top" &&
+          "border-l-4 border-l-green-600 bg-green-50 dark:bg-green-950",
+        destacado === "flojo" &&
+          "border-l-4 border-l-red-600 bg-red-50 dark:bg-red-950",
+      )}
+    >
       <div className="min-w-0 flex-1">
-        <p className="truncate text-sm font-medium">
+        <p
+          className={cn(
+            "truncate text-sm font-medium",
+            destacado === "top" && "text-green-800 dark:text-green-200",
+            destacado === "flojo" && "text-red-800 dark:text-red-200",
+          )}
+        >
           {dorsal != null ? `${dorsal} · ` : ""}
           {nombre}
           {curso != null && (
