@@ -35,6 +35,12 @@ export type TipoAbp =
   | "falta_directa"
   | "saque_banda"
   | "penalti";
+export type JuegoAsociativoTipo = "tiro_exterior" | "centro_lateral" | "rechace";
+export type SuperficieGol =
+  | "pierna_derecha"
+  | "pierna_izquierda"
+  | "cabeza"
+  | "otro";
 export type CategoriaTarea =
   | "activacion"
   | "ataque_defensas"
@@ -616,6 +622,8 @@ export interface Database {
           cambio_grupo_id: string | null;
           nombre_libre: string | null;
           notas: string | null;
+          juego_asociativo_tipo: JuegoAsociativoTipo | null;
+          superficie_gol: SuperficieGol | null;
         };
         Insert: {
           id?: string;
@@ -633,6 +641,8 @@ export interface Database {
           cambio_grupo_id?: string | null;
           nombre_libre?: string | null;
           notas?: string | null;
+          juego_asociativo_tipo?: JuegoAsociativoTipo | null;
+          superficie_gol?: SuperficieGol | null;
         };
         Update: Partial<
           Database["public"]["Tables"]["eventos_partido"]["Insert"]

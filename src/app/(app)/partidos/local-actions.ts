@@ -20,7 +20,13 @@ import {
   toPartidoInsert,
   type PartidoFormValues,
 } from "@/lib/validations/partido";
-import type { TipoAbp, TipoEventoPartido, TipoGol } from "@/lib/types/database.types";
+import type {
+  TipoAbp,
+  TipoEventoPartido,
+  TipoGol,
+  JuegoAsociativoTipo,
+  SuperficieGol,
+} from "@/lib/types/database.types";
 
 type ActionResult = { error: string } | { success: true; id: string };
 type SimpleResult = { error: string } | { success: true };
@@ -468,6 +474,8 @@ export async function crearEventoLocal(
     posXCentro?: number | null;
     posYCentro?: number | null;
     notas?: string | null;
+    juegoAsociativoTipo?: JuegoAsociativoTipo | null;
+    superficieGol?: SuperficieGol | null;
   },
 ): Promise<EventoResult> {
   const id = crypto.randomUUID();
@@ -487,6 +495,8 @@ export async function crearEventoLocal(
     cambio_grupo_id: null,
     nombre_libre: null,
     notas: golDetalle?.notas ?? null,
+    juego_asociativo_tipo: golDetalle?.juegoAsociativoTipo ?? null,
+    superficie_gol: golDetalle?.superficieGol ?? null,
   };
 
   await localDb.eventos_partido.put(row);
@@ -552,6 +562,8 @@ export async function crearCambioLocal(
       cambio_grupo_id: grupoId,
       nombre_libre: nombreLibre,
       notas: null,
+      juego_asociativo_tipo: null,
+      superficie_gol: null,
     };
   }
 
