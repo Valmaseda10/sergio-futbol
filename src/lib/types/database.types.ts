@@ -41,6 +41,7 @@ export type SuperficieGol =
   | "pierna_izquierda"
   | "cabeza"
   | "otro";
+export type CategoriaNorma = "entrenamiento" | "partido" | "generales";
 export type CategoriaTarea =
   | "activacion"
   | "ataque_defensas"
@@ -1021,6 +1022,32 @@ export interface Database {
           created_at?: string;
         };
         Update: Partial<Database["public"]["Tables"]["notas"]["Insert"]>;
+        Relationships: [];
+      };
+      multas: {
+        Row: {
+          id: string;
+          jugador_id: string;
+          categoria: CategoriaNorma;
+          norma: string;
+          puntos: number;
+          fecha: string;
+          resuelta: boolean;
+          notas: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          jugador_id: string;
+          categoria: CategoriaNorma;
+          norma: string;
+          puntos: number;
+          fecha?: string;
+          resuelta?: boolean;
+          notas?: string | null;
+          created_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["multas"]["Insert"]>;
         Relationships: [];
       };
     };

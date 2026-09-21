@@ -3,13 +3,14 @@
 // Recordatorios del dashboard de Inicio: mismo patrón local-first (Dexie +
 // outbox) que el resto de la app.
 
-import { localDb, type LocalRecordatorio, type LocalNota } from "@/lib/db/local-db";
+import { localDb, type LocalRecordatorio, type LocalNota, type LocalMulta } from "@/lib/db/local-db";
 import { queueMutation } from "@/lib/db/sync";
 import {
   recordatorioSchema,
   type RecordatorioFormValues,
 } from "@/lib/validations/recordatorio";
 import { notaSchema, type NotaFormValues } from "@/lib/validations/nota";
+import { multaSchema, type MultaFormValues } from "@/lib/validations/norma";
 
 type ActionResult = { error: string } | { success: true; id: string };
 type SimpleResult = { error: string } | { success: true };
@@ -77,5 +78,56 @@ export async function crearNotaLocal(
 export async function eliminarNotaLocal(id: string): Promise<SimpleResult> {
   await localDb.notas.delete(id);
   await queueMutation("notas", "delete", id);
+  return { success: true };
+}
+
+export async function crearMultaLocal(
+  values: MultaFormValues,
+): Promise<ActionResult> {
+  const parsed = multaSchema.safeParse(values);
+  if (!parsed.success) {
+    return { error: parsed.error.issues[0]?.message ?? "Datos no válidos" };
+  }
+
+  const id = crypto.randomUUID();
+  const row: LocalMulta = {
+    id,
+    jugador_id: parsed.data.jugador_id,
+    categoria: parsed.data.categoria,
+    norma: parsed.data.norma,
+    puntos: parsed.data.puntos,
+    fecha: new Date().toISOString().slice(0, 10),
+    resuelta: false,
+    notas: parsed.data.notas || null,
+    created_at: new Date().toISOString(),
+  };
+
+  await localDb.multas.put(row);
+  await queueMutation("multas", "insert", id, row);
+
+  return { success: true, id };
+}
+
+export async function eliminarMultaLocal(id: string): Promise<SimpleResult> {
+  await localDb.multas.delete(id);
+  await queueMutation("multas", "delete", id);
+  return { success: true };
+}
+
+/** Marca como resueltas todas las multas pendientes de un jugador (castigo cumplido). */
+export async function resolverMultasJugadorLocal(
+  jugadorId: string,
+): Promise<SimpleResult> {
+  const pendientes = await localDb.multas
+    .where("jugador_id")
+    .equals(jugadorId)
+    .filter((m) => !m.resuelta)
+    .toArray();
+
+  for (const m of pendientes) {
+    await localDb.multas.update(m.id, { resuelta: true });
+    await queueMutation("multas", "update", m.id, { resuelta: true });
+  }
+
   return { success: true };
 }
