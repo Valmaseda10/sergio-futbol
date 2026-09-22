@@ -36,14 +36,16 @@ export function SesionPlayer({ clips }: { clips: ClipDeSesion[] }) {
         </p>
       </div>
 
-      <ClipPlayer
-        key={clip.id}
-        videoId={clip.youtubeId}
-        inicio={clip.inicio}
-        fin={clip.fin}
-        autoplay={indice > 0}
-        onFin={indice < clips.length - 1 ? siguiente : undefined}
-      />
+      <div className="w-full sm:w-1/2">
+        <ClipPlayer
+          key={clip.id}
+          videoId={clip.youtubeId}
+          inicio={clip.inicio}
+          fin={clip.fin}
+          autoplay={indice > 0}
+          onFin={indice < clips.length - 1 ? siguiente : undefined}
+        />
+      </div>
 
       <div className="flex gap-2">
         <Button
