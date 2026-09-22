@@ -184,13 +184,15 @@ export function VideoCard({
       </div>
 
       {esClipAcotado && youtubeId ? (
-        <ClipPlayer
-          videoId={youtubeId}
-          inicio={video.segundo_inicio as number}
-          fin={video.segundo_fin as number}
-        />
+        <div className="max-w-md">
+          <ClipPlayer
+            videoId={youtubeId}
+            inicio={video.segundo_inicio as number}
+            fin={video.segundo_fin as number}
+          />
+        </div>
       ) : embedUrl ? (
-        <div className="aspect-video w-full overflow-hidden rounded-md bg-black">
+        <div className="aspect-video w-full max-w-md overflow-hidden rounded-md bg-black">
           <iframe
             src={embedUrl}
             title={video.titulo}
