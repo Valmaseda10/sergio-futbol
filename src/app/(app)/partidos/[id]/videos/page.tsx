@@ -17,7 +17,12 @@ export default function VideosPartidoPage() {
     [id],
   );
   const videos = useLiveQuery(
-    () => localDb.videos.where("partido_id").equals(id).toArray(),
+    () =>
+      localDb.videos
+        .where("partido_id")
+        .equals(id)
+        .filter((v) => v.tipo === "partido")
+        .toArray(),
     [id],
     [],
   );
