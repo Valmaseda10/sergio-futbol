@@ -15,6 +15,8 @@ import {
   demarcacionDePosicion,
   posicionLabel,
 } from "@/lib/posiciones";
+import type { DestacadoJugador } from "@/lib/types/database.types";
+import { cn } from "@/lib/utils";
 
 interface JugadorListItem {
   id: string;
@@ -24,6 +26,7 @@ interface JugadorListItem {
   posicion: string | null;
   activo: boolean;
   foto_url: string | null;
+  destacado: DestacadoJugador | null;
 }
 
 export function JugadoresList({
@@ -141,7 +144,15 @@ export function JugadoresList({
                         apellidos={j.apellidos}
                       />
                       <div className="min-w-0 flex-1">
-                        <p className="truncate text-sm font-medium">
+                        <p
+                          className={cn(
+                            "truncate text-sm font-medium",
+                            j.destacado === "destacado" &&
+                              "text-green-800 dark:text-green-200",
+                            j.destacado === "debil" &&
+                              "text-red-800 dark:text-red-200",
+                          )}
+                        >
                           {j.nombre} {j.apellidos}
                         </p>
                         <p className="truncate text-xs text-muted-foreground">

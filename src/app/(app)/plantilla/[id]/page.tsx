@@ -21,6 +21,7 @@ import {
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { JugadorAvatar } from "@/components/plantilla/jugador-avatar";
 import { BajaReactivarButton } from "@/components/plantilla/baja-reactivar-button";
+import { DestacadoJugadorSelector } from "@/components/plantilla/destacado-jugador";
 import { ValoracionesJugador } from "@/components/plantilla/valoraciones-jugador";
 import { AsistenciaJugador } from "@/components/plantilla/asistencia-jugador";
 import { LesionesJugador } from "@/components/plantilla/lesiones-jugador";
@@ -28,6 +29,7 @@ import { VideosJugador } from "@/components/plantilla/videos-jugador";
 import { EventosJugador } from "@/components/plantilla/eventos-jugador";
 import { PdfWatermark } from "@/components/branding/pdf-watermark";
 import { posicionLabel } from "@/lib/posiciones";
+import { cn } from "@/lib/utils";
 
 function hoyISO() {
   const now = new Date();
@@ -166,7 +168,15 @@ export default function FichaJugadorPage() {
         />
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-2">
-            <h1 className="truncate text-xl font-semibold">
+            <h1
+              className={cn(
+                "truncate text-xl font-semibold",
+                jugador.destacado === "destacado" &&
+                  "text-green-800 dark:text-green-200",
+                jugador.destacado === "debil" &&
+                  "text-red-800 dark:text-red-200",
+              )}
+            >
               {nombreCompleto}
             </h1>
             {!jugador.activo && <Badge variant="outline">Inactivo</Badge>}
@@ -198,6 +208,12 @@ export default function FichaJugadorPage() {
           <Pencil className="size-4" />
         </Button>
       </div>
+
+      <DestacadoJugadorSelector
+        jugadorId={jugador.id}
+        destacado={jugador.destacado}
+      />
+
       <p className="hidden text-xs text-muted-foreground print:block">
         Ficha generada el{" "}
         {new Date(`${hoy}T00:00:00`).toLocaleDateString("es-ES", {

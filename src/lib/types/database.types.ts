@@ -5,6 +5,7 @@
 export type Rol = "admin" | "staff";
 export type TipoEstado = "entrenamiento" | "general";
 export type PiernaDominante = "izquierda" | "derecha" | "ambidiestro";
+export type DestacadoJugador = "destacado" | "debil";
 export type Competicion = "liga" | "amistoso" | "copa";
 export type FaseTemporada = "pretemporada" | "liga";
 export type IntervaloGol = "0-15" | "15-30" | "30-45" | "45-60" | "60+";
@@ -198,6 +199,7 @@ export interface Database {
           notas_medicas: string | null;
           fecha_alta: string;
           activo: boolean;
+          destacado: DestacadoJugador | null;
           created_at: string;
           updated_at: string;
         };
@@ -220,6 +222,7 @@ export interface Database {
           notas_medicas?: string | null;
           fecha_alta?: string;
           activo?: boolean;
+          destacado?: DestacadoJugador | null;
           created_at?: string;
           updated_at?: string;
         };

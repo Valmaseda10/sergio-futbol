@@ -6,6 +6,7 @@
 import { localDb, type LocalJugador, type LocalValoracionJugador } from "@/lib/db/local-db";
 import { queueMutation } from "@/lib/db/sync";
 import { createClient } from "@/lib/supabase/client";
+import type { DestacadoJugador } from "@/lib/types/database.types";
 import {
   jugadorSchema,
   toJugadorInsert,
@@ -57,6 +58,7 @@ export async function crearJugadorLocal(
     ...toJugadorInsert(parsed.data),
     foto_url: null,
     activo: true,
+    destacado: null,
     created_at: now,
     updated_at: now,
   };
@@ -116,6 +118,15 @@ export async function toggleActivoJugadorLocal(
 ): Promise<ActionResult> {
   await localDb.jugadores.update(id, { activo });
   await queueMutation("jugadores", "update", id, { activo });
+  return { success: true, id };
+}
+
+export async function actualizarDestacadoJugadorLocal(
+  id: string,
+  destacado: DestacadoJugador | null,
+): Promise<ActionResult> {
+  await localDb.jugadores.update(id, { destacado });
+  await queueMutation("jugadores", "update", id, { destacado });
   return { success: true, id };
 }
 
