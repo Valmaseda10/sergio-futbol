@@ -118,6 +118,35 @@ export async function crearClipArchivoLocal(params: {
   return { success: true, id };
 }
 
+export async function actualizarVideoLocal(
+  id: string,
+  patch: {
+    titulo: string;
+    fecha: string;
+    partido_id: string | null;
+    notas: string | null;
+    segundo_inicio?: number | null;
+    segundo_fin?: number | null;
+  },
+): Promise<SimpleResult> {
+  const titulo = patch.titulo.trim();
+  if (!titulo) {
+    return { error: "Introduce un título" };
+  }
+  if (
+    patch.segundo_inicio != null &&
+    patch.segundo_fin != null &&
+    patch.segundo_fin <= patch.segundo_inicio
+  ) {
+    return { error: "El segundo final debe ser mayor que el inicial" };
+  }
+
+  const update = { ...patch, titulo };
+  await localDb.videos.update(id, update);
+  await queueMutation("videos", "update", id, update);
+  return { success: true };
+}
+
 export async function eliminarVideoLocal(id: string): Promise<SimpleResult> {
   await localDb.videos.delete(id);
   await queueMutation("videos", "delete", id);
