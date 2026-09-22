@@ -279,11 +279,11 @@ export default function RecortarClipPage() {
         <p className="truncate text-sm text-muted-foreground">{video.titulo}</p>
       </div>
 
-      <div className="mx-auto aspect-video w-full max-w-2xl overflow-hidden rounded-md bg-black">
+      <div className="mx-auto aspect-video w-full max-w-4xl overflow-hidden rounded-md bg-black">
         <div ref={contenedorRef} className="size-full" />
       </div>
 
-      <div className="mx-auto w-full max-w-2xl space-y-3">
+      <div className="mx-auto w-full max-w-4xl space-y-3">
         <div className="flex items-center gap-3">
           <Button
             type="button"
