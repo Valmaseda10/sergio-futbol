@@ -3,15 +3,12 @@
 import { useState } from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { ClipPlayer } from "@/components/videos/clip-player";
+import { UploadedVideoPlayer } from "@/components/videos/uploaded-video-player";
 import { Button } from "@/components/ui/button";
 
-export interface ClipDeSesion {
-  id: string;
-  titulo: string;
-  youtubeId: string;
-  inicio: number;
-  fin: number;
-}
+export type ClipDeSesion =
+  | { id: string; titulo: string; origen: "youtube"; youtubeId: string; inicio: number; fin: number }
+  | { id: string; titulo: string; origen: "archivo"; storagePath: string };
 
 export function SesionPlayer({ clips }: { clips: ClipDeSesion[] }) {
   const [indice, setIndice] = useState(0);
@@ -37,14 +34,23 @@ export function SesionPlayer({ clips }: { clips: ClipDeSesion[] }) {
       </div>
 
       <div className="w-full sm:w-1/2">
-        <ClipPlayer
-          key={clip.id}
-          videoId={clip.youtubeId}
-          inicio={clip.inicio}
-          fin={clip.fin}
-          autoplay={indice > 0}
-          onFin={indice < clips.length - 1 ? siguiente : undefined}
-        />
+        {clip.origen === "youtube" ? (
+          <ClipPlayer
+            key={clip.id}
+            videoId={clip.youtubeId}
+            inicio={clip.inicio}
+            fin={clip.fin}
+            autoplay={indice > 0}
+            onFin={indice < clips.length - 1 ? siguiente : undefined}
+          />
+        ) : (
+          <UploadedVideoPlayer
+            key={clip.id}
+            storagePath={clip.storagePath}
+            autoplay={indice > 0}
+            onFin={indice < clips.length - 1 ? siguiente : undefined}
+          />
+        )}
       </div>
 
       <div className="flex gap-2">

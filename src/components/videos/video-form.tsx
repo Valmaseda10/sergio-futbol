@@ -6,8 +6,9 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useRouter } from "next/navigation";
 import { useLiveQuery } from "dexie-react-hooks";
 import { toast } from "sonner";
+import { Upload } from "lucide-react";
 import { videoSchema, type VideoFormValues } from "@/lib/validations/video";
-import { crearVideoLocal } from "@/app/(app)/videos/local-actions";
+import { crearVideoLocal, crearClipArchivoLocal } from "@/app/(app)/videos/local-actions";
 import { localDb } from "@/lib/db/local-db";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -59,6 +60,9 @@ export function VideoForm({
 }) {
   const router = useRouter();
   const [enviando, setEnviando] = useState(false);
+  const [origen, setOrigen] = useState<"enlace" | "archivo">("enlace");
+  const [archivo, setArchivo] = useState<File | null>(null);
+  const MAX_MB_ARCHIVO = 50;
 
   const {
     register,
@@ -125,8 +129,55 @@ export function VideoForm({
     router.push(values.tipo === "partido" ? "/videos/partidos" : "/videos/clips");
   }
 
+  async function onSubmitArchivo() {
+    if (!archivo) {
+      toast.error("Elige un archivo de vídeo");
+      return;
+    }
+    if (archivo.size > MAX_MB_ARCHIVO * 1024 * 1024) {
+      toast.error(
+        `El archivo pesa demasiado (máx. ${MAX_MB_ARCHIVO} MB) — esto es solo para clips cortos`,
+      );
+      return;
+    }
+    const titulo = watch("titulo");
+    if (!titulo.trim()) {
+      toast.error("Introduce un título");
+      return;
+    }
+
+    setEnviando(true);
+    const result = await crearClipArchivoLocal({
+      titulo,
+      fecha: watch("fecha"),
+      partidoId: watch("partido_id") || null,
+      notas: watch("notas") || null,
+      archivo,
+    });
+    setEnviando(false);
+
+    if ("error" in result) {
+      toast.error(result.error);
+      return;
+    }
+
+    toast.success("Vídeo subido");
+    router.push("/videos/clips");
+  }
+
+  function handleFormSubmit(e: React.FormEvent<HTMLFormElement>) {
+    if (origen === "archivo") {
+      e.preventDefault();
+      void onSubmitArchivo();
+    } else {
+      void handleSubmit(onSubmit)(e);
+    }
+  }
+
+  const tipoActual = watch("tipo");
+
   return (
-    <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+    <form onSubmit={handleFormSubmit} className="space-y-4">
       <Card>
         <CardContent className="space-y-4 pt-6">
           <div className="space-y-2">
@@ -143,17 +194,57 @@ export function VideoForm({
             )}
           </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="url">Enlace (YouTube, Drive...)</Label>
-            <Input
-              id="url"
-              placeholder="https://..."
-              {...register("url")}
-            />
-            {errors.url && (
-              <p className="text-sm text-destructive">{errors.url.message}</p>
-            )}
-          </div>
+          {tipoActual === "clip" && (
+            <div className="flex gap-2">
+              <Button
+                type="button"
+                variant={origen === "enlace" ? "default" : "outline"}
+                size="sm"
+                className="flex-1"
+                onClick={() => setOrigen("enlace")}
+              >
+                Enlace
+              </Button>
+              <Button
+                type="button"
+                variant={origen === "archivo" ? "default" : "outline"}
+                size="sm"
+                className="flex-1"
+                onClick={() => setOrigen("archivo")}
+              >
+                <Upload className="size-3.5" />
+                Subir archivo
+              </Button>
+            </div>
+          )}
+
+          {origen === "archivo" && tipoActual === "clip" ? (
+            <div className="space-y-2">
+              <Label htmlFor="archivo">Vídeo desde tu ordenador</Label>
+              <Input
+                id="archivo"
+                type="file"
+                accept="video/*"
+                onChange={(e) => setArchivo(e.target.files?.[0] ?? null)}
+              />
+              <p className="text-xs text-muted-foreground">
+                Solo para clips cortos — máx. {MAX_MB_ARCHIVO} MB.
+                {archivo && ` Elegido: ${archivo.name} (${(archivo.size / 1024 / 1024).toFixed(1)} MB)`}
+              </p>
+            </div>
+          ) : (
+            <div className="space-y-2">
+              <Label htmlFor="url">Enlace (YouTube, Drive...)</Label>
+              <Input
+                id="url"
+                placeholder="https://..."
+                {...register("url")}
+              />
+              {errors.url && (
+                <p className="text-sm text-destructive">{errors.url.message}</p>
+              )}
+            </div>
+          )}
 
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
@@ -162,7 +253,13 @@ export function VideoForm({
                 control={control}
                 name="tipo"
                 render={({ field }) => (
-                  <Select value={field.value} onValueChange={field.onChange}>
+                  <Select
+                    value={field.value}
+                    onValueChange={(v) => {
+                      field.onChange(v);
+                      if (v === "partido") setOrigen("enlace");
+                    }}
+                  >
                     <SelectTrigger id="tipo" className="w-full">
                       <SelectValue>
                         {(value) => TIPO_LABEL[value as string] ?? value}
@@ -280,7 +377,11 @@ export function VideoForm({
       </Card>
 
       <Button type="submit" disabled={enviando} className="w-full">
-        {enviando ? "Guardando..." : "Guardar vídeo"}
+        {enviando
+          ? origen === "archivo"
+            ? "Subiendo..."
+            : "Guardando..."
+          : "Guardar vídeo"}
       </Button>
     </form>
   );

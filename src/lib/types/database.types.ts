@@ -917,6 +917,7 @@ export interface Database {
           evento_id: string | null;
           segundo_inicio: number | null;
           segundo_fin: number | null;
+          storage_path: string | null;
         };
         Insert: {
           id?: string;
@@ -930,6 +931,7 @@ export interface Database {
           evento_id?: string | null;
           segundo_inicio?: number | null;
           segundo_fin?: number | null;
+          storage_path?: string | null;
         };
         Update: Partial<Database["public"]["Tables"]["videos"]["Insert"]>;
         Relationships: [];

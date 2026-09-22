@@ -51,5 +51,6 @@ export function toVideoInsert(values: VideoFormValues) {
     segundo_fin: values.segundo_fin ? Number(values.segundo_fin) : null,
     fecha: values.fecha,
     notas: values.notas || null,
+    storage_path: null,
   };
 }

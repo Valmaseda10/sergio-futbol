@@ -8,6 +8,7 @@ import { ExternalLink, Trash2, Clapperboard, Scissors, Share2 } from "lucide-rea
 import { eliminarVideoLocal } from "@/app/(app)/videos/local-actions";
 import { getYoutubeEmbedUrl, getYoutubeVideoId, getYoutubeShareUrl } from "@/lib/youtube";
 import { ClipPlayer } from "@/components/videos/clip-player";
+import { UploadedVideoPlayer } from "@/components/videos/uploaded-video-player";
 import { localDb } from "@/lib/db/local-db";
 import { Button } from "@/components/ui/button";
 import {
@@ -32,6 +33,7 @@ interface VideoCardData {
   evento_id: string | null;
   segundo_inicio: number | null;
   segundo_fin: number | null;
+  storage_path: string | null;
 }
 
 const TIPO_EVENTO_LABEL: Record<string, string> = {
@@ -130,6 +132,9 @@ export function VideoCard({
           )}
         </div>
         <div className="flex shrink-0 items-center gap-1">
+          {video.storage_path && (
+            <span className="text-xs text-muted-foreground">Archivo</span>
+          )}
           {esYoutube && (
             <Button
               variant="ghost"
@@ -183,7 +188,11 @@ export function VideoCard({
         </div>
       </div>
 
-      {esClipAcotado && youtubeId ? (
+      {video.storage_path ? (
+        <div className="w-full sm:w-2/3">
+          <UploadedVideoPlayer storagePath={video.storage_path} />
+        </div>
+      ) : esClipAcotado && youtubeId ? (
         <div className="w-full sm:w-2/3">
           <ClipPlayer
             videoId={youtubeId}

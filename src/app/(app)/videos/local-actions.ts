@@ -7,6 +7,7 @@ import {
   type LocalVideoSesionClip,
 } from "@/lib/db/local-db";
 import { queueMutation } from "@/lib/db/sync";
+import { subirArchivoPrivado, extensionDeArchivo } from "@/lib/storage";
 import {
   videoSchema,
   toVideoInsert,
@@ -58,8 +59,56 @@ export async function crearClipDesdeVideoLocal(params: {
     evento_id: null,
     segundo_inicio: params.segundoInicio,
     segundo_fin: params.segundoFin,
+    storage_path: null,
     fecha: origen.fecha,
     notas: null,
+    created_at: new Date().toISOString(),
+  };
+
+  await localDb.videos.put(row);
+  await queueMutation("videos", "insert", id, row);
+
+  return { success: true, id };
+}
+
+// Clip subido como archivo propio (bucket "adjuntos") en vez de enlazado de
+// YouTube. Solo pensado para clips cortos: el plan gratuito de Supabase
+// Storage es limitado, así que esto se usa aparte de crearVideoLocal (que
+// exige una URL válida) en vez de forzar una URL falsa para pasar el schema.
+export async function crearClipArchivoLocal(params: {
+  titulo: string;
+  fecha: string;
+  partidoId: string | null;
+  notas: string | null;
+  archivo: File;
+}): Promise<ActionResult> {
+  if (!params.titulo.trim()) {
+    return { error: "Introduce un título" };
+  }
+
+  const id = crypto.randomUUID();
+  const path = `clips/${id}.${extensionDeArchivo(params.archivo)}`;
+
+  try {
+    await subirArchivoPrivado(path, params.archivo);
+  } catch (e) {
+    return {
+      error: e instanceof Error ? e.message : "No se ha podido subir el vídeo",
+    };
+  }
+
+  const row: LocalVideo = {
+    id,
+    titulo: params.titulo.trim(),
+    url: "",
+    tipo: "clip",
+    partido_id: params.partidoId,
+    evento_id: null,
+    segundo_inicio: null,
+    segundo_fin: null,
+    storage_path: path,
+    fecha: params.fecha,
+    notas: params.notas,
     created_at: new Date().toISOString(),
   };
 

@@ -61,14 +61,19 @@ export default function VerSesionPage() {
   const clips: ClipDeSesion[] = useMemo(
     () =>
       filas
-        .map((f) => {
+        .map((f): ClipDeSesion | null => {
           const v = videosMap.get(f.video_id);
-          if (!v || v.segundo_inicio == null || v.segundo_fin == null) return null;
+          if (!v) return null;
+          if (v.storage_path) {
+            return { id: v.id, titulo: v.titulo, origen: "archivo", storagePath: v.storage_path };
+          }
+          if (v.segundo_inicio == null || v.segundo_fin == null) return null;
           const youtubeId = getYoutubeVideoId(v.url);
           if (!youtubeId) return null;
           return {
             id: v.id,
             titulo: v.titulo,
+            origen: "youtube",
             youtubeId,
             inicio: v.segundo_inicio,
             fin: v.segundo_fin,
