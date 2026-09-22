@@ -421,7 +421,13 @@ export default function RecortarClipPage() {
                 </p>
                 <Select value={sesionElegidaId} onValueChange={(v) => setSesionElegidaId(v ?? "")}>
                   <SelectTrigger className="w-full">
-                    <SelectValue placeholder="Elige una sesión" />
+                    <SelectValue placeholder="Elige una sesión">
+                      {(value) => {
+                        if (value === SESION_NUEVA) return "+ Nueva sesión";
+                        const s = sesiones.find((s) => s.id === value);
+                        return s ? s.titulo : "Elige una sesión";
+                      }}
+                    </SelectValue>
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value={SESION_NUEVA}>+ Nueva sesión</SelectItem>
