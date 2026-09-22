@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useLiveQuery } from "dexie-react-hooks";
 import { toast } from "sonner";
-import { ChevronLeft, Film, Pause, Play, Scissors, SlidersHorizontal } from "lucide-react";
+import { ChevronLeft, Film, Flag, Pause, Play, Scissors, SlidersHorizontal } from "lucide-react";
 import { localDb } from "@/lib/db/local-db";
 import { getYoutubeVideoId, formatearDuracion } from "@/lib/youtube";
 import { cargarYoutubeIframeApi } from "@/lib/youtube-player";
@@ -40,6 +40,7 @@ export default function RecortarClipPage() {
   const contenedorRef = useRef<HTMLDivElement>(null);
   const playerRef = useRef<YTPlayerInstance | null>(null);
   const previsualizacionRef = useRef<number | null>(null);
+  const nombreInputRef = useRef<HTMLInputElement>(null);
   const [playerListo, setPlayerListo] = useState(false);
   const [duracion, setDuracion] = useState(0);
   const [actual, setActual] = useState(0);
@@ -147,6 +148,15 @@ export default function RecortarClipPage() {
   }
   function cambiarFin(segundos: number) {
     setFin(Math.min(duracion || segundos, Math.round(segundos)));
+  }
+
+  function marcarInicioAqui() {
+    cambiarInicio(actual);
+  }
+
+  function marcarFinAqui() {
+    cambiarFin(actual);
+    nombreInputRef.current?.focus();
   }
 
   async function guardarClip() {
@@ -304,6 +314,27 @@ export default function RecortarClipPage() {
           </span>
         </div>
 
+        <div className="grid grid-cols-2 gap-3">
+          <Button
+            type="button"
+            variant="outline"
+            disabled={!playerListo}
+            onClick={marcarInicioAqui}
+          >
+            <Flag className="size-4" />
+            Iniciar clip aquí
+          </Button>
+          <Button
+            type="button"
+            variant="outline"
+            disabled={!playerListo}
+            onClick={marcarFinAqui}
+          >
+            <Flag className="size-4" />
+            Finalizar clip aquí
+          </Button>
+        </div>
+
         {playerListo && duracion > 0 && (
           <RecorteTimeline
             duracion={duracion}
@@ -377,6 +408,7 @@ export default function RecortarClipPage() {
               <Label htmlFor="nombreClip">Nombre del clip</Label>
               <Input
                 id="nombreClip"
+                ref={nombreInputRef}
                 placeholder="Ej: Gol de Sergio en el 34'"
                 value={nombreClip}
                 onChange={(e) => setNombreClip(e.target.value)}
