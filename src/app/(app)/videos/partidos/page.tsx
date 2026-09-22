@@ -3,10 +3,9 @@
 import Link from "next/link";
 import { useMemo } from "react";
 import { useLiveQuery } from "dexie-react-hooks";
-import { ChevronLeft, Plus } from "lucide-react";
+import { ChevronLeft, ChevronRight, Plus } from "lucide-react";
 import { localDb } from "@/lib/db/local-db";
 import { Button } from "@/components/ui/button";
-import { VideoCard } from "@/components/videos/video-card";
 
 export default function VideosPartidosPage() {
   const videos = useLiveQuery(
@@ -53,16 +52,30 @@ export default function VideosPartidosPage() {
           Todavía no hay vídeos de partidos.
         </p>
       ) : (
-        <div className="space-y-3">
-          {ordenados.map((v) => (
-            <VideoCard
-              key={v.id}
-              video={v}
-              rivalAsociado={
-                v.partido_id ? rivalPorPartido.get(v.partido_id) : undefined
-              }
-            />
-          ))}
+        <div className="divide-y rounded-md border">
+          {ordenados.map((v) => {
+            const rival = v.partido_id ? rivalPorPartido.get(v.partido_id) : undefined;
+            return (
+              <Link
+                key={v.id}
+                href={v.partido_id ? `/partidos/${v.partido_id}/videos` : "/videos/partidos"}
+                className="flex items-center gap-3 p-3 hover:bg-muted/50"
+              >
+                <div className="min-w-0 flex-1">
+                  <p className="truncate text-sm font-medium">{v.titulo}</p>
+                  <p className="truncate text-xs text-muted-foreground">
+                    {new Date(`${v.fecha}T00:00:00`).toLocaleDateString("es-ES", {
+                      day: "2-digit",
+                      month: "short",
+                      year: "numeric",
+                    })}
+                    {rival ? ` · vs ${rival}` : ""}
+                  </p>
+                </div>
+                <ChevronRight className="size-4 shrink-0 text-muted-foreground" />
+              </Link>
+            );
+          })}
         </div>
       )}
     </div>
