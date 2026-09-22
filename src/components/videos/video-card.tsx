@@ -184,7 +184,7 @@ export function VideoCard({
       </div>
 
       {esClipAcotado && youtubeId ? (
-        <div className="w-full sm:w-1/2">
+        <div className="w-full sm:w-2/3">
           <ClipPlayer
             videoId={youtubeId}
             inicio={video.segundo_inicio as number}
