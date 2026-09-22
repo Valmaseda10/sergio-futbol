@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useMemo } from "react";
 import { useLiveQuery } from "dexie-react-hooks";
-import { ChevronLeft, ChevronRight, Plus } from "lucide-react";
+import { ChevronLeft, ChevronRight, Folder, Plus } from "lucide-react";
 import { localDb } from "@/lib/db/local-db";
 import { Button } from "@/components/ui/button";
 
@@ -15,15 +15,34 @@ export default function VideosClipsPage() {
   );
   const partidos = useLiveQuery(() => localDb.partidos.toArray(), [], []);
 
-  const rivalPorPartido = useMemo(
-    () => new Map(partidos.map((p) => [p.id, p.rival])),
+  const partidosPorId = useMemo(
+    () => new Map(partidos.map((p) => [p.id, p])),
     [partidos],
   );
 
-  const ordenados = useMemo(
-    () => videos.slice().sort((a, b) => b.fecha.localeCompare(a.fecha)),
-    [videos],
-  );
+  const { carpetas, sinPartido } = useMemo(() => {
+    const porPartido = new Map<string, number>();
+    let sinPartido = 0;
+    for (const v of videos) {
+      if (v.partido_id) {
+        porPartido.set(v.partido_id, (porPartido.get(v.partido_id) ?? 0) + 1);
+      } else {
+        sinPartido++;
+      }
+    }
+    const carpetas = Array.from(porPartido.entries())
+      .map(([partidoId, count]) => {
+        const p = partidosPorId.get(partidoId);
+        return {
+          partidoId,
+          rival: p?.rival ?? "Partido eliminado",
+          fecha: p?.fecha ?? "",
+          count,
+        };
+      })
+      .sort((a, b) => b.fecha.localeCompare(a.fecha));
+    return { carpetas, sinPartido };
+  }, [videos, partidosPorId]);
 
   return (
     <div className="space-y-4">
@@ -47,36 +66,52 @@ export default function VideosClipsPage() {
         </Button>
       </div>
 
-      {ordenados.length === 0 ? (
+      {videos.length === 0 ? (
         <p className="py-4 text-center text-sm text-muted-foreground">
           Todavía no hay clips. Puedes crear uno recortando un vídeo de
           partido, o añadirlo manualmente.
         </p>
       ) : (
         <div className="divide-y rounded-md border">
-          {ordenados.map((v) => {
-            const rival = v.partido_id ? rivalPorPartido.get(v.partido_id) : undefined;
-            return (
-              <Link
-                key={v.id}
-                href={`/videos/clips/${v.id}`}
-                className="flex items-center gap-3 p-3 hover:bg-muted/50"
-              >
-                <div className="min-w-0 flex-1">
-                  <p className="truncate text-sm font-medium">{v.titulo}</p>
-                  <p className="truncate text-xs text-muted-foreground">
-                    {new Date(`${v.fecha}T00:00:00`).toLocaleDateString("es-ES", {
+          {carpetas.map((c) => (
+            <Link
+              key={c.partidoId}
+              href={`/videos/clips/partido/${c.partidoId}`}
+              className="flex items-center gap-3 p-3 hover:bg-muted/50"
+            >
+              <Folder className="size-4 shrink-0 text-muted-foreground" />
+              <div className="min-w-0 flex-1">
+                <p className="truncate text-sm font-medium">vs {c.rival}</p>
+                <p className="truncate text-xs text-muted-foreground">
+                  {c.fecha &&
+                    `${new Date(`${c.fecha}T00:00:00`).toLocaleDateString("es-ES", {
                       day: "2-digit",
                       month: "short",
                       year: "numeric",
-                    })}
-                    {rival ? ` · vs ${rival}` : ""}
-                  </p>
-                </div>
-                <ChevronRight className="size-4 shrink-0 text-muted-foreground" />
-              </Link>
-            );
-          })}
+                    })} · `}
+                  {c.count} {c.count === 1 ? "clip" : "clips"}
+                </p>
+              </div>
+              <ChevronRight className="size-4 shrink-0 text-muted-foreground" />
+            </Link>
+          ))}
+          {sinPartido > 0 && (
+            <Link
+              href="/videos/clips/sin-partido"
+              className="flex items-center gap-3 p-3 hover:bg-muted/50"
+            >
+              <Folder className="size-4 shrink-0 text-muted-foreground" />
+              <div className="min-w-0 flex-1">
+                <p className="truncate text-sm font-medium">
+                  Sin partido asociado
+                </p>
+                <p className="truncate text-xs text-muted-foreground">
+                  {sinPartido} {sinPartido === 1 ? "clip" : "clips"}
+                </p>
+              </div>
+              <ChevronRight className="size-4 shrink-0 text-muted-foreground" />
+            </Link>
+          )}
         </div>
       )}
     </div>
