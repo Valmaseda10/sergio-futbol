@@ -15,6 +15,9 @@ import {
   demarcacionDePosicion,
   posicionLabel,
 } from "@/lib/posiciones";
+import { cn } from "@/lib/utils";
+
+export type ClasificacionJugador = "destacado" | "debil";
 
 interface JugadorListItem {
   id: string;
@@ -28,8 +31,10 @@ interface JugadorListItem {
 
 export function JugadoresList({
   jugadores,
+  clasificacionPorJugador,
 }: {
   jugadores: JugadorListItem[];
+  clasificacionPorJugador?: Map<string, ClasificacionJugador>;
 }) {
   const [search, setSearch] = useState("");
   const [mostrarInactivos, setMostrarInactivos] = useState(false);
@@ -129,7 +134,9 @@ export function JugadoresList({
                 {grupo.label}
               </h2>
               <ul className="divide-y rounded-md border">
-                {grupo.jugadores.map((j) => (
+                {grupo.jugadores.map((j) => {
+                  const clasificacion = clasificacionPorJugador?.get(j.id);
+                  return (
                   <li key={j.id}>
                     <Link
                       href={`/plantilla/${j.id}`}
@@ -141,7 +148,15 @@ export function JugadoresList({
                         apellidos={j.apellidos}
                       />
                       <div className="min-w-0 flex-1">
-                        <p className="truncate text-sm font-medium">
+                        <p
+                          className={cn(
+                            "truncate text-sm font-medium",
+                            clasificacion === "destacado" &&
+                              "text-pitch underline decoration-pitch underline-offset-2",
+                            clasificacion === "debil" &&
+                              "text-destructive underline decoration-destructive underline-offset-2",
+                          )}
+                        >
                           {j.nombre} {j.apellidos}
                         </p>
                         <p className="truncate text-xs text-muted-foreground">
@@ -157,7 +172,8 @@ export function JugadoresList({
                       <ChevronRight className="size-4 text-muted-foreground" />
                     </Link>
                   </li>
-                ))}
+                  );
+                })}
               </ul>
             </section>
           ))}
