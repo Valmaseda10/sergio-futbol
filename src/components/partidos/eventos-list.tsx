@@ -1,11 +1,14 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useLiveQuery } from "dexie-react-hooks";
 import { toast } from "sonner";
-import { Trash2, ArrowUpCircle, ArrowDownCircle, MapPin } from "lucide-react";
+import { Trash2, ArrowUpCircle, ArrowDownCircle, MapPin, PlayCircle } from "lucide-react";
 import { crearEventoLocal, eliminarEventoLocal } from "@/app/(app)/partidos/local-actions";
 import { localDb, type LocalEventoPartido } from "@/lib/db/local-db";
+import { getYoutubeVideoId } from "@/lib/youtube";
+import { ClipPlayer } from "@/components/videos/clip-player";
+import { UploadedVideoPlayer } from "@/components/videos/uploaded-video-player";
 import type {
   TipoAbp,
   TipoEventoPartido,
@@ -126,6 +129,19 @@ export function EventosList({
     [partidoId],
     [],
   );
+  const videos = useLiveQuery(
+    () => localDb.videos.where("partido_id").equals(partidoId).toArray(),
+    [partidoId],
+    [],
+  );
+  const clipPorEvento = useMemo(() => {
+    const mapa = new Map<string, (typeof videos)[number]>();
+    for (const v of videos) {
+      if (v.evento_id) mapa.set(v.evento_id, v);
+    }
+    return mapa;
+  }, [videos]);
+  const [reproduciendoEventoId, setReproduciendoEventoId] = useState<string | null>(null);
   const [jugadorId, setJugadorId] = useState("");
   const [tipo, setTipo] = useState<TipoEventoPartido>("gol");
   const [minuto, setMinuto] = useState("");
@@ -542,59 +558,120 @@ export function EventosList({
               const jugador = evento.jugador_id
                 ? jugadoresPorId.get(evento.jugador_id)
                 : null;
+              const clip = clipPorEvento.get(evento.id);
+              const clipAbierto = reproduciendoEventoId === evento.id;
               return (
-                <li
-                  key={evento.id}
-                  onClick={() => setEventoVer(evento)}
-                  className="flex cursor-pointer items-center gap-3 p-3 text-sm hover:bg-muted/50"
-                >
-                  <span className="w-9 shrink-0 font-heading tabular-nums text-muted-foreground">
-                    {evento.minuto != null ? `${evento.minuto}'` : "—"}
-                  </span>
-                  <IndicadorTipo tipo={evento.tipo} />
-                  <span className="min-w-0 flex-1 truncate">
-                    <span className="font-medium">
-                      {TIPO_LABEL[evento.tipo]}
-                    </span>{" "}
-                    — {jugador ? nombreMostrado(jugador) : evento.tipo === "gol" ? "Rival" : "?"}
-                    {evento.tipo_gol && (
-                      <span className="text-muted-foreground">
-                        {" "}
-                        · {TIPO_GOL_LABEL[evento.tipo_gol]}
-                        {evento.abp_tipo && ` (${TIPO_ABP_LABEL[evento.abp_tipo]})`}
-                      </span>
-                    )}
-                    {evento.juego_asociativo_tipo && (
-                      <span className="text-muted-foreground">
-                        {" "}
-                        · {TIPO_JUEGO_ASOCIATIVO_LABEL[evento.juego_asociativo_tipo]}
-                      </span>
-                    )}
-                    {evento.superficie_gol && (
-                      <span className="text-muted-foreground">
-                        {" "}
-                        · {SUPERFICIE_GOL_LABEL[evento.superficie_gol]}
-                      </span>
-                    )}
-                    {evento.notas && (
-                      <span className="text-muted-foreground italic">
-                        {" "}
-                        · {evento.notas}
-                      </span>
-                    )}
-                  </span>
-                  {evento.pos_x != null && evento.pos_y != null && (
-                    <MapPin className="size-3.5 shrink-0 text-muted-foreground" />
-                  )}
-                  <Button
-                    variant="ghost"
-                    size="icon-sm"
-                    disabled={borrando === evento.id}
-                    onClick={(e) => handleDelete(e, evento.id)}
-                    aria-label="Eliminar evento"
+                <li key={evento.id} className="text-sm">
+                  <div
+                    onClick={() => setEventoVer(evento)}
+                    className="flex cursor-pointer items-center gap-3 p-3 hover:bg-muted/50"
                   >
-                    <Trash2 className="size-4" />
-                  </Button>
+                    <span className="w-9 shrink-0 font-heading tabular-nums text-muted-foreground">
+                      {evento.minuto != null ? `${evento.minuto}'` : "—"}
+                    </span>
+                    <IndicadorTipo tipo={evento.tipo} />
+                    <span className="min-w-0 flex-1 truncate">
+                      <span className="font-medium">
+                        {TIPO_LABEL[evento.tipo]}
+                      </span>{" "}
+                      — {jugador ? nombreMostrado(jugador) : evento.tipo === "gol" ? "Rival" : "?"}
+                      {evento.tipo_gol && (
+                        <span className="text-muted-foreground">
+                          {" "}
+                          · {TIPO_GOL_LABEL[evento.tipo_gol]}
+                          {evento.abp_tipo && ` (${TIPO_ABP_LABEL[evento.abp_tipo]})`}
+                        </span>
+                      )}
+                      {evento.juego_asociativo_tipo && (
+                        <span className="text-muted-foreground">
+                          {" "}
+                          · {TIPO_JUEGO_ASOCIATIVO_LABEL[evento.juego_asociativo_tipo]}
+                        </span>
+                      )}
+                      {evento.superficie_gol && (
+                        <span className="text-muted-foreground">
+                          {" "}
+                          · {SUPERFICIE_GOL_LABEL[evento.superficie_gol]}
+                        </span>
+                      )}
+                      {evento.notas && (
+                        <span className="text-muted-foreground italic">
+                          {" "}
+                          · {evento.notas}
+                        </span>
+                      )}
+                    </span>
+                    {evento.pos_x != null && evento.pos_y != null && (
+                      <MapPin className="size-3.5 shrink-0 text-muted-foreground" />
+                    )}
+                    {clip && (
+                      <Button
+                        variant="ghost"
+                        size="icon-sm"
+                        aria-label={clipAbierto ? "Ocultar clip" : "Reproducir clip"}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setReproduciendoEventoId(clipAbierto ? null : evento.id);
+                        }}
+                      >
+                        <PlayCircle
+                          className={cn(
+                            "size-4",
+                            clipAbierto ? "text-primary" : "text-muted-foreground",
+                          )}
+                        />
+                      </Button>
+                    )}
+                    <Button
+                      variant="ghost"
+                      size="icon-sm"
+                      disabled={borrando === evento.id}
+                      onClick={(e) => handleDelete(e, evento.id)}
+                      aria-label="Eliminar evento"
+                    >
+                      <Trash2 className="size-4" />
+                    </Button>
+                  </div>
+                  {clipAbierto && clip && (
+                    <div
+                      className="border-t p-3"
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      <div className="w-full sm:w-1/2">
+                        {clip.storage_path ? (
+                          <UploadedVideoPlayer storagePath={clip.storage_path} autoplay />
+                        ) : (
+                          (() => {
+                            const youtubeId = getYoutubeVideoId(clip.url);
+                            if (
+                              youtubeId &&
+                              clip.segundo_inicio != null &&
+                              clip.segundo_fin != null
+                            ) {
+                              return (
+                                <ClipPlayer
+                                  videoId={youtubeId}
+                                  inicio={clip.segundo_inicio}
+                                  fin={clip.segundo_fin}
+                                  autoplay
+                                />
+                              );
+                            }
+                            return (
+                              <a
+                                href={clip.url}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="text-sm text-primary underline underline-offset-4"
+                              >
+                                Ver clip
+                              </a>
+                            );
+                          })()
+                        )}
+                      </div>
+                    </div>
+                  )}
                 </li>
               );
             })}
