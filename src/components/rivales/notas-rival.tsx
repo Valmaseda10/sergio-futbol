@@ -67,13 +67,13 @@ export function NotasRival({
       <CardHeader>
         <CardTitle className="text-base">Notas del rival</CardTitle>
       </CardHeader>
-      <CardContent className="grid gap-4 sm:grid-cols-2">
+      <CardContent className="grid gap-3 sm:grid-cols-2">
         {FILAS.map(({ key, label }) => (
           <div key={key} className="space-y-1">
             <p className="text-xs font-medium text-muted-foreground">{label}</p>
             <textarea
               ref={ajustarAltura}
-              rows={4}
+              rows={2}
               value={valores[key]}
               onChange={(e) => {
                 setValores((prev) => ({ ...prev, [key]: e.target.value }));
@@ -81,7 +81,7 @@ export function NotasRival({
               }}
               onBlur={(e) => handleBlur(key, e.target.value)}
               placeholder="Añade un comentario..."
-              className="field-sizing-content w-full resize-none overflow-hidden rounded-md border bg-transparent p-1.5 text-sm outline-none placeholder:text-muted-foreground hover:bg-muted/50 focus:bg-muted/50 print:hidden"
+              className="field-sizing-content w-full resize-none overflow-hidden rounded-md border bg-transparent p-1 text-sm outline-none placeholder:text-muted-foreground hover:bg-muted/50 focus:bg-muted/50 print:hidden"
             />
             <p className="hidden text-sm whitespace-pre-wrap print:block">
               {valores[key]}
