@@ -42,6 +42,8 @@ export default function EditarRivalPage() {
           sistema_juego: rival.sistema_juego ?? "",
           fase_ofensiva: rival.fase_ofensiva ?? "",
           fase_defensiva: rival.fase_defensiva ?? "",
+          transicion_ofensiva: rival.transicion_ofensiva ?? "",
+          transicion_defensiva: rival.transicion_defensiva ?? "",
           abp: rival.abp ?? "",
           notas: rival.notas ?? "",
           fotoSignedUrl,

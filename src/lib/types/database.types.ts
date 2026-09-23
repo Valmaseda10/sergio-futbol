@@ -752,6 +752,8 @@ export interface Database {
           sistema_juego: string | null;
           fase_ofensiva: string | null;
           fase_defensiva: string | null;
+          transicion_ofensiva: string | null;
+          transicion_defensiva: string | null;
           abp: string | null;
           notas: string | null;
           color_camiseta: string | null;
@@ -767,6 +769,8 @@ export interface Database {
           sistema_juego?: string | null;
           fase_ofensiva?: string | null;
           fase_defensiva?: string | null;
+          transicion_ofensiva?: string | null;
+          transicion_defensiva?: string | null;
           abp?: string | null;
           notas?: string | null;
           color_camiseta?: string | null;

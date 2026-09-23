@@ -237,7 +237,15 @@ export async function actualizarGolesIntervaloRivalLocal(
 export async function actualizarNotasRivalLocal(
   id: string,
   patch: Partial<
-    Pick<LocalRivalScouting, "fase_ofensiva" | "fase_defensiva" | "abp" | "notas">
+    Pick<
+      LocalRivalScouting,
+      | "fase_ofensiva"
+      | "fase_defensiva"
+      | "transicion_ofensiva"
+      | "transicion_defensiva"
+      | "abp"
+      | "notas"
+    >
   >,
 ): Promise<SimpleResult> {
   await localDb.rivales_scouting.update(id, patch);

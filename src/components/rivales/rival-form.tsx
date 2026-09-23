@@ -136,6 +136,24 @@ export function RivalForm({
           </div>
 
           <div className="space-y-2">
+            <Label htmlFor="transicion_ofensiva">TRANSICIÓN OFENSIVA</Label>
+            <Textarea
+              id="transicion_ofensiva"
+              rows={3}
+              {...register("transicion_ofensiva")}
+            />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="transicion_defensiva">TRANSICIÓN DEFENSIVA</Label>
+            <Textarea
+              id="transicion_defensiva"
+              rows={3}
+              {...register("transicion_defensiva")}
+            />
+          </div>
+
+          <div className="space-y-2">
             <Label htmlFor="abp">ABP (acciones a balón parado)</Label>
             <Textarea id="abp" rows={3} {...register("abp")} />
           </div>

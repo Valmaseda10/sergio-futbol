@@ -6,6 +6,8 @@ export const rivalScoutingSchema = z.object({
   sistema_juego: z.string().trim(),
   fase_ofensiva: z.string().trim(),
   fase_defensiva: z.string().trim(),
+  transicion_ofensiva: z.string().trim(),
+  transicion_defensiva: z.string().trim(),
   abp: z.string().trim(),
   notas: z.string().trim(),
 });
@@ -17,6 +19,8 @@ export const RIVAL_SCOUTING_FORM_DEFAULTS: RivalScoutingFormValues = {
   sistema_juego: "",
   fase_ofensiva: "",
   fase_defensiva: "",
+  transicion_ofensiva: "",
+  transicion_defensiva: "",
   abp: "",
   notas: "",
 };
@@ -27,6 +31,8 @@ export function toRivalScoutingInsert(values: RivalScoutingFormValues) {
     sistema_juego: values.sistema_juego || null,
     fase_ofensiva: values.fase_ofensiva || null,
     fase_defensiva: values.fase_defensiva || null,
+    transicion_ofensiva: values.transicion_ofensiva || null,
+    transicion_defensiva: values.transicion_defensiva || null,
     abp: values.abp || null,
     notas: values.notas || null,
   };

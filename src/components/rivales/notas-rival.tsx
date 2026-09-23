@@ -12,6 +12,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 const FILAS = [
   { key: "fase_ofensiva" as const, label: "Fase ofensiva" },
   { key: "fase_defensiva" as const, label: "Fase defensiva" },
+  { key: "transicion_ofensiva" as const, label: "TRANSICIÓN OFENSIVA" },
+  { key: "transicion_defensiva" as const, label: "TRANSICIÓN DEFENSIVA" },
   { key: "abp" as const, label: "ABP" },
   { key: "notas" as const, label: "Notas" },
 ];
@@ -22,18 +24,24 @@ export function NotasRival({
   rivalId,
   faseOfensiva,
   faseDefensiva,
+  transicionOfensiva,
+  transicionDefensiva,
   abp,
   notas,
 }: {
   rivalId: string;
   faseOfensiva: string | null;
   faseDefensiva: string | null;
+  transicionOfensiva: string | null;
+  transicionDefensiva: string | null;
   abp: string | null;
   notas: string | null;
 }) {
   const [valores, setValores] = useState<Record<ClaveNota, string>>({
     fase_ofensiva: faseOfensiva ?? "",
     fase_defensiva: faseDefensiva ?? "",
+    transicion_ofensiva: transicionOfensiva ?? "",
+    transicion_defensiva: transicionDefensiva ?? "",
     abp: abp ?? "",
     notas: notas ?? "",
   });

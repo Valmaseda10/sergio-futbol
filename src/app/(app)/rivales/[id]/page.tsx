@@ -116,6 +116,8 @@ export default function FichaRivalPage() {
             rivalId={rival.id}
             faseOfensiva={rival.fase_ofensiva}
             faseDefensiva={rival.fase_defensiva}
+            transicionOfensiva={rival.transicion_ofensiva}
+            transicionDefensiva={rival.transicion_defensiva}
             abp={rival.abp}
             notas={rival.notas}
           />
