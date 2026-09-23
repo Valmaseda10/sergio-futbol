@@ -28,6 +28,7 @@ interface Ficha {
   left: number;
   numero: number | null;
   nombre: string | null;
+  suplente: boolean;
 }
 
 const MARGEN = 6;
@@ -75,6 +76,7 @@ export function AlineacionRival({ rivalId }: { rivalId: string }) {
         left: f.pos_x,
         numero: f.dorsal,
         nombre: f.nombre,
+        suplente: f.suplente,
       };
     });
     numeroContador.current = guardadas.reduce(
@@ -98,7 +100,12 @@ export function AlineacionRival({ rivalId }: { rivalId: string }) {
     numeroContador.current += 1;
     setFichas((prev) => ({
       ...prev,
-      [id]: { ...siguientePosicionSpawn(), numero: numeroContador.current, nombre: null },
+      [id]: {
+        ...siguientePosicionSpawn(),
+        numero: numeroContador.current,
+        nombre: null,
+        suplente: false,
+      },
     }));
     setSeleccionada(id);
   }
@@ -152,6 +159,7 @@ export function AlineacionRival({ rivalId }: { rivalId: string }) {
         left: hueco.left,
         numero: i + 1,
         nombre: null,
+        suplente: false,
       };
     });
     numeroContador.current = formacion.huecos.length;
@@ -168,6 +176,7 @@ export function AlineacionRival({ rivalId }: { rivalId: string }) {
         dorsal: f.numero,
         posX: f.left,
         posY: f.top,
+        suplente: f.suplente,
       })),
     );
     setGuardando(false);
@@ -183,7 +192,19 @@ export function AlineacionRival({ rivalId }: { rivalId: string }) {
   const fichaSeleccionada = seleccionada ? fichas[seleccionada] : null;
   const listaVista = editando
     ? Object.entries(fichas)
-    : guardadas.map((f) => [f.id, { top: f.pos_y, left: f.pos_x, numero: f.dorsal, nombre: f.nombre }] as const);
+    : guardadas.map(
+        (f) =>
+          [
+            f.id,
+            {
+              top: f.pos_y,
+              left: f.pos_x,
+              numero: f.dorsal,
+              nombre: f.nombre,
+              suplente: f.suplente,
+            },
+          ] as const,
+      );
 
   return (
     <Card>
@@ -246,13 +267,26 @@ export function AlineacionRival({ rivalId }: { rivalId: string }) {
               <span
                 className={`flex size-7 items-center justify-center rounded-full border-2 font-heading text-[11px] tabular-nums text-white shadow ${
                   seleccionada === id ? "border-gold" : "border-white"
-                } bg-red-500`}
+                } ${f.suplente ? "bg-red-500" : "bg-blue-600"}`}
               >
                 {f.numero ?? "?"}
               </span>
             </button>
           ))}
         </div>
+
+        {listaVista.length > 0 && (
+          <div className="flex items-center justify-center gap-4 text-[10px] text-muted-foreground">
+            <span className="flex items-center gap-1">
+              <span className="size-2.5 rounded-full bg-blue-600" />
+              Titular
+            </span>
+            <span className="flex items-center gap-1">
+              <span className="size-2.5 rounded-full bg-red-500" />
+              Salió del banquillo
+            </span>
+          </div>
+        )}
 
         {editando && (
           <>
@@ -262,45 +296,70 @@ export function AlineacionRival({ rivalId }: { rivalId: string }) {
             </Button>
 
             {fichaSeleccionada && seleccionada && (
-              <div className="flex items-end gap-2 rounded-md border p-2">
-                <div className="w-16 space-y-1">
-                  <label className="text-[10px] text-muted-foreground">Dorsal</label>
-                  <Input
-                    type="number"
-                    min={1}
-                    max={99}
-                    value={fichaSeleccionada.numero ?? ""}
-                    onChange={(e) =>
-                      setFichas((prev) => ({
-                        ...prev,
-                        [seleccionada]: {
-                          ...prev[seleccionada],
-                          numero: e.target.value ? Number(e.target.value) : null,
-                        },
-                      }))
-                    }
-                  />
-                </div>
-                <div className="flex-1 space-y-1">
-                  <label className="text-[10px] text-muted-foreground">Nombre (opcional)</label>
-                  <Input
-                    value={fichaSeleccionada.nombre ?? ""}
-                    onChange={(e) =>
-                      setFichas((prev) => ({
-                        ...prev,
-                        [seleccionada]: { ...prev[seleccionada], nombre: e.target.value || null },
-                      }))
-                    }
-                  />
+              <div className="space-y-2 rounded-md border p-2">
+                <div className="flex items-end gap-2">
+                  <div className="w-16 space-y-1">
+                    <label className="text-[10px] text-muted-foreground">Dorsal</label>
+                    <Input
+                      type="number"
+                      min={1}
+                      max={99}
+                      value={fichaSeleccionada.numero ?? ""}
+                      onChange={(e) =>
+                        setFichas((prev) => ({
+                          ...prev,
+                          [seleccionada]: {
+                            ...prev[seleccionada],
+                            numero: e.target.value ? Number(e.target.value) : null,
+                          },
+                        }))
+                      }
+                    />
+                  </div>
+                  <div className="flex-1 space-y-1">
+                    <label className="text-[10px] text-muted-foreground">Nombre (opcional)</label>
+                    <Input
+                      value={fichaSeleccionada.nombre ?? ""}
+                      onChange={(e) =>
+                        setFichas((prev) => ({
+                          ...prev,
+                          [seleccionada]: { ...prev[seleccionada], nombre: e.target.value || null },
+                        }))
+                      }
+                    />
+                  </div>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon-sm"
+                    aria-label="Quitar ficha"
+                    onClick={() => quitarFicha(seleccionada)}
+                  >
+                    <X className="size-4" />
+                  </Button>
                 </div>
                 <Button
                   type="button"
-                  variant="ghost"
-                  size="icon-sm"
-                  aria-label="Quitar ficha"
-                  onClick={() => quitarFicha(seleccionada)}
+                  variant="outline"
+                  size="sm"
+                  className={
+                    fichaSeleccionada.suplente
+                      ? "w-full border-red-500 bg-red-500/10 text-red-600 hover:bg-red-500/20 hover:text-red-600"
+                      : "w-full"
+                  }
+                  onClick={() =>
+                    setFichas((prev) => ({
+                      ...prev,
+                      [seleccionada]: {
+                        ...prev[seleccionada],
+                        suplente: !prev[seleccionada].suplente,
+                      },
+                    }))
+                  }
                 >
-                  <X className="size-4" />
+                  {fichaSeleccionada.suplente
+                    ? "Salió del banquillo"
+                    : "Marcar como suplente que entró"}
                 </Button>
               </div>
             )}

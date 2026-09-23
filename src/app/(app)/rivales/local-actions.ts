@@ -349,6 +349,7 @@ export interface FichaAlineacionGuardar {
   dorsal: number | null;
   posX: number;
   posY: number;
+  suplente: boolean;
 }
 
 /** Alineación que puso el rival contra nosotros: como son fichas sueltas sin
@@ -381,6 +382,7 @@ export async function guardarAlineacionRivalLocal(
       pos_x: f.posX,
       pos_y: f.posY,
       orden: i,
+      suplente: f.suplente,
     };
     await localDb.rivales_alineacion.put(row);
     await queueMutation("rivales_alineacion", "insert", filaId, row);

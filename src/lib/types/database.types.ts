@@ -852,6 +852,7 @@ export interface Database {
           pos_x: number;
           pos_y: number;
           orden: number | null;
+          suplente: boolean;
         };
         Insert: {
           id?: string;
@@ -862,6 +863,7 @@ export interface Database {
           pos_x: number;
           pos_y: number;
           orden?: number | null;
+          suplente?: boolean;
         };
         Update: Partial<
           Database["public"]["Tables"]["rivales_alineacion"]["Insert"]
