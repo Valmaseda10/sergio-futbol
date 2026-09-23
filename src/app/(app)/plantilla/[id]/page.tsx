@@ -33,7 +33,7 @@ import { LesionesJugador } from "@/components/plantilla/lesiones-jugador";
 import { VideosJugador } from "@/components/plantilla/videos-jugador";
 import { EventosJugador } from "@/components/plantilla/eventos-jugador";
 import { PdfWatermark } from "@/components/branding/pdf-watermark";
-import { posicionLabel } from "@/lib/posiciones";
+import { posicionLabel, demarcacionDePosicion } from "@/lib/posiciones";
 import { cn } from "@/lib/utils";
 
 type TipoEventoConDetalle =
@@ -42,14 +42,18 @@ type TipoEventoConDetalle =
   | "tarjeta_amarilla"
   | "tarjeta_roja";
 
-const DIALOGO_PARTIDOS_TITULO: Record<
-  "convocado" | "desconvocado" | TipoEventoConDetalle,
-  string
-> = {
+type CategoriaDialogoPartidos =
+  | "convocado"
+  | "desconvocado"
+  | "gol_encajado"
+  | TipoEventoConDetalle;
+
+const DIALOGO_PARTIDOS_TITULO: Record<CategoriaDialogoPartidos, string> = {
   convocado: "Partidos convocado",
   desconvocado: "Partidos no convocado",
   gol: "Partidos con gol",
   asistencia: "Partidos con asistencia",
+  gol_encajado: "Partidos con gol encajado",
   tarjeta_amarilla: "Partidos con tarjeta amarilla",
   tarjeta_roja: "Partidos con tarjeta roja",
 };
@@ -290,9 +294,49 @@ export default function FichaJugadorPage() {
     };
   }, [jugador, partidos, eventos, temporada, faseSel]);
 
-  const [dialogoPartidos, setDialogoPartidos] = useState<
-    "convocado" | "desconvocado" | TipoEventoConDetalle | null
-  >(null);
+  const esPortero = demarcacionDePosicion(jugador?.posicion ?? null) === "portero";
+
+  // Para porteros, en qué partidos encajó algún gol mientras estaba en el
+  // campo — reutiliza calcularStatsJugadores partido a partido (ya sabe
+  // calcular la ventana dentro/fuera) en vez de reimplementar esa lógica.
+  const partidosConGolEncajado = useMemo(() => {
+    if (!jugador || !esPortero) return [];
+
+    const partidoIdsTemporada = new Set(
+      partidos
+        .filter(
+          (p) =>
+            enTemporada(p.fecha, temporada) &&
+            (faseSel === "todas" || p.fase === faseSel),
+        )
+        .map((p) => p.id),
+    );
+    const alineacionesJugador = alineaciones.filter(
+      (a) => a.jugador_id === jugador.id && partidoIdsTemporada.has(a.partido_id),
+    );
+    const partidosPorId = new Map(partidos.map((p) => [p.id, p]));
+
+    return alineacionesJugador
+      .map((a) => {
+        const eventosPartido = eventos.filter((e) => e.partido_id === a.partido_id);
+        const stats = calcularStatsJugadores(
+          [jugador],
+          eventosPartido,
+          [],
+          [a],
+          [],
+          [],
+          hoy,
+        )[0];
+        return stats.golesEncajados > 0 ? partidosPorId.get(a.partido_id) : null;
+      })
+      .filter((p): p is LocalPartido => !!p)
+      .sort((a, b) => b.fecha.localeCompare(a.fecha));
+  }, [jugador, esPortero, partidos, alineaciones, eventos, temporada, faseSel, hoy]);
+
+  const [dialogoPartidos, setDialogoPartidos] = useState<CategoriaDialogoPartidos | null>(
+    null,
+  );
 
   if (jugador === undefined) {
     return <p className="text-sm text-muted-foreground">Cargando...</p>;
@@ -401,11 +445,19 @@ export default function FichaJugadorPage() {
               ))}
             </div>
             <div className="grid grid-cols-5 gap-y-3">
-              <TileEstadisticaClicable
-                label="Goles"
-                valor={statsTemporada.goles}
-                onClick={() => setDialogoPartidos("gol")}
-              />
+              {esPortero ? (
+                <TileEstadisticaClicable
+                  label="G. encajados"
+                  valor={statsTemporada.golesEncajados}
+                  onClick={() => setDialogoPartidos("gol_encajado")}
+                />
+              ) : (
+                <TileEstadisticaClicable
+                  label="Goles"
+                  valor={statsTemporada.goles}
+                  onClick={() => setDialogoPartidos("gol")}
+                />
+              )}
               <TileEstadisticaClicable
                 label="Asist."
                 valor={statsTemporada.asistencias}
@@ -567,9 +619,11 @@ export default function FichaJugadorPage() {
               ? partidosConvocado
               : dialogoPartidos === "desconvocado"
                 ? partidosDesconvocado
-                : dialogoPartidos
-                  ? partidosPorEvento[dialogoPartidos]
-                  : []
+                : dialogoPartidos === "gol_encajado"
+                  ? partidosConGolEncajado
+                  : dialogoPartidos
+                    ? partidosPorEvento[dialogoPartidos]
+                    : []
             ).map((p) => (
               <li key={p.id}>
                 <Link
