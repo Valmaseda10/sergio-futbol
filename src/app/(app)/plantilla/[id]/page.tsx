@@ -36,6 +36,24 @@ import { PdfWatermark } from "@/components/branding/pdf-watermark";
 import { posicionLabel } from "@/lib/posiciones";
 import { cn } from "@/lib/utils";
 
+type TipoEventoConDetalle =
+  | "gol"
+  | "asistencia"
+  | "tarjeta_amarilla"
+  | "tarjeta_roja";
+
+const DIALOGO_PARTIDOS_TITULO: Record<
+  "convocado" | "desconvocado" | TipoEventoConDetalle,
+  string
+> = {
+  convocado: "Partidos convocado",
+  desconvocado: "Partidos no convocado",
+  gol: "Partidos con gol",
+  asistencia: "Partidos con asistencia",
+  tarjeta_amarilla: "Partidos con tarjeta amarilla",
+  tarjeta_roja: "Partidos con tarjeta roja",
+};
+
 function hoyISO() {
   const now = new Date();
   return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
@@ -47,6 +65,35 @@ function formatearFechaCorta(fecha: string) {
     month: "short",
     year: "numeric",
   });
+}
+
+function TileEstadisticaClicable({
+  label,
+  valor,
+  onClick,
+}: {
+  label: string;
+  valor: number;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      className="print:pointer-events-none"
+      disabled={valor === 0}
+      onClick={onClick}
+    >
+      <p
+        className={cn(
+          "font-heading text-xl tabular-nums",
+          valor > 0 && "underline underline-offset-4",
+        )}
+      >
+        {valor}
+      </p>
+      <p className="text-xs text-muted-foreground">{label}</p>
+    </button>
+  );
 }
 
 function formatearFecha(fecha: string | null) {
@@ -199,8 +246,52 @@ export default function FichaJugadorPage() {
     };
   }, [jugador, partidos, convocatorias, temporada, faseSel]);
 
+  // Partidos en los que ha marcado gol/asistencia/tarjeta (dentro del mismo
+  // filtro de temporada/fase), para el detalle de esas estadísticas — un
+  // partido cuenta una sola vez aunque tenga varios goles en él.
+  const partidosPorEvento = useMemo(() => {
+    const vacio: Record<TipoEventoConDetalle, LocalPartido[]> = {
+      gol: [],
+      asistencia: [],
+      tarjeta_amarilla: [],
+      tarjeta_roja: [],
+    };
+    if (!jugador) return vacio;
+
+    const partidoIdsTemporada = new Set(
+      partidos
+        .filter(
+          (p) =>
+            enTemporada(p.fecha, temporada) &&
+            (faseSel === "todas" || p.fase === faseSel),
+        )
+        .map((p) => p.id),
+    );
+    const eventosJugador = eventos.filter(
+      (e) => e.jugador_id === jugador.id && partidoIdsTemporada.has(e.partido_id),
+    );
+    const partidosPorId = new Map(partidos.map((p) => [p.id, p]));
+
+    function partidosDe(tipo: TipoEventoConDetalle) {
+      const ids = new Set(
+        eventosJugador.filter((e) => e.tipo === tipo).map((e) => e.partido_id),
+      );
+      return Array.from(ids)
+        .map((id) => partidosPorId.get(id))
+        .filter((p): p is LocalPartido => !!p)
+        .sort((a, b) => b.fecha.localeCompare(a.fecha));
+    }
+
+    return {
+      gol: partidosDe("gol"),
+      asistencia: partidosDe("asistencia"),
+      tarjeta_amarilla: partidosDe("tarjeta_amarilla"),
+      tarjeta_roja: partidosDe("tarjeta_roja"),
+    };
+  }, [jugador, partidos, eventos, temporada, faseSel]);
+
   const [dialogoPartidos, setDialogoPartidos] = useState<
-    "convocado" | "desconvocado" | null
+    "convocado" | "desconvocado" | TipoEventoConDetalle | null
   >(null);
 
   if (jugador === undefined) {
@@ -288,39 +379,16 @@ export default function FichaJugadorPage() {
           </CardHeader>
           <CardContent className="space-y-3 text-center">
             <div className="grid grid-cols-5 gap-y-3">
-              <button
-                type="button"
-                className="print:pointer-events-none"
-                disabled={partidosConvocado.length === 0}
+              <TileEstadisticaClicable
+                label="Convocados"
+                valor={statsTemporada.convocatorias}
                 onClick={() => setDialogoPartidos("convocado")}
-              >
-                <p
-                  className={cn(
-                    "font-heading text-xl tabular-nums",
-                    partidosConvocado.length > 0 && "underline underline-offset-4",
-                  )}
-                >
-                  {statsTemporada.convocatorias}
-                </p>
-                <p className="text-xs text-muted-foreground">Convocados</p>
-              </button>
-              <button
-                type="button"
-                className="print:pointer-events-none"
-                disabled={partidosDesconvocado.length === 0}
+              />
+              <TileEstadisticaClicable
+                label="Desconvocados"
+                valor={partidosDesconvocado.length}
                 onClick={() => setDialogoPartidos("desconvocado")}
-              >
-                <p
-                  className={cn(
-                    "font-heading text-xl tabular-nums",
-                    partidosDesconvocado.length > 0 &&
-                      "underline underline-offset-4",
-                  )}
-                >
-                  {partidosDesconvocado.length}
-                </p>
-                <p className="text-xs text-muted-foreground">Desconvocados</p>
-              </button>
+              />
               {[
                 { label: "Titular", valor: statsTemporada.titularidades },
                 { label: "Suplente", valor: statsTemporada.suplencias },
@@ -333,21 +401,32 @@ export default function FichaJugadorPage() {
               ))}
             </div>
             <div className="grid grid-cols-5 gap-y-3">
-              {[
-                { label: "Goles", valor: statsTemporada.goles },
-                { label: "Asist.", valor: statsTemporada.asistencias },
-                {
-                  label: "G+A",
-                  valor: statsTemporada.goles + statsTemporada.asistencias,
-                },
-                { label: "T. amarillas", valor: statsTemporada.tarjetasAmarillas },
-                { label: "T. rojas", valor: statsTemporada.tarjetasRojas },
-              ].map((d) => (
-                <div key={d.label}>
-                  <p className="font-heading text-xl tabular-nums">{d.valor}</p>
-                  <p className="text-xs text-muted-foreground">{d.label}</p>
-                </div>
-              ))}
+              <TileEstadisticaClicable
+                label="Goles"
+                valor={statsTemporada.goles}
+                onClick={() => setDialogoPartidos("gol")}
+              />
+              <TileEstadisticaClicable
+                label="Asist."
+                valor={statsTemporada.asistencias}
+                onClick={() => setDialogoPartidos("asistencia")}
+              />
+              <div>
+                <p className="font-heading text-xl tabular-nums">
+                  {statsTemporada.goles + statsTemporada.asistencias}
+                </p>
+                <p className="text-xs text-muted-foreground">G+A</p>
+              </div>
+              <TileEstadisticaClicable
+                label="T. amarillas"
+                valor={statsTemporada.tarjetasAmarillas}
+                onClick={() => setDialogoPartidos("tarjeta_amarilla")}
+              />
+              <TileEstadisticaClicable
+                label="T. rojas"
+                valor={statsTemporada.tarjetasRojas}
+                onClick={() => setDialogoPartidos("tarjeta_roja")}
+              />
             </div>
           </CardContent>
         </Card>
@@ -480,15 +559,17 @@ export default function FichaJugadorPage() {
         <DialogContent>
           <DialogHeader>
             <DialogTitle>
-              {dialogoPartidos === "convocado"
-                ? "Partidos convocado"
-                : "Partidos no convocado"}
+              {dialogoPartidos && DIALOGO_PARTIDOS_TITULO[dialogoPartidos]}
             </DialogTitle>
           </DialogHeader>
           <ul className="max-h-[60vh] divide-y overflow-y-auto">
             {(dialogoPartidos === "convocado"
               ? partidosConvocado
-              : partidosDesconvocado
+              : dialogoPartidos === "desconvocado"
+                ? partidosDesconvocado
+                : dialogoPartidos
+                  ? partidosPorEvento[dialogoPartidos]
+                  : []
             ).map((p) => (
               <li key={p.id}>
                 <Link
