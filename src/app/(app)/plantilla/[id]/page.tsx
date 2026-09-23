@@ -254,23 +254,34 @@ export default function FichaJugadorPage() {
               </SelectContent>
             </Select>
           </CardHeader>
-          <CardContent className="grid grid-cols-4 gap-y-3 text-center">
-            {[
-              { label: "Convoc.", valor: statsTemporada.convocatorias },
-              { label: "Desconv.", valor: desconvocatorias },
-              { label: "Titular", valor: statsTemporada.titularidades },
-              { label: "Suplente", valor: statsTemporada.suplencias },
-              { label: "Minutos", valor: statsTemporada.minutosAprox },
-              { label: "Goles", valor: statsTemporada.goles },
-              { label: "Asist.", valor: statsTemporada.asistencias },
-              { label: "T. amarillas", valor: statsTemporada.tarjetasAmarillas },
-              { label: "T. rojas", valor: statsTemporada.tarjetasRojas },
-            ].map((d) => (
-              <div key={d.label}>
-                <p className="font-heading text-xl tabular-nums">{d.valor}</p>
-                <p className="text-xs text-muted-foreground">{d.label}</p>
-              </div>
-            ))}
+          <CardContent className="space-y-3 text-center">
+            <div className="grid grid-cols-5 gap-y-3">
+              {[
+                { label: "Convoc.", valor: statsTemporada.convocatorias },
+                { label: "Desconv.", valor: desconvocatorias },
+                { label: "Titular", valor: statsTemporada.titularidades },
+                { label: "Suplente", valor: statsTemporada.suplencias },
+                { label: "Minutos", valor: statsTemporada.minutosAprox },
+              ].map((d) => (
+                <div key={d.label}>
+                  <p className="font-heading text-xl tabular-nums">{d.valor}</p>
+                  <p className="text-xs text-muted-foreground">{d.label}</p>
+                </div>
+              ))}
+            </div>
+            <div className="grid grid-cols-4 gap-y-3">
+              {[
+                { label: "Goles", valor: statsTemporada.goles },
+                { label: "Asist.", valor: statsTemporada.asistencias },
+                { label: "T. amarillas", valor: statsTemporada.tarjetasAmarillas },
+                { label: "T. rojas", valor: statsTemporada.tarjetasRojas },
+              ].map((d) => (
+                <div key={d.label}>
+                  <p className="font-heading text-xl tabular-nums">{d.valor}</p>
+                  <p className="text-xs text-muted-foreground">{d.label}</p>
+                </div>
+              ))}
+            </div>
           </CardContent>
         </Card>
       )}
