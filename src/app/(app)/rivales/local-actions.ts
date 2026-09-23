@@ -11,6 +11,7 @@ import {
   type LocalRivalPlantillaJugador,
   type LocalRivalAlineacion,
   type LocalRivalGolIntervalo,
+  type LocalRivalDocumento,
 } from "@/lib/db/local-db";
 import type { IntervaloGol } from "@/lib/types/database.types";
 import { queueMutation } from "@/lib/db/sync";
@@ -131,6 +132,10 @@ export async function eliminarRivalLocal(id: string): Promise<SimpleResult> {
     .where("rival_id")
     .equals(id)
     .toArray();
+  const documentos = await localDb.rivales_documentos
+    .where("rival_id")
+    .equals(id)
+    .toArray();
 
   await localDb.transaction(
     "rw",
@@ -140,6 +145,7 @@ export async function eliminarRivalLocal(id: string): Promise<SimpleResult> {
       localDb.rivales_plantilla,
       localDb.rivales_alineacion,
       localDb.rivales_goles_intervalo,
+      localDb.rivales_documentos,
     ],
     async () => {
       await localDb.rivales_scouting.delete(id);
@@ -150,6 +156,9 @@ export async function eliminarRivalLocal(id: string): Promise<SimpleResult> {
       await localDb.rivales_alineacion.bulkDelete(alineacion.map((a) => a.id));
       await localDb.rivales_goles_intervalo.bulkDelete(
         golesIntervalo.map((g) => g.id),
+      );
+      await localDb.rivales_documentos.bulkDelete(
+        documentos.map((d) => d.id),
       );
     },
   );
@@ -171,6 +180,9 @@ export async function eliminarRivalLocal(id: string): Promise<SimpleResult> {
   }
   for (const g of golesIntervalo) {
     await queueMutation("rivales_goles_intervalo", "delete", g.id);
+  }
+  for (const d of documentos) {
+    await queueMutation("rivales_documentos", "delete", d.id);
   }
   await queueMutation("rivales_scouting", "delete", id);
 
@@ -366,5 +378,56 @@ export async function guardarAlineacionRivalLocal(
     await queueMutation("rivales_alineacion", "insert", filaId, row);
   }
 
+  return { success: true };
+}
+
+type DocumentoResult =
+  | { error: string }
+  | { success: true; documento: LocalRivalDocumento };
+
+// Hojas de partido u otros documentos apuntados a mano contra este rival:
+// a diferencia de la foto (un único campo en rivales_scouting), puede haber
+// varios por rival (ida/vuelta, distintas competiciones), así que van en su
+// propia tabla en vez de sobrescribir un campo fijo.
+export async function subirDocumentoRivalLocal(
+  rivalId: string,
+  nombre: string,
+  archivo: File,
+): Promise<DocumentoResult> {
+  const nombreLimpio = nombre.trim();
+  if (!nombreLimpio) {
+    return { error: "Introduce un nombre para el documento" };
+  }
+
+  const id = crypto.randomUUID();
+  const path = `scouting-docs/${rivalId}/${id}.${extensionDeArchivo(archivo)}`;
+
+  try {
+    await subirArchivoPrivado(path, archivo);
+  } catch (e) {
+    return {
+      error: e instanceof Error ? e.message : "No se ha podido subir el archivo",
+    };
+  }
+
+  const row: LocalRivalDocumento = {
+    id,
+    rival_id: rivalId,
+    nombre: nombreLimpio,
+    archivo_url: path,
+    created_at: new Date().toISOString(),
+  };
+
+  await localDb.rivales_documentos.put(row);
+  await queueMutation("rivales_documentos", "insert", id, row);
+
+  return { success: true, documento: row };
+}
+
+export async function eliminarDocumentoRivalLocal(
+  id: string,
+): Promise<SimpleResult> {
+  await localDb.rivales_documentos.delete(id);
+  await queueMutation("rivales_documentos", "delete", id);
   return { success: true };
 }

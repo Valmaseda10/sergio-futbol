@@ -16,6 +16,7 @@ import { GolesIntervaloRival } from "@/components/rivales/goles-intervalo-rival"
 import { EquipacionRival } from "@/components/rivales/equipacion-rival";
 import { AlineacionRival } from "@/components/rivales/alineacion-rival";
 import { NotasRival } from "@/components/rivales/notas-rival";
+import { DocumentosRival } from "@/components/rivales/documentos-rival";
 import { PdfWatermark } from "@/components/branding/pdf-watermark";
 
 function Seccion({ titulo, texto }: { titulo: string; texto: string | null }) {
@@ -140,6 +141,15 @@ export default function FichaRivalPage() {
         </CardHeader>
         <CardContent>
           <JugadoresDestacados rivalId={rival.id} />
+        </CardContent>
+      </Card>
+
+      <Card className="print:hidden">
+        <CardHeader>
+          <CardTitle className="text-base">Hojas de partido</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <DocumentosRival rivalId={rival.id} />
         </CardContent>
       </Card>
 

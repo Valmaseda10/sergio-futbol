@@ -34,6 +34,7 @@ export type LocalRivalJugadorDestacado =
 export type LocalRivalPlantillaJugador = Tables["rivales_plantilla"]["Row"];
 export type LocalRivalAlineacion = Tables["rivales_alineacion"]["Row"];
 export type LocalRivalGolIntervalo = Tables["rivales_goles_intervalo"]["Row"];
+export type LocalRivalDocumento = Tables["rivales_documentos"]["Row"];
 export type LocalHorarioEntrenamiento = Tables["horario_entrenamiento"]["Row"];
 export type LocalRecordatorio = Tables["recordatorios"]["Row"];
 export type LocalNota = Tables["notas"]["Row"];
@@ -67,6 +68,7 @@ export const SYNCED_TABLES = [
   "rivales_plantilla",
   "rivales_alineacion",
   "rivales_goles_intervalo",
+  "rivales_documentos",
   "horario_entrenamiento",
   "recordatorios",
   "notas",
@@ -132,6 +134,7 @@ class LocalDb extends Dexie {
   rivales_plantilla!: Table<LocalRivalPlantillaJugador, string>;
   rivales_alineacion!: Table<LocalRivalAlineacion, string>;
   rivales_goles_intervalo!: Table<LocalRivalGolIntervalo, string>;
+  rivales_documentos!: Table<LocalRivalDocumento, string>;
   horario_entrenamiento!: Table<LocalHorarioEntrenamiento, string>;
   recordatorios!: Table<LocalRecordatorio, string>;
   notas!: Table<LocalNota, string>;
@@ -235,6 +238,10 @@ class LocalDb extends Dexie {
 
     this.version(17).stores({
       multas: "id, jugador_id, resuelta, fecha",
+    });
+
+    this.version(18).stores({
+      rivales_documentos: "id, rival_id",
     });
   }
 }

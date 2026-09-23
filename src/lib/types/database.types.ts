@@ -884,6 +884,26 @@ export interface Database {
         >;
         Relationships: [];
       };
+      rivales_documentos: {
+        Row: {
+          id: string;
+          rival_id: string;
+          nombre: string;
+          archivo_url: string;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          rival_id: string;
+          nombre: string;
+          archivo_url: string;
+          created_at?: string;
+        };
+        Update: Partial<
+          Database["public"]["Tables"]["rivales_documentos"]["Insert"]
+        >;
+        Relationships: [];
+      };
       solicitudes_acceso: {
         Row: {
           id: string;
