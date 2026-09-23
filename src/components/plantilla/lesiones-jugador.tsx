@@ -29,10 +29,36 @@ export function LesionesJugador({ jugadorId }: { jugadorId: string }) {
     [lesiones],
   );
 
+  const lesionIds = useMemo(() => lesiones.map((l) => l.id), [lesiones]);
+
+  // Días de readaptación de todas sus lesiones juntas (no solo la más
+  // reciente): días distintos, no filas — si un día tiene dos sesiones
+  // (mañana y tarde) cuenta como un solo día de readaptación.
+  const diasReadaptacion = useLiveQuery(
+    () =>
+      lesionIds.length === 0
+        ? Promise.resolve(0)
+        : localDb.lesion_sesiones_readaptacion
+            .where("lesion_id")
+            .anyOf(lesionIds)
+            .toArray()
+            .then((sesiones) => new Set(sesiones.map((s) => s.fecha)).size),
+    [lesionIds],
+    0,
+  );
+
   return (
     <Card>
       <CardHeader className="flex flex-row items-center justify-between">
-        <CardTitle className="text-base">Lesiones</CardTitle>
+        <div>
+          <CardTitle className="text-base">Lesiones</CardTitle>
+          {diasReadaptacion > 0 && (
+            <p className="text-xs text-muted-foreground">
+              {diasReadaptacion} día{diasReadaptacion === 1 ? "" : "s"} de
+              readaptación en total
+            </p>
+          )}
+        </div>
         <Button
           size="sm"
           variant="outline"
