@@ -73,9 +73,26 @@ export function CampoJugadorSelector({
     [convocados],
   );
 
+  // Solo se aplican los cambios que ya han pasado a esta altura del
+  // partido (según el minuto capturado al tocar la categoría que se está
+  // tagueando): así el campo siempre empieza con el once titular y va
+  // reflejando las sustituciones a medida que toca, en vez de saltar
+  // directamente al once que termina el partido — que puede incluir
+  // cambios registrados para más adelante, aunque se esté tagueando por un
+  // minuto anterior.
+  const eventosHastaAhora = useMemo(
+    () =>
+      eventos.filter((e) =>
+        e.tipo !== "cambio_sale" && e.tipo !== "cambio_entra"
+          ? true
+          : (e.minuto ?? 0) <= minutoSugerido,
+      ),
+    [eventos, minutoSugerido],
+  );
+
   const onceFinal = useMemo(
-    () => calcularOnceFinal(titularesIniciales, eventos),
-    [titularesIniciales, eventos],
+    () => calcularOnceFinal(titularesIniciales, eventosHastaAhora),
+    [titularesIniciales, eventosHastaAhora],
   );
 
   const enCampoIds = useMemo(
