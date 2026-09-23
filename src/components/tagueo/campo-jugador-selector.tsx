@@ -51,6 +51,7 @@ export function CampoJugadorSelector({
   eventos,
   minutoSugerido,
   onSeleccionarJugador,
+  soloCambio = false,
 }: {
   partidoId: string;
   convocados: Jugador[];
@@ -60,9 +61,14 @@ export function CampoJugadorSelector({
   >[];
   eventos: LocalEventoPartido[];
   minutoSugerido: number;
-  onSeleccionarJugador: (jugadorId: string | null) => void;
+  onSeleccionarJugador?: (jugadorId: string | null) => void;
+  // Acceso directo a "Hacer un cambio" desde la pantalla principal de
+  // Tagueo, sin pasar por ningún paso de tagueo: se oculta el modo "Elegir
+  // jugador" (no tiene sentido fuera de un tag en curso) y se fuerza el
+  // modo "cambio" desde el principio.
+  soloCambio?: boolean;
 }) {
-  const [modo, setModo] = useState<Modo>("elegir");
+  const [modo, setModo] = useState<Modo>(soloCambio ? "cambio" : "elegir");
   const [saleKey, setSaleKey] = useState<string | null>(null);
   const [entraId, setEntraId] = useState("");
   const [minuto, setMinuto] = useState(String(minutoSugerido));
@@ -111,7 +117,7 @@ export function CampoJugadorSelector({
       // Un jugador "solo por hoy" no tiene ficha en Plantilla (sin
       // jugador_id): no se puede atribuir un tagueo a alguien sin ficha, así
       // que un toque en su ficha no hace nada en este modo.
-      if (t.jugadorId) onSeleccionarJugador(t.jugadorId);
+      if (t.jugadorId) onSeleccionarJugador?.(t.jugadorId);
       return;
     }
     const clave = claveDe(t);
@@ -121,7 +127,7 @@ export function CampoJugadorSelector({
 
   function handleTocarBanquillo(j: Jugador) {
     if (modo === "elegir") {
-      onSeleccionarJugador(j.id);
+      onSeleccionarJugador?.(j.id);
       return;
     }
     setEntraId((prev) => (prev === j.id ? "" : j.id));
@@ -156,31 +162,33 @@ export function CampoJugadorSelector({
     toast.success("Cambio registrado");
     setSaleKey(null);
     setEntraId("");
-    setModo("elegir");
+    if (!soloCambio) setModo("elegir");
   }
 
   return (
     <div className="space-y-3">
-      <div className="grid grid-cols-2 gap-2">
-        <Button
-          type="button"
-          variant={modo === "elegir" ? "default" : "outline"}
-          size="sm"
-          onClick={() => handleCambiarModo("elegir")}
-        >
-          <Users className="size-4" />
-          Elegir jugador
-        </Button>
-        <Button
-          type="button"
-          variant={modo === "cambio" ? "default" : "outline"}
-          size="sm"
-          onClick={() => handleCambiarModo("cambio")}
-        >
-          <ArrowLeftRight className="size-4" />
-          Hacer un cambio
-        </Button>
-      </div>
+      {!soloCambio && (
+        <div className="grid grid-cols-2 gap-2">
+          <Button
+            type="button"
+            variant={modo === "elegir" ? "default" : "outline"}
+            size="sm"
+            onClick={() => handleCambiarModo("elegir")}
+          >
+            <Users className="size-4" />
+            Elegir jugador
+          </Button>
+          <Button
+            type="button"
+            variant={modo === "cambio" ? "default" : "outline"}
+            size="sm"
+            onClick={() => handleCambiarModo("cambio")}
+          >
+            <ArrowLeftRight className="size-4" />
+            Hacer un cambio
+          </Button>
+        </div>
+      )}
 
       <p className="text-xs text-muted-foreground">
         {modo === "elegir"
@@ -269,7 +277,7 @@ export function CampoJugadorSelector({
           type="button"
           variant="outline"
           className="w-full"
-          onClick={() => onSeleccionarJugador(null)}
+          onClick={() => onSeleccionarJugador?.(null)}
         >
           Equipo (sin jugador)
         </Button>

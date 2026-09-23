@@ -10,6 +10,7 @@
 import { useRef, useState } from "react";
 import { toast } from "sonner";
 import {
+  ArrowLeftRight,
   BarChart3,
   Check,
   ChevronDown,
@@ -78,7 +79,7 @@ interface Etiqueta {
   requiere_zona: boolean;
 }
 
-type Paso = "categoria" | "jugador" | "zona";
+type Paso = "categoria" | "jugador" | "zona" | "cambio";
 
 function nombreMostrado(j: Jugador) {
   return j.alias || `${j.nombre} ${j.apellidos}`;
@@ -502,6 +503,18 @@ export function EtiquetasList({
           <Flag className="size-4" />
           Finalizar partido
         </Button>
+        {titularesIniciales.length > 0 && (
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            className="w-full text-muted-foreground"
+            onClick={() => setPaso("cambio")}
+          >
+            <ArrowLeftRight className="size-4" />
+            Hacer un cambio
+          </Button>
+        )}
         {registros.length > 0 && (
           <>
             <Button
@@ -710,6 +723,27 @@ export function EtiquetasList({
           >
             {enviando ? "Guardando..." : "Guardar"}
           </Button>
+        </div>
+      )}
+
+      {paso === "cambio" && (
+        <div className="space-y-2">
+          <button
+            type="button"
+            onClick={() => setPaso("categoria")}
+            className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground"
+          >
+            <ChevronLeft className="size-4" />
+            Volver
+          </button>
+          <CampoJugadorSelector
+            partidoId={partidoId}
+            convocados={convocados}
+            titularesIniciales={titularesIniciales}
+            eventos={eventos}
+            minutoSugerido={cronometro.minuto}
+            soloCambio
+          />
         </div>
       )}
 
