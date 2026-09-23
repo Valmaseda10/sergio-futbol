@@ -144,6 +144,33 @@ export default function FichaJugadorPage() {
     hoy,
   ]);
 
+  // Partidos donde ya se decidió la convocatoria (al menos un convocado=true
+  // para ese partido) y el jugador ya estaba de alta, pero no fue de los
+  // elegidos — a diferencia de un partido futuro sin convocatoria decidida
+  // todavía, que no cuenta como desconvocatoria de nadie.
+  const desconvocatorias = useMemo(() => {
+    if (!jugador) return 0;
+    const partidosFiltrados = partidos.filter(
+      (p) =>
+        enTemporada(p.fecha, temporada) &&
+        (faseSel === "todas" || p.fase === faseSel),
+    );
+    const partidoIdsConConvocatoriaDecidida = new Set(
+      convocatorias.map((c) => c.partido_id),
+    );
+    const convocadoPartidoIdsJugador = new Set(
+      convocatorias
+        .filter((c) => c.jugador_id === jugador.id)
+        .map((c) => c.partido_id),
+    );
+    return partidosFiltrados.filter(
+      (p) =>
+        partidoIdsConConvocatoriaDecidida.has(p.id) &&
+        p.fecha >= jugador.fecha_alta &&
+        !convocadoPartidoIdsJugador.has(p.id),
+    ).length;
+  }, [jugador, partidos, convocatorias, temporada, faseSel]);
+
   if (jugador === undefined) {
     return <p className="text-sm text-muted-foreground">Cargando...</p>;
   }
@@ -230,6 +257,7 @@ export default function FichaJugadorPage() {
           <CardContent className="grid grid-cols-4 gap-y-3 text-center">
             {[
               { label: "Convoc.", valor: statsTemporada.convocatorias },
+              { label: "Desconv.", valor: desconvocatorias },
               { label: "Titular", valor: statsTemporada.titularidades },
               { label: "Suplente", valor: statsTemporada.suplencias },
               { label: "Minutos", valor: statsTemporada.minutosAprox },
