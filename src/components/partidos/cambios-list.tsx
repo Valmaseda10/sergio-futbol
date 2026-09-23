@@ -371,7 +371,7 @@ export function CambiosList({
                     : (t.nombreLibre?.[0] ?? "?")}
                 </span>
                 <span className="max-w-16 truncate rounded bg-black/40 px-1 text-[10px] text-white">
-                  {jugador ? nombreMostrado(jugador) : `${t.nombreLibre} (invitado)`}
+                  {jugador ? nombreMostrado(jugador) : t.nombreLibre}
                 </span>
               </button>
             );
