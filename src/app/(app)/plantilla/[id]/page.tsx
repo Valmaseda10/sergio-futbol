@@ -302,7 +302,7 @@ export default function FichaJugadorPage() {
                 >
                   {statsTemporada.convocatorias}
                 </p>
-                <p className="text-xs text-muted-foreground">Convoc.</p>
+                <p className="text-xs text-muted-foreground">Convocados</p>
               </button>
               <button
                 type="button"
@@ -319,7 +319,7 @@ export default function FichaJugadorPage() {
                 >
                   {partidosDesconvocado.length}
                 </p>
-                <p className="text-xs text-muted-foreground">Desconv.</p>
+                <p className="text-xs text-muted-foreground">Desconvocados</p>
               </button>
               {[
                 { label: "Titular", valor: statsTemporada.titularidades },
@@ -332,10 +332,14 @@ export default function FichaJugadorPage() {
                 </div>
               ))}
             </div>
-            <div className="grid grid-cols-4 gap-y-3">
+            <div className="grid grid-cols-5 gap-y-3">
               {[
                 { label: "Goles", valor: statsTemporada.goles },
                 { label: "Asist.", valor: statsTemporada.asistencias },
+                {
+                  label: "G+A",
+                  valor: statsTemporada.goles + statsTemporada.asistencias,
+                },
                 { label: "T. amarillas", valor: statsTemporada.tarjetasAmarillas },
                 { label: "T. rojas", valor: statsTemporada.tarjetasRojas },
               ].map((d) => (
