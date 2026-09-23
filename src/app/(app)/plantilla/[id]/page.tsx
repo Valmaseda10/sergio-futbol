@@ -48,6 +48,13 @@ type CategoriaDialogoPartidos =
   | "gol_encajado"
   | TipoEventoConDetalle;
 
+// Un partido con cuántas veces ha pasado ahí ese evento (2 goles en el mismo
+// partido cuentan como un solo partido en la lista, con un "×2" al lado).
+interface PartidoConCantidad {
+  partido: LocalPartido;
+  cantidad: number;
+}
+
 const DIALOGO_PARTIDOS_TITULO: Record<CategoriaDialogoPartidos, string> = {
   convocado: "Partidos convocado",
   desconvocado: "Partidos no convocado",
@@ -238,7 +245,8 @@ export default function FichaJugadorPage() {
     return {
       partidosConvocado: partidosFiltrados
         .filter((p) => convocadoPartidoIdsJugador.has(p.id))
-        .sort(ordenPorFechaDesc),
+        .sort(ordenPorFechaDesc)
+        .map((partido): PartidoConCantidad => ({ partido, cantidad: 1 })),
       partidosDesconvocado: partidosFiltrados
         .filter(
           (p) =>
@@ -246,15 +254,16 @@ export default function FichaJugadorPage() {
             p.fecha >= jugador.fecha_alta &&
             !convocadoPartidoIdsJugador.has(p.id),
         )
-        .sort(ordenPorFechaDesc),
+        .sort(ordenPorFechaDesc)
+        .map((partido): PartidoConCantidad => ({ partido, cantidad: 1 })),
     };
   }, [jugador, partidos, convocatorias, temporada, faseSel]);
 
   // Partidos en los que ha marcado gol/asistencia/tarjeta (dentro del mismo
-  // filtro de temporada/fase), para el detalle de esas estadísticas — un
-  // partido cuenta una sola vez aunque tenga varios goles en él.
+  // filtro de temporada/fase), con cuántas veces en cada uno — 2 goles en el
+  // mismo partido salen como una fila con "×2", no como dos filas iguales.
   const partidosPorEvento = useMemo(() => {
-    const vacio: Record<TipoEventoConDetalle, LocalPartido[]> = {
+    const vacio: Record<TipoEventoConDetalle, PartidoConCantidad[]> = {
       gol: [],
       asistencia: [],
       tarjeta_amarilla: [],
@@ -277,13 +286,21 @@ export default function FichaJugadorPage() {
     const partidosPorId = new Map(partidos.map((p) => [p.id, p]));
 
     function partidosDe(tipo: TipoEventoConDetalle) {
-      const ids = new Set(
-        eventosJugador.filter((e) => e.tipo === tipo).map((e) => e.partido_id),
-      );
-      return Array.from(ids)
-        .map((id) => partidosPorId.get(id))
-        .filter((p): p is LocalPartido => !!p)
-        .sort((a, b) => b.fecha.localeCompare(a.fecha));
+      const cantidadPorPartidoId = new Map<string, number>();
+      for (const e of eventosJugador) {
+        if (e.tipo !== tipo) continue;
+        cantidadPorPartidoId.set(
+          e.partido_id,
+          (cantidadPorPartidoId.get(e.partido_id) ?? 0) + 1,
+        );
+      }
+      return Array.from(cantidadPorPartidoId.entries())
+        .map(([partidoId, cantidad]) => {
+          const partido = partidosPorId.get(partidoId);
+          return partido ? { partido, cantidad } : null;
+        })
+        .filter((p): p is PartidoConCantidad => !!p)
+        .sort((a, b) => b.partido.fecha.localeCompare(a.partido.fecha));
     }
 
     return {
@@ -328,10 +345,13 @@ export default function FichaJugadorPage() {
           [],
           hoy,
         )[0];
-        return stats.golesEncajados > 0 ? partidosPorId.get(a.partido_id) : null;
+        const partido = partidosPorId.get(a.partido_id);
+        return partido && stats.golesEncajados > 0
+          ? { partido, cantidad: stats.golesEncajados }
+          : null;
       })
-      .filter((p): p is LocalPartido => !!p)
-      .sort((a, b) => b.fecha.localeCompare(a.fecha));
+      .filter((p): p is PartidoConCantidad => !!p)
+      .sort((a, b) => b.partido.fecha.localeCompare(a.partido.fecha));
   }, [jugador, esPortero, partidos, alineaciones, eventos, temporada, faseSel, hoy]);
 
   const [dialogoPartidos, setDialogoPartidos] = useState<CategoriaDialogoPartidos | null>(
@@ -624,16 +644,21 @@ export default function FichaJugadorPage() {
                   : dialogoPartidos
                     ? partidosPorEvento[dialogoPartidos]
                     : []
-            ).map((p) => (
+            ).map(({ partido: p, cantidad }) => (
               <li key={p.id}>
                 <Link
                   href={`/partidos/${p.id}`}
                   onClick={() => setDialogoPartidos(null)}
-                  className="flex items-center justify-between gap-3 py-2 text-sm hover:bg-muted/50"
+                  className="flex items-center gap-3 py-2 text-sm hover:bg-muted/50"
                 >
                   <span className="min-w-0 flex-1 truncate font-medium">
                     vs {p.rival}
                   </span>
+                  {cantidad > 1 && (
+                    <span className="shrink-0 rounded-full bg-muted px-1.5 py-0.5 text-xs font-semibold tabular-nums">
+                      ×{cantidad}
+                    </span>
+                  )}
                   <span className="shrink-0 text-xs text-muted-foreground">
                     {formatearFechaCorta(p.fecha)}
                   </span>
