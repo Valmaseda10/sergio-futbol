@@ -65,7 +65,7 @@ export function NotasRival({
                 </td>
                 <td className="p-2 pl-0">
                   <textarea
-                    rows={2}
+                    rows={4}
                     value={valores[key]}
                     onChange={(e) =>
                       setValores((prev) => ({ ...prev, [key]: e.target.value }))
