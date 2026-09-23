@@ -4,6 +4,7 @@ import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
+import { X } from "lucide-react";
 import {
   LESION_FORM_DEFAULTS,
   lesionSchema,
@@ -53,6 +54,8 @@ export function LesionForm({
     register,
     control,
     handleSubmit,
+    setValue,
+    watch,
     formState: { errors, isSubmitting },
   } = useForm<LesionFormValues>({
     resolver: zodResolver(lesionSchema),
@@ -149,7 +152,25 @@ export function LesionForm({
             <Label htmlFor="fecha_alta_real">
               Alta real (vuelve a jugar al 100%)
             </Label>
-            <Input id="fecha_alta_real" type="date" {...register("fecha_alta_real")} />
+            <div className="flex gap-2">
+              <Input
+                id="fecha_alta_real"
+                type="date"
+                className="flex-1"
+                {...register("fecha_alta_real")}
+              />
+              {watch("fecha_alta_real") && (
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="icon"
+                  aria-label="Quitar fecha de alta real"
+                  onClick={() => setValue("fecha_alta_real", "")}
+                >
+                  <X className="size-4" />
+                </Button>
+              )}
+            </div>
           </div>
 
           <div className="space-y-2">
