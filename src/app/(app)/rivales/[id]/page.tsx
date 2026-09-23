@@ -103,15 +103,17 @@ export default function FichaRivalPage() {
         })}
       </p>
 
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        <EquipacionRival
-          rivalId={rival.id}
-          colorCamiseta={rival.color_camiseta}
-          colorPantalon={rival.color_pantalon}
-          colorMedias={rival.color_medias}
-        />
-        <AlineacionRival rivalId={rival.id} />
-        <div className="sm:col-span-2 lg:col-span-1">
+      <div className="grid gap-4 sm:grid-cols-3">
+        <div className="space-y-4">
+          <EquipacionRival
+            rivalId={rival.id}
+            colorCamiseta={rival.color_camiseta}
+            colorPantalon={rival.color_pantalon}
+            colorMedias={rival.color_medias}
+          />
+          <AlineacionRival rivalId={rival.id} />
+        </div>
+        <div className="sm:col-span-2">
           <NotasRival
             rivalId={rival.id}
             faseOfensiva={rival.fase_ofensiva}
