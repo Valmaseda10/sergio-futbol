@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useLiveQuery } from "dexie-react-hooks";
 import { Pencil, Printer } from "lucide-react";
-import { localDb } from "@/lib/db/local-db";
+import { localDb, type LocalPartido } from "@/lib/db/local-db";
 import { createClient } from "@/lib/supabase/client";
 import { calcularStatsJugadores } from "@/lib/estadisticas";
 import { temporadaActual, enTemporada } from "@/lib/temporada";
@@ -19,6 +19,12 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { JugadorAvatar } from "@/components/plantilla/jugador-avatar";
 import { BajaReactivarButton } from "@/components/plantilla/baja-reactivar-button";
 import { ValoracionesJugador } from "@/components/plantilla/valoraciones-jugador";
@@ -28,10 +34,19 @@ import { VideosJugador } from "@/components/plantilla/videos-jugador";
 import { EventosJugador } from "@/components/plantilla/eventos-jugador";
 import { PdfWatermark } from "@/components/branding/pdf-watermark";
 import { posicionLabel } from "@/lib/posiciones";
+import { cn } from "@/lib/utils";
 
 function hoyISO() {
   const now = new Date();
   return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
+}
+
+function formatearFechaCorta(fecha: string) {
+  return new Date(`${fecha}T00:00:00`).toLocaleDateString("es-ES", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+  });
 }
 
 function formatearFecha(fecha: string | null) {
@@ -144,12 +159,14 @@ export default function FichaJugadorPage() {
     hoy,
   ]);
 
-  // Partidos donde ya se decidió la convocatoria (al menos un convocado=true
-  // para ese partido) y el jugador ya estaba de alta, pero no fue de los
-  // elegidos — a diferencia de un partido futuro sin convocatoria decidida
-  // todavía, que no cuenta como desconvocatoria de nadie.
-  const desconvocatorias = useMemo(() => {
-    if (!jugador) return 0;
+  // Partidos convocado/desconvocado (dentro del filtro de temporada/fase),
+  // para el detalle de esas dos estadísticas. Desconvocado exige que ya se
+  // decidiera la convocatoria (al menos un convocado=true para ese partido)
+  // y que el jugador ya estuviera de alta — un partido futuro sin
+  // convocatoria decidida todavía no cuenta como desconvocatoria de nadie.
+  const { partidosConvocado, partidosDesconvocado } = useMemo(() => {
+    if (!jugador) return { partidosConvocado: [], partidosDesconvocado: [] };
+
     const partidosFiltrados = partidos.filter(
       (p) =>
         enTemporada(p.fecha, temporada) &&
@@ -163,13 +180,28 @@ export default function FichaJugadorPage() {
         .filter((c) => c.jugador_id === jugador.id)
         .map((c) => c.partido_id),
     );
-    return partidosFiltrados.filter(
-      (p) =>
-        partidoIdsConConvocatoriaDecidida.has(p.id) &&
-        p.fecha >= jugador.fecha_alta &&
-        !convocadoPartidoIdsJugador.has(p.id),
-    ).length;
+
+    const ordenPorFechaDesc = (a: LocalPartido, b: LocalPartido) =>
+      b.fecha.localeCompare(a.fecha);
+
+    return {
+      partidosConvocado: partidosFiltrados
+        .filter((p) => convocadoPartidoIdsJugador.has(p.id))
+        .sort(ordenPorFechaDesc),
+      partidosDesconvocado: partidosFiltrados
+        .filter(
+          (p) =>
+            partidoIdsConConvocatoriaDecidida.has(p.id) &&
+            p.fecha >= jugador.fecha_alta &&
+            !convocadoPartidoIdsJugador.has(p.id),
+        )
+        .sort(ordenPorFechaDesc),
+    };
   }, [jugador, partidos, convocatorias, temporada, faseSel]);
+
+  const [dialogoPartidos, setDialogoPartidos] = useState<
+    "convocado" | "desconvocado" | null
+  >(null);
 
   if (jugador === undefined) {
     return <p className="text-sm text-muted-foreground">Cargando...</p>;
@@ -256,9 +288,40 @@ export default function FichaJugadorPage() {
           </CardHeader>
           <CardContent className="space-y-3 text-center">
             <div className="grid grid-cols-5 gap-y-3">
+              <button
+                type="button"
+                className="print:pointer-events-none"
+                disabled={partidosConvocado.length === 0}
+                onClick={() => setDialogoPartidos("convocado")}
+              >
+                <p
+                  className={cn(
+                    "font-heading text-xl tabular-nums",
+                    partidosConvocado.length > 0 && "underline underline-offset-4",
+                  )}
+                >
+                  {statsTemporada.convocatorias}
+                </p>
+                <p className="text-xs text-muted-foreground">Convoc.</p>
+              </button>
+              <button
+                type="button"
+                className="print:pointer-events-none"
+                disabled={partidosDesconvocado.length === 0}
+                onClick={() => setDialogoPartidos("desconvocado")}
+              >
+                <p
+                  className={cn(
+                    "font-heading text-xl tabular-nums",
+                    partidosDesconvocado.length > 0 &&
+                      "underline underline-offset-4",
+                  )}
+                >
+                  {partidosDesconvocado.length}
+                </p>
+                <p className="text-xs text-muted-foreground">Desconv.</p>
+              </button>
               {[
-                { label: "Convoc.", valor: statsTemporada.convocatorias },
-                { label: "Desconv.", valor: desconvocatorias },
                 { label: "Titular", valor: statsTemporada.titularidades },
                 { label: "Suplente", valor: statsTemporada.suplencias },
                 { label: "Minutos", valor: statsTemporada.minutosAprox },
@@ -405,6 +468,42 @@ export default function FichaJugadorPage() {
           nombreCompleto={nombreCompleto}
         />
       </div>
+
+      <Dialog
+        open={dialogoPartidos !== null}
+        onOpenChange={(open) => !open && setDialogoPartidos(null)}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>
+              {dialogoPartidos === "convocado"
+                ? "Partidos convocado"
+                : "Partidos no convocado"}
+            </DialogTitle>
+          </DialogHeader>
+          <ul className="max-h-[60vh] divide-y overflow-y-auto">
+            {(dialogoPartidos === "convocado"
+              ? partidosConvocado
+              : partidosDesconvocado
+            ).map((p) => (
+              <li key={p.id}>
+                <Link
+                  href={`/partidos/${p.id}`}
+                  onClick={() => setDialogoPartidos(null)}
+                  className="flex items-center justify-between gap-3 py-2 text-sm hover:bg-muted/50"
+                >
+                  <span className="min-w-0 flex-1 truncate font-medium">
+                    vs {p.rival}
+                  </span>
+                  <span className="shrink-0 text-xs text-muted-foreground">
+                    {formatearFechaCorta(p.fecha)}
+                  </span>
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
