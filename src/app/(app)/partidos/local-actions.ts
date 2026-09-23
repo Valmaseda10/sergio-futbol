@@ -438,17 +438,16 @@ export async function guardarAlineacionFinalLocal(
 // Recuenta los goles (gol a favor/en contra + autogol, que siempre es en
 // contra) de un partido y actualiza resultado_favor/resultado_contra para
 // que reflejen siempre lo que hay tagueado en Eventos, sin tener que
-// mantenerlo a mano por separado. Si el partido todavía no tiene ningún gol
-// tagueado, no se toca (para no pisar un resultado ya escrito a mano de un
-// partido antiguo sin eventos detallados).
+// mantenerlo a mano por separado. Se llama solo tras crear o borrar un
+// evento de gol en ESTE partido, así que ya se sabe que usa el sistema de
+// eventos detallados — incluido el caso de borrar el último gol, que debe
+// dejar el marcador en 0-0 en vez de quedarse con el valor anterior.
 async function recalcularResultadoLocal(partidoId: string): Promise<void> {
   const eventosGol = await localDb.eventos_partido
     .where("partido_id")
     .equals(partidoId)
     .filter((e) => e.tipo === "gol" || e.tipo === "autogol")
     .toArray();
-
-  if (eventosGol.length === 0) return;
 
   const favor = eventosGol.filter((e) => e.a_favor).length;
   const contra = eventosGol.filter((e) => !e.a_favor).length;

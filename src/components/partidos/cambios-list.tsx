@@ -489,7 +489,7 @@ export function CambiosList({
       </div>
 
       <div className="space-y-2 rounded-md border p-3">
-        <Label htmlFor="minutoCambio">Minuto (opcional)</Label>
+        <Label htmlFor="minutoCambio">Minuto</Label>
         <Input
           id="minutoCambio"
           type="number"
@@ -500,7 +500,7 @@ export function CambiosList({
         />
         <Button
           className="w-full"
-          disabled={!saleKey || !entraKey || enviando}
+          disabled={!saleKey || !entraKey || !minuto || enviando}
           onClick={handleConfirmar}
         >
           <ArrowLeftRight className="size-4" />

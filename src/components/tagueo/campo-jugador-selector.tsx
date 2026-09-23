@@ -85,13 +85,16 @@ export function CampoJugadorSelector({
   // reflejando las sustituciones a medida que toca, en vez de saltar
   // directamente al once que termina el partido — que puede incluir
   // cambios registrados para más adelante, aunque se esté tagueando por un
-  // minuto anterior.
+  // minuto anterior. Un cambio sin minuto (el campo es opcional al
+  // registrarlo) se trata como si todavía no hubiera pasado, en vez de
+  // como si hubiera pasado ya en el minuto 0 — más seguro no aplicarlo
+  // todavía que aplicarlo de más.
   const eventosHastaAhora = useMemo(
     () =>
       eventos.filter((e) =>
         e.tipo !== "cambio_sale" && e.tipo !== "cambio_entra"
           ? true
-          : (e.minuto ?? 0) <= minutoSugerido,
+          : e.minuto != null && e.minuto <= minutoSugerido,
       ),
     [eventos, minutoSugerido],
   );
@@ -294,7 +297,7 @@ export function CampoJugadorSelector({
           />
           <Button
             className="w-full"
-            disabled={!saleKey || !entraId || enviando}
+            disabled={!saleKey || !entraId || !minuto || enviando}
             onClick={handleConfirmarCambio}
           >
             <ArrowLeftRight className="size-4" />

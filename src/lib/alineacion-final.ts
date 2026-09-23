@@ -126,9 +126,14 @@ export function calcularOnceFinal(
     grupos.set(evento.cambio_grupo_id, par);
   }
 
+  // Un cambio sin minuto (el campo es opcional al registrarlo) se manda al
+  // final en vez de tratarlo como si hubiera pasado en el minuto 0: si no,
+  // se procesaría por delante de cambios anteriores con minuto real, y el
+  // sitio que deja libre el que sale todavía no estaría vacío cuando le
+  // toca al que entra — dejándolo fuera de la alineación sin necesidad.
   const paresCompletos = Array.from(grupos.values())
     .filter((par): par is { sale: EventoCambio; entra: EventoCambio } => !!par.sale && !!par.entra)
-    .sort((a, b) => (a.entra.minuto ?? 0) - (b.entra.minuto ?? 0));
+    .sort((a, b) => (a.entra.minuto ?? Infinity) - (b.entra.minuto ?? Infinity));
 
   for (const { sale, entra } of paresCompletos) {
     const claveSlot = buscarClaveSlot(sale.jugador_id, sale.nombre_libre);
@@ -148,7 +153,7 @@ export function calcularOnceFinal(
   const sueltosOrdenados = sueltos
     .slice()
     .sort((a, b) => {
-      const diff = (a.minuto ?? 0) - (b.minuto ?? 0);
+      const diff = (a.minuto ?? Infinity) - (b.minuto ?? Infinity);
       if (diff !== 0) return diff;
       if (a.tipo === b.tipo) return 0;
       return a.tipo === "cambio_sale" ? -1 : 1;

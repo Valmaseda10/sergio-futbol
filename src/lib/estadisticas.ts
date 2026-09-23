@@ -214,16 +214,24 @@ export function calcularStatsJugadores(
     let minutosJugados = 0;
     let golesEncajados = 0;
     for (const a of alineacionesJugador) {
+      // El minuto de un cambio es opcional en el formulario donde se
+      // registra: uno sin minuto NO se descarta aquí (eso dejaba la ventana
+      // del que sale abierta para siempre, contando el partido entero, y la
+      // del que entra sin abrir nunca, contando 0) — se sigue procesando
+      // para no perder el propio cambio de dentro/fuera, solo sin sumar
+      // minutos ni goles encajados en el tramo cuyo minuto se desconoce. Al
+      // ordenar, un cambio sin minuto se manda al final en vez de tratarlo
+      // como si hubiera pasado en el minuto 0, para no colarse por delante
+      // de cambios anteriores con minuto real.
       const eventosCambioPartido = eventosJugador
         .filter(
-          (e): e is typeof e & { minuto: number } =>
+          (e) =>
             e.partido_id === a.partido_id &&
-            (e.tipo === "cambio_entra" || e.tipo === "cambio_sale") &&
-            e.minuto != null,
+            (e.tipo === "cambio_entra" || e.tipo === "cambio_sale"),
         )
         .slice()
         .sort((x, y) => {
-          const diff = x.minuto - y.minuto;
+          const diff = (x.minuto ?? Infinity) - (y.minuto ?? Infinity);
           if (diff !== 0) return diff;
           // A igual minuto, la salida siempre se procesa antes que la
           // entrada (mismo motivo que en calcularOnceFinal).
@@ -240,7 +248,7 @@ export function calcularStatsJugadores(
       );
 
       let dentro = a.titular;
-      let inicioVentana = a.titular ? 0 : null;
+      let inicioVentana: number | null = a.titular ? 0 : null;
 
       for (const evento of eventosCambioPartido) {
         if (evento.tipo === "cambio_entra") {
@@ -250,10 +258,10 @@ export function calcularStatsJugadores(
           }
           continue;
         }
-        if (dentro && inicioVentana != null) {
+        if (dentro && inicioVentana != null && evento.minuto != null) {
           minutosJugados += Math.max(0, evento.minuto - inicioVentana);
           golesEncajados += golesRivalPartido.filter(
-            (g) => g.minuto >= inicioVentana! && g.minuto <= evento.minuto,
+            (g) => g.minuto >= inicioVentana! && g.minuto < evento.minuto!,
           ).length;
         }
         dentro = false;
