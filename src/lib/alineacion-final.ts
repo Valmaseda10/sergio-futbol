@@ -13,11 +13,29 @@ export interface OnceFinal {
   entrantesSinHueco: string[];
 }
 
+type EventoCambio = Pick<
+  LocalEventoPartido,
+  "id" | "jugador_id" | "nombre_libre" | "tipo" | "minuto" | "cambio_grupo_id"
+>;
+
 /**
  * Deduce el once que termina el partido a partir del once inicial y los
- * eventos "cambio_sale"/"cambio_entra" registrados en Eventos, procesados en
- * orden cronológico: cada entrada ocupa el hueco (posición en el campo) que
- * dejó libre la última salida. No contempla expulsiones (tarjeta_roja).
+ * eventos "cambio_sale"/"cambio_entra" registrados. No contempla
+ * expulsiones (tarjeta_roja).
+ *
+ * Cada cambio hecho desde el apartado Cambios guarda su salida y su entrada
+ * con el mismo `cambio_grupo_id` (ver crearCambioLocal): se usa ese enlace
+ * directo para saber exactamente quién sustituye a quién, en vez de asumir
+ * que la entrada ocupa "el próximo hueco libre" — con varios cambios en el
+ * mismo minuto (frecuente: 2-3 sustituciones seguidas), el orden en que
+ * Dexie devuelve las filas no tiene por qué coincidir con qué salida iba
+ * emparejada con qué entrada, y esa suposición dejaba a jugadores en la
+ * posición de otro.
+ *
+ * Solo los eventos "cambio_sale"/"cambio_entra" sueltos, sin grupo — de
+ * antes de que existiera cambio_grupo_id, o con una de las dos filas
+ * borrada a mano — caen al criterio antiguo: ocupar por orden cronológico
+ * el primer hueco que haya quedado libre.
  *
  * Los jugadores "solo por hoy" (sin fila real en `jugadores`, jugador_id
  * null) se pueden dar de baja igual que uno real: como no tienen jugador_id
@@ -32,10 +50,7 @@ export function calcularOnceFinal(
     LocalAlineacion,
     "id" | "jugador_id" | "nombre_libre" | "posicion_jugada" | "pos_x" | "pos_y"
   >[],
-  eventos: Pick<
-    LocalEventoPartido,
-    "id" | "jugador_id" | "nombre_libre" | "tipo" | "minuto"
-  >[],
+  eventos: EventoCambio[],
 ): OnceFinal {
   const lineup = new Map<string, SlotOnceFinal>();
   for (const t of titularesIniciales) {
@@ -49,72 +64,118 @@ export function calcularOnceFinal(
     });
   }
 
-  const cambios = eventos
-    .filter(
-      (e) =>
-        (e.tipo === "cambio_sale" || e.tipo === "cambio_entra") &&
-        (e.jugador_id != null || e.nombre_libre != null),
-    )
+  const cambios = eventos.filter(
+    (e) =>
+      (e.tipo === "cambio_sale" || e.tipo === "cambio_entra") &&
+      (e.jugador_id != null || e.nombre_libre != null),
+  );
+
+  const entrantesSinHueco: string[] = [];
+
+  function buscarClaveSlot(
+    jugadorId: string | null,
+    nombreLibre: string | null,
+  ): string | null {
+    if (jugadorId != null) return lineup.has(jugadorId) ? jugadorId : null;
+    if (nombreLibre != null) {
+      const entrada = Array.from(lineup.entries()).find(
+        ([, slot]) => slot.jugadorId == null && slot.nombreLibre === nombreLibre,
+      );
+      return entrada ? entrada[0] : null;
+    }
+    return null;
+  }
+
+  function aplicarEntradaEnHueco(claveSlot: string, entrada: EventoCambio) {
+    const slot = lineup.get(claveSlot)!;
+    lineup.delete(claveSlot);
+    if (entrada.jugador_id != null) {
+      lineup.set(entrada.jugador_id, {
+        ...slot,
+        jugadorId: entrada.jugador_id,
+        nombreLibre: null,
+      });
+    } else if (entrada.nombre_libre != null) {
+      // Clave única por el propio evento: no hay un jugador_id con el que
+      // identificar a este invitado, y su nombre podría repetirse si sale y
+      // vuelve a entrar más tarde.
+      lineup.set(`libre-entra:${entrada.id}`, {
+        ...slot,
+        jugadorId: null,
+        nombreLibre: entrada.nombre_libre,
+      });
+    }
+  }
+
+  function identidadEntrante(entrada: EventoCambio) {
+    return entrada.jugador_id ?? entrada.nombre_libre ?? "?";
+  }
+
+  // Agrupa por cambio_grupo_id; lo que no tenga grupo (o le falte la mitad
+  // del par) se procesa aparte, al final, con el criterio antiguo.
+  const grupos = new Map<string, { sale?: EventoCambio; entra?: EventoCambio }>();
+  const sueltos: EventoCambio[] = [];
+  for (const evento of cambios) {
+    if (!evento.cambio_grupo_id) {
+      sueltos.push(evento);
+      continue;
+    }
+    const par = grupos.get(evento.cambio_grupo_id) ?? {};
+    if (evento.tipo === "cambio_sale") par.sale = evento;
+    else par.entra = evento;
+    grupos.set(evento.cambio_grupo_id, par);
+  }
+
+  const paresCompletos = Array.from(grupos.values())
+    .filter((par): par is { sale: EventoCambio; entra: EventoCambio } => !!par.sale && !!par.entra)
+    .sort((a, b) => (a.entra.minuto ?? 0) - (b.entra.minuto ?? 0));
+
+  for (const { sale, entra } of paresCompletos) {
+    const claveSlot = buscarClaveSlot(sale.jugador_id, sale.nombre_libre);
+    if (claveSlot) {
+      aplicarEntradaEnHueco(claveSlot, entra);
+    } else {
+      entrantesSinHueco.push(identidadEntrante(entra));
+    }
+  }
+
+  for (const par of grupos.values()) {
+    if (par.sale && par.entra) continue; // ya procesado arriba
+    if (par.sale) sueltos.push(par.sale);
+    if (par.entra) sueltos.push(par.entra);
+  }
+
+  const sueltosOrdenados = sueltos
     .slice()
     .sort((a, b) => {
       const diff = (a.minuto ?? 0) - (b.minuto ?? 0);
       if (diff !== 0) return diff;
-      // A igual minuto (típico: un cambio registrado como par sale/entra en
-      // el mismo minuto) hay que procesar siempre la salida antes que la
-      // entrada — si no, el orden de lectura de la base de datos no está
-      // garantizado y una entrada podría intentar ocupar hueco antes de que
-      // su salida lo libere, quedándose sin sitio (entrantesSinHueco).
       if (a.tipo === b.tipo) return 0;
       return a.tipo === "cambio_sale" ? -1 : 1;
     });
 
   const vacantes: SlotOnceFinal[] = [];
-  const entrantesSinHueco: string[] = [];
-
-  for (const evento of cambios) {
+  for (const evento of sueltosOrdenados) {
     if (evento.tipo === "cambio_sale") {
-      if (evento.jugador_id != null) {
-        const slot = lineup.get(evento.jugador_id);
-        if (slot) {
-          lineup.delete(evento.jugador_id);
-          vacantes.push(slot);
-        }
-      } else if (evento.nombre_libre != null) {
-        const entrada = Array.from(lineup.entries()).find(
-          ([, slot]) =>
-            slot.jugadorId == null && slot.nombreLibre === evento.nombre_libre,
-        );
-        if (entrada) {
-          lineup.delete(entrada[0]);
-          vacantes.push(entrada[1]);
-        }
+      const claveSlot = buscarClaveSlot(evento.jugador_id, evento.nombre_libre);
+      if (claveSlot) {
+        vacantes.push(lineup.get(claveSlot)!);
+        lineup.delete(claveSlot);
       }
     } else {
-      // cambio_entra
       const vacante = vacantes.shift();
+      if (!vacante) {
+        entrantesSinHueco.push(identidadEntrante(evento));
+        continue;
+      }
       if (evento.jugador_id != null) {
-        if (vacante) {
-          lineup.set(evento.jugador_id, {
-            ...vacante,
-            jugadorId: evento.jugador_id,
-            nombreLibre: null,
-          });
-        } else {
-          entrantesSinHueco.push(evento.jugador_id);
-        }
+        lineup.set(evento.jugador_id, { ...vacante, jugadorId: evento.jugador_id, nombreLibre: null });
       } else if (evento.nombre_libre != null) {
-        if (vacante) {
-          // Clave única por el propio evento: no hay un jugador_id con el
-          // que identificar a este invitado, y su nombre podría repetirse
-          // si sale y vuelve a entrar más tarde.
-          lineup.set(`libre-entra:${evento.id}`, {
-            ...vacante,
-            jugadorId: null,
-            nombreLibre: evento.nombre_libre,
-          });
-        } else {
-          entrantesSinHueco.push(evento.nombre_libre);
-        }
+        lineup.set(`libre-entra:${evento.id}`, {
+          ...vacante,
+          jugadorId: null,
+          nombreLibre: evento.nombre_libre,
+        });
       }
     }
   }
