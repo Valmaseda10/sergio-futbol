@@ -61,6 +61,17 @@ export async function moverEtiquetaLocal(
   return { success: true };
 }
 
+// Reordena de una vez toda la lista (tras arrastrar una categoría a su
+// nuevo puesto): reasigna "orden" 0..n-1 según la posición en `ids`, en vez
+// de ir intercambiando de una en una como moverEtiquetaLocal.
+export async function reordenarEtiquetasLocal(ids: string[]): Promise<SimpleResult> {
+  for (const [i, id] of ids.entries()) {
+    await localDb.etiquetas.update(id, { orden: i });
+    await queueMutation("etiquetas", "update", id, { orden: i });
+  }
+  return { success: true };
+}
+
 export async function actualizarEtiquetaLocal(
   id: string,
   values: EtiquetaFormValues,

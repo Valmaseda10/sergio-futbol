@@ -667,3 +667,19 @@ export async function eliminarEtiquetaPartidoLocal(id: string): Promise<SimpleRe
   await queueMutation("etiquetas_partido", "delete", id);
   return { success: true };
 }
+
+// Borra de golpe todo lo tagueado en un partido (partido metido por error, o
+// una prueba antes de empezar de verdad). Las categorías en sí no se tocan.
+export async function vaciarTagueoPartidoLocal(partidoId: string): Promise<SimpleResult> {
+  const registros = await localDb.etiquetas_partido
+    .where("partido_id")
+    .equals(partidoId)
+    .toArray();
+
+  await localDb.etiquetas_partido.bulkDelete(registros.map((r) => r.id));
+  for (const r of registros) {
+    await queueMutation("etiquetas_partido", "delete", r.id);
+  }
+
+  return { success: true };
+}

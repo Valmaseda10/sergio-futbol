@@ -93,6 +93,8 @@ export default function TagueoPartidoPage() {
 
       <EtiquetasList
         partidoId={id}
+        rival={partido.rival}
+        fecha={partido.fecha}
         convocados={convocados}
         etiquetas={etiquetas}
         registros={registros}

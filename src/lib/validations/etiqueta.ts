@@ -6,11 +6,16 @@ export const etiquetaSchema = z.object({
     .string()
     .trim()
     .regex(/^#[0-9a-fA-F]{6}$/, "Color no válido"),
+  requiere_jugador: z.boolean(),
+  requiere_zona: z.boolean(),
 });
 
 export type EtiquetaFormValues = z.infer<typeof etiquetaSchema>;
 
-export function etiquetaFormDataToValues(formData: FormData): EtiquetaFormValues {
+export function etiquetaFormDataToValues(formData: FormData): {
+  nombre: string;
+  color: string;
+} {
   return {
     nombre: String(formData.get("nombre") ?? ""),
     color: String(formData.get("color") ?? "#e0141d"),

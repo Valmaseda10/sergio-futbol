@@ -1,6 +1,8 @@
 "use client";
 
 import { useRef } from "react";
+import { Check } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 interface Posicion {
   top: number;
@@ -8,6 +10,28 @@ interface Posicion {
 }
 
 const MARGEN = 3;
+
+// Zonas del campo completo para el selector de Tagueo: 3 columnas x 3 filas
+// — se toca dentro de una zona y se selecciona la zona entera (su centro),
+// en vez de guardar el punto exacto del toque. Menos preciso pero mucho más
+// rápido de tocar en marcha y, sobre todo, comparable entre registros: dos
+// toques en la misma franja del campo caen siempre en el mismo punto.
+const ZONA_FILAS = 3;
+const ZONA_COLUMNAS = 3;
+
+function indiceZona(valorPorcentual: number, cantidad: number) {
+  return Math.min(
+    cantidad - 1,
+    Math.max(0, Math.floor((valorPorcentual / 100) * cantidad)),
+  );
+}
+
+function centroDeZona(fila: number, columna: number): Posicion {
+  return {
+    top: ((fila + 0.5) / ZONA_FILAS) * 100,
+    left: ((columna + 0.5) / ZONA_COLUMNAS) * 100,
+  };
+}
 
 // Textura de red para la portería: dos tramas diagonales cruzadas.
 const ESTILO_RED: React.CSSProperties = {
@@ -73,24 +97,45 @@ export function CampoMiniSelector({
 }
 
 // Campo completo (no solo un lado) para elegir una zona genérica del
-// partido — a diferencia de CampoMiniSelector, pensado para la posición de
-// un gol siempre en la misma portería de ataque.
+// partido — a diferencia de CampoMiniSelector, pensado para tagueo, donde la
+// acción puede pasar en cualquier parte del campo, no solo cerca de una
+// portería.
+//
+// `flip`: en la 2ª parte los equipos cambian de lado, así que la portería
+// que se atacaba arriba en la 1ª parte pasa a estar abajo. Las coordenadas
+// que se tocan se guardan tal cual, sin transformar nada por dentro (cada
+// registro ya lleva su `parte`, así que un análisis posterior puede tener
+// en cuenta el cambio de lado si hace falta) — lo único que cambia con
+// `flip` es cuál de las dos porterías se resalta en el color del club, para
+// que se vea de un vistazo hacia dónde se ataca en cada momento, con una
+// transición suave al cambiar de parte.
 export function CampoCompletoSelector({
   value,
   onChange,
+  flip = false,
 }: {
   value: Posicion | null;
   onChange: (pos: Posicion) => void;
+  flip?: boolean;
 }) {
   const pitchRef = useRef<HTMLDivElement>(null);
 
   function handlePick(e: React.PointerEvent<HTMLDivElement>) {
     const rect = pitchRef.current?.getBoundingClientRect();
     if (!rect) return;
-    const left = clamp(((e.clientX - rect.left) / rect.width) * 100, MARGEN, 100 - MARGEN);
-    const top = clamp(((e.clientY - rect.top) / rect.height) * 100, MARGEN, 100 - MARGEN);
-    onChange({ top, left });
+    const left = ((e.clientX - rect.left) / rect.width) * 100;
+    const top = ((e.clientY - rect.top) / rect.height) * 100;
+    const fila = indiceZona(top, ZONA_FILAS);
+    const columna = indiceZona(left, ZONA_COLUMNAS);
+    onChange(centroDeZona(fila, columna));
   }
+
+  const zonaSeleccionada = value
+    ? {
+        fila: indiceZona(value.top, ZONA_FILAS),
+        columna: indiceZona(value.left, ZONA_COLUMNAS),
+      }
+    : null;
 
   return (
     <div
@@ -98,23 +143,63 @@ export function CampoCompletoSelector({
       onPointerDown={handlePick}
       className="relative mx-auto aspect-[2/3] w-full max-w-xs touch-none overflow-hidden rounded-lg bg-pitch"
     >
+      <div
+        className={cn(
+          "absolute inset-x-0 top-1 z-10 flex items-center justify-center gap-1 text-[10px] font-semibold uppercase tracking-wide transition-opacity duration-300",
+          flip ? "opacity-0" : "opacity-100",
+        )}
+      >
+        <span className="rounded-full bg-primary px-2 py-0.5 text-primary-foreground shadow">
+          ▲ Atacamos hacia aquí
+        </span>
+      </div>
+      <div
+        className={cn(
+          "absolute inset-x-0 bottom-1 z-10 flex items-center justify-center gap-1 text-[10px] font-semibold uppercase tracking-wide transition-opacity duration-300",
+          flip ? "opacity-100" : "opacity-0",
+        )}
+      >
+        <span className="rounded-full bg-primary px-2 py-0.5 text-primary-foreground shadow">
+          ▼ Atacamos hacia aquí
+        </span>
+      </div>
       <div className="absolute inset-x-0 top-1/2 h-px bg-white/40" />
       <div className="absolute top-1/2 left-1/2 size-16 -translate-x-1/2 -translate-y-1/2 rounded-full border border-white/40" />
-      <div className="absolute inset-x-[20%] top-0 h-[16%] border-x border-b border-white/40" />
-      <div className="absolute inset-x-[20%] bottom-0 h-[16%] border-x border-t border-white/40" />
+      <div
+        className={cn(
+          "absolute inset-x-[20%] top-0 h-[16%] border-x border-b transition-colors duration-300",
+          flip ? "border-white/40" : "border-primary shadow-[0_0_12px_var(--primary)]",
+        )}
+      />
+      <div
+        className={cn(
+          "absolute inset-x-[20%] bottom-0 h-[16%] border-x border-t transition-colors duration-300",
+          flip ? "border-primary shadow-[0_0_12px_var(--primary)]" : "border-white/40",
+        )}
+      />
       <div className="absolute inset-x-[38%] top-0 h-[6%] border-x border-b border-white/40" />
       <div className="absolute inset-x-[38%] bottom-0 h-[6%] border-x border-t border-white/40" />
-      <span className="absolute inset-x-0 top-1 text-center text-[8px] font-semibold uppercase tracking-wide text-white/70">
-        Portería rival · a favor
-      </span>
-      <span className="absolute inset-x-0 bottom-1 text-center text-[8px] font-semibold uppercase tracking-wide text-white/70">
-        Nuestra portería · en contra
-      </span>
-      {value && (
-        <span
-          className="absolute size-5 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-white bg-gold shadow"
-          style={{ top: `${value.top}%`, left: `${value.left}%` }}
-        />
+
+      {/* Rejilla de zonas (3x3): líneas divisorias discontinuas */}
+      <div className="absolute inset-y-0 left-1/3 w-px border-l border-dashed border-white/50" />
+      <div className="absolute inset-y-0 left-2/3 w-px border-l border-dashed border-white/50" />
+      <div className="absolute inset-x-0 top-1/3 h-px border-t border-dashed border-white/50" />
+      <div className="absolute inset-x-0 top-2/3 h-px border-t border-dashed border-white/50" />
+
+      {zonaSeleccionada && (
+        <div
+          className="absolute flex items-center justify-center bg-gold/35"
+          style={{
+            top: `${(zonaSeleccionada.fila / ZONA_FILAS) * 100}%`,
+            left: `${(zonaSeleccionada.columna / ZONA_COLUMNAS) * 100}%`,
+            width: `${100 / ZONA_COLUMNAS}%`,
+            height: `${100 / ZONA_FILAS}%`,
+          }}
+        >
+          <span className="flex size-6 items-center justify-center rounded-full border-2 border-white bg-gold shadow">
+            <Check className="size-4 text-gold-foreground" strokeWidth={3} />
+          </span>
+        </div>
       )}
     </div>
   );

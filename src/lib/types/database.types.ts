@@ -117,6 +117,8 @@ export interface Database {
           color: string;
           orden: number;
           activo: boolean;
+          requiere_jugador: boolean;
+          requiere_zona: boolean;
           created_at: string;
         };
         Insert: {
@@ -125,6 +127,8 @@ export interface Database {
           color: string;
           orden?: number;
           activo?: boolean;
+          requiere_jugador?: boolean;
+          requiere_zona?: boolean;
           created_at?: string;
         };
         Update: Partial<Database["public"]["Tables"]["etiquetas"]["Insert"]>;
