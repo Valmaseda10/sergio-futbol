@@ -67,35 +67,27 @@ export function NotasRival({
       <CardHeader>
         <CardTitle className="text-base">Notas del rival</CardTitle>
       </CardHeader>
-      <CardContent className="p-0">
-        <table className="w-full border-collapse text-sm">
-          <tbody>
-            {FILAS.map(({ key, label }) => (
-              <tr key={key} className="border-t first:border-t-0">
-                <td className="w-24 shrink-0 p-2 align-top text-xs font-medium text-muted-foreground">
-                  {label}
-                </td>
-                <td className="p-2 pl-0">
-                  <textarea
-                    ref={ajustarAltura}
-                    rows={4}
-                    value={valores[key]}
-                    onChange={(e) => {
-                      setValores((prev) => ({ ...prev, [key]: e.target.value }));
-                      ajustarAltura(e.target);
-                    }}
-                    onBlur={(e) => handleBlur(key, e.target.value)}
-                    placeholder="Añade un comentario..."
-                    className="field-sizing-content w-full resize-none overflow-hidden rounded-md bg-transparent p-1 text-sm outline-none placeholder:text-muted-foreground hover:bg-muted/50 focus:bg-muted/50 print:hidden"
-                  />
-                  <p className="hidden text-sm whitespace-pre-wrap print:block">
-                    {valores[key]}
-                  </p>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+      <CardContent className="grid gap-4 sm:grid-cols-2">
+        {FILAS.map(({ key, label }) => (
+          <div key={key} className="space-y-1">
+            <p className="text-xs font-medium text-muted-foreground">{label}</p>
+            <textarea
+              ref={ajustarAltura}
+              rows={4}
+              value={valores[key]}
+              onChange={(e) => {
+                setValores((prev) => ({ ...prev, [key]: e.target.value }));
+                ajustarAltura(e.target);
+              }}
+              onBlur={(e) => handleBlur(key, e.target.value)}
+              placeholder="Añade un comentario..."
+              className="field-sizing-content w-full resize-none overflow-hidden rounded-md border bg-transparent p-1.5 text-sm outline-none placeholder:text-muted-foreground hover:bg-muted/50 focus:bg-muted/50 print:hidden"
+            />
+            <p className="hidden text-sm whitespace-pre-wrap print:block">
+              {valores[key]}
+            </p>
+          </div>
+        ))}
       </CardContent>
     </Card>
   );
