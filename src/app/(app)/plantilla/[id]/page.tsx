@@ -442,7 +442,7 @@ export default function FichaJugadorPage() {
             </Select>
           </CardHeader>
           <CardContent className="space-y-3 text-center">
-            <div className="grid grid-cols-6 gap-y-3">
+            <div className="grid grid-cols-5 gap-y-3">
               <TileEstadisticaClicable
                 label="Convocados"
                 valor={statsTemporada.convocatorias}
@@ -457,15 +457,6 @@ export default function FichaJugadorPage() {
                 { label: "Titular", valor: statsTemporada.titularidades },
                 { label: "Suplente", valor: statsTemporada.suplencias },
                 { label: "Minutos", valor: statsTemporada.minutosAprox },
-                {
-                  label: "Min./partido",
-                  valor:
-                    statsTemporada.convocatorias > 0
-                      ? Math.round(
-                          statsTemporada.minutosAprox / statsTemporada.convocatorias,
-                        )
-                      : 0,
-                },
               ].map((d) => (
                 <div key={d.label}>
                   <p className="font-heading text-xl tabular-nums">{d.valor}</p>
