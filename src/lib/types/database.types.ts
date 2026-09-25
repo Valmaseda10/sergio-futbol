@@ -21,6 +21,7 @@ export type EstadoSolicitud = "pendiente" | "aprobado" | "rechazado";
 export type TipoVideo = "partido" | "clip";
 export type CategoriaJugadorDestacado = "top" | "flojo";
 export type RolPlantillaRival = "jugador" | "entrenador" | "delegado";
+export type TipoDocumentoRival = "hoja_partido" | "pre_partido";
 export type TipoGol =
   | "juego_asociativo"
   | "transicion_ofensiva"
@@ -896,6 +897,7 @@ export interface Database {
           rival_id: string;
           nombre: string;
           archivo_url: string;
+          tipo: TipoDocumentoRival;
           created_at: string;
         };
         Insert: {
@@ -903,6 +905,7 @@ export interface Database {
           rival_id: string;
           nombre: string;
           archivo_url: string;
+          tipo?: TipoDocumentoRival;
           created_at?: string;
         };
         Update: Partial<

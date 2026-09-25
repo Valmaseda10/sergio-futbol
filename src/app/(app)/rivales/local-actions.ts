@@ -13,7 +13,7 @@ import {
   type LocalRivalGolIntervalo,
   type LocalRivalDocumento,
 } from "@/lib/db/local-db";
-import type { IntervaloGol } from "@/lib/types/database.types";
+import type { IntervaloGol, TipoDocumentoRival } from "@/lib/types/database.types";
 import { queueMutation } from "@/lib/db/sync";
 import { createClient } from "@/lib/supabase/client";
 import { subirArchivoPrivado, extensionDeArchivo } from "@/lib/storage";
@@ -395,14 +395,16 @@ type DocumentoResult =
   | { error: string }
   | { success: true; documento: LocalRivalDocumento };
 
-// Hojas de partido u otros documentos apuntados a mano contra este rival:
-// a diferencia de la foto (un único campo en rivales_scouting), puede haber
-// varios por rival (ida/vuelta, distintas competiciones), así que van en su
-// propia tabla en vez de sobrescribir un campo fijo.
+// Hojas de partido (apuntadas tras jugar contra el rival) y documento
+// PrePartido (preparado antes, para exponer al equipo) — a diferencia de la
+// foto (un único campo en rivales_scouting), puede haber varios de cada
+// tipo por rival (ida/vuelta, distintas competiciones), así que van en su
+// propia tabla en vez de sobrescribir un campo fijo, distinguidos por tipo.
 export async function subirDocumentoRivalLocal(
   rivalId: string,
   nombre: string,
   archivo: File,
+  tipo: TipoDocumentoRival = "hoja_partido",
 ): Promise<DocumentoResult> {
   const nombreLimpio = nombre.trim();
   if (!nombreLimpio) {
@@ -425,6 +427,7 @@ export async function subirDocumentoRivalLocal(
     rival_id: rivalId,
     nombre: nombreLimpio,
     archivo_url: path,
+    tipo,
     created_at: new Date().toISOString(),
   };
 

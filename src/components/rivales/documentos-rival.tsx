@@ -1,9 +1,10 @@
 "use client";
 
-// Hojas de partido (u otros PDF/fotos) subidas a mano con lo apuntado
-// durante los partidos jugados contra este rival. A diferencia de la foto
-// del rival (un único campo), aquí puede haber varias — ida/vuelta,
-// distintas competiciones — así que se listan con su propio nombre.
+// Documentos del rival subidos a mano, distinguidos por tipo: hojas de
+// partido (apuntadas tras jugar contra él) y documento PrePartido (preparado
+// antes, para exponer al equipo). A diferencia de la foto del rival (un
+// único campo), aquí puede haber varios de cada tipo — ida/vuelta, distintas
+// competiciones — así que se listan con su propio nombre.
 
 import { useEffect, useRef, useState } from "react";
 import { useLiveQuery } from "dexie-react-hooks";
@@ -11,6 +12,7 @@ import { toast } from "sonner";
 import { FileText, ExternalLink, Trash2, Plus, Loader2 } from "lucide-react";
 import { localDb } from "@/lib/db/local-db";
 import { createClient } from "@/lib/supabase/client";
+import type { TipoDocumentoRival } from "@/lib/types/database.types";
 import {
   subirDocumentoRivalLocal,
   eliminarDocumentoRivalLocal,
@@ -19,7 +21,17 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
-export function DocumentosRival({ rivalId }: { rivalId: string }) {
+export function DocumentosRival({
+  rivalId,
+  tipo,
+  descripcion,
+  placeholderNombre,
+}: {
+  rivalId: string;
+  tipo: TipoDocumentoRival;
+  descripcion: string;
+  placeholderNombre: string;
+}) {
   const [mostrarForm, setMostrarForm] = useState(false);
   const [nombre, setNombre] = useState("");
   const [archivo, setArchivo] = useState<File | null>(null);
@@ -32,11 +44,12 @@ export function DocumentosRival({ rivalId }: { rivalId: string }) {
       localDb.rivales_documentos
         .where("rival_id")
         .equals(rivalId)
+        .filter((d) => d.tipo === tipo)
         .toArray()
         .then((rows) =>
           rows.sort((a, b) => b.created_at.localeCompare(a.created_at)),
         ),
-    [rivalId],
+    [rivalId, tipo],
     [],
   );
 
@@ -76,7 +89,7 @@ export function DocumentosRival({ rivalId }: { rivalId: string }) {
       return;
     }
     setSubiendo(true);
-    const result = await subirDocumentoRivalLocal(rivalId, nombre, archivo);
+    const result = await subirDocumentoRivalLocal(rivalId, nombre, archivo, tipo);
     setSubiendo(false);
 
     if ("error" in result) {
@@ -100,9 +113,7 @@ export function DocumentosRival({ rivalId }: { rivalId: string }) {
   return (
     <div className="space-y-3">
       <div className="flex items-center justify-between">
-        <p className="text-xs text-muted-foreground">
-          Hojas de partido y otros documentos de los partidos jugados.
-        </p>
+        <p className="text-xs text-muted-foreground">{descripcion}</p>
         <Button
           type="button"
           size="sm"
@@ -118,12 +129,12 @@ export function DocumentosRival({ rivalId }: { rivalId: string }) {
       {mostrarForm && (
         <div className="space-y-3 rounded-md border p-3 print:hidden">
           <div className="space-y-1">
-            <Label htmlFor="documento-nombre" className="text-xs">
+            <Label htmlFor={`documento-nombre-${tipo}`} className="text-xs">
               Nombre
             </Label>
             <Input
-              id="documento-nombre"
-              placeholder="Ej. Jornada 5 — hoja de partido"
+              id={`documento-nombre-${tipo}`}
+              placeholder={placeholderNombre}
               value={nombre}
               onChange={(e) => setNombre(e.target.value)}
             />

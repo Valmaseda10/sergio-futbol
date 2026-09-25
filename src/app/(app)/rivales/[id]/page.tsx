@@ -150,10 +150,29 @@ export default function FichaRivalPage() {
 
       <Card className="print:hidden">
         <CardHeader>
+          <CardTitle className="text-base">Documento PrePartido</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <DocumentosRival
+            rivalId={rival.id}
+            tipo="pre_partido"
+            descripcion="Documento preparado antes del partido para exponer al equipo."
+            placeholderNombre="Ej. PrePartido jornada 5"
+          />
+        </CardContent>
+      </Card>
+
+      <Card className="print:hidden">
+        <CardHeader>
           <CardTitle className="text-base">Hojas de partido</CardTitle>
         </CardHeader>
         <CardContent>
-          <DocumentosRival rivalId={rival.id} />
+          <DocumentosRival
+            rivalId={rival.id}
+            tipo="hoja_partido"
+            descripcion="Hojas de partido y otros documentos de los partidos jugados."
+            placeholderNombre="Ej. Jornada 5 — hoja de partido"
+          />
         </CardContent>
       </Card>
 
