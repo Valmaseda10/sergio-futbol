@@ -9,9 +9,18 @@
 import { useEffect, useRef, useState } from "react";
 import { useLiveQuery } from "dexie-react-hooks";
 import { toast } from "sonner";
-import { FileText, ExternalLink, Trash2, Plus, Loader2 } from "lucide-react";
+import {
+  FileText,
+  ExternalLink,
+  Trash2,
+  Plus,
+  Loader2,
+  Maximize2,
+  X,
+} from "lucide-react";
 import { localDb } from "@/lib/db/local-db";
 import { createClient } from "@/lib/supabase/client";
+import { esPdf } from "@/lib/storage";
 import type { TipoDocumentoRival } from "@/lib/types/database.types";
 import {
   subirDocumentoRivalLocal,
@@ -20,6 +29,62 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+
+// Visor de PDF a pantalla completa dentro de la propia app: pide fullscreen
+// nativo al abrir (en iPad lo soporta Safari, a diferencia del iPhone) y si
+// no está disponible se queda igualmente como overlay a toda la pantalla.
+// Un PowerPoint no se puede renderizar así — sin un visor externo (que
+// implicaría mandar el enlace del documento a los servidores de
+// Microsoft) — así que este visor es solo para PDF.
+function VisorPdfPantallaCompleta({
+  url,
+  nombre,
+  onClose,
+}: {
+  url: string;
+  nombre: string;
+  onClose: () => void;
+}) {
+  const contenedorRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    contenedorRef.current?.requestFullscreen?.().catch(() => {
+      // Sin soporte de fullscreen (p.ej. iPhone): se queda como overlay
+      // normal, que ya cubre toda la pantalla igualmente.
+    });
+    function handleFullscreenChange() {
+      if (!document.fullscreenElement) onClose();
+    }
+    document.addEventListener("fullscreenchange", handleFullscreenChange);
+    return () => {
+      document.removeEventListener("fullscreenchange", handleFullscreenChange);
+      if (document.fullscreenElement) document.exitFullscreen().catch(() => {});
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  return (
+    <div
+      ref={contenedorRef}
+      className="fixed inset-0 z-50 flex flex-col bg-black"
+    >
+      <div className="flex items-center justify-between bg-black/80 p-2">
+        <p className="truncate px-2 text-sm text-white">{nombre}</p>
+        <Button
+          type="button"
+          variant="ghost"
+          size="icon"
+          className="text-white hover:bg-white/10 hover:text-white"
+          aria-label="Cerrar"
+          onClick={onClose}
+        >
+          <X className="size-5" />
+        </Button>
+      </div>
+      <iframe src={url} title={nombre} className="flex-1 border-0 bg-white" />
+    </div>
+  );
+}
 
 export function DocumentosRival({
   rivalId,
@@ -37,6 +102,10 @@ export function DocumentosRival({
   const [archivo, setArchivo] = useState<File | null>(null);
   const [subiendo, setSubiendo] = useState(false);
   const [borrandoId, setBorrandoId] = useState<string | null>(null);
+  const [visorPantallaCompleta, setVisorPantallaCompleta] = useState<{
+    url: string;
+    nombre: string;
+  } | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const documentos = useLiveQuery(
@@ -201,6 +270,21 @@ export function DocumentosRival({
                   <p className="truncate font-medium">{d.nombre}</p>
                 )}
               </div>
+              {signedUrls[d.id] && esPdf(d.archivo_url) && (
+                <button
+                  type="button"
+                  onClick={() =>
+                    setVisorPantallaCompleta({
+                      url: signedUrls[d.id],
+                      nombre: d.nombre,
+                    })
+                  }
+                  aria-label="Ver a pantalla completa"
+                  className="print:hidden"
+                >
+                  <Maximize2 className="size-4 text-muted-foreground hover:text-foreground" />
+                </button>
+              )}
               <button
                 type="button"
                 onClick={() => handleBorrar(d.id)}
@@ -213,6 +297,14 @@ export function DocumentosRival({
             </li>
           ))}
         </ul>
+      )}
+
+      {visorPantallaCompleta && (
+        <VisorPdfPantallaCompleta
+          url={visorPantallaCompleta.url}
+          nombre={visorPantallaCompleta.nombre}
+          onClose={() => setVisorPantallaCompleta(null)}
+        />
       )}
     </div>
   );
