@@ -79,13 +79,13 @@ export function DocumentosRival({
     const file = e.target.files?.[0] ?? null;
     setArchivo(file);
     if (file && !nombre.trim()) {
-      setNombre(file.name.replace(/\.pdf$/i, ""));
+      setNombre(file.name.replace(/\.(pdf|pptx?|ppsx?)$/i, ""));
     }
   }
 
   async function handleSubir() {
     if (!archivo) {
-      toast.error("Elige un archivo PDF");
+      toast.error("Elige un archivo PDF o PowerPoint");
       return;
     }
     setSubiendo(true);
@@ -150,12 +150,12 @@ export function DocumentosRival({
                 onClick={() => fileInputRef.current?.click()}
               >
                 <FileText className="size-4" />
-                {archivo ? archivo.name : "Elegir PDF"}
+                {archivo ? archivo.name : "Elegir PDF o PowerPoint"}
               </Button>
               <input
                 ref={fileInputRef}
                 type="file"
-                accept="application/pdf"
+                accept="application/pdf,.pdf,application/vnd.openxmlformats-officedocument.presentationml.presentation,.pptx,application/vnd.ms-powerpoint,.ppt"
                 className="hidden"
                 onChange={handleElegirArchivo}
               />
