@@ -11,6 +11,7 @@ import { eliminarSesionLocal } from "@/app/(app)/videos/local-actions";
 import { getYoutubeVideoId } from "@/lib/youtube";
 import { SesionPlayer, type ClipDeSesion } from "@/components/videos/sesion-player";
 import { SesionForm } from "@/components/videos/sesion-form";
+import { DescargarSesionButton } from "@/components/videos/descargar-sesion-button";
 import { Button } from "@/components/ui/button";
 import {
   AlertDialog,
@@ -154,7 +155,10 @@ export default function VerSesionPage() {
           Esta sesión no tiene clips reproducibles.
         </p>
       ) : (
-        <SesionPlayer clips={clips} />
+        <>
+          <SesionPlayer clips={clips} />
+          <DescargarSesionButton clips={clips} tituloSesion={sesion.titulo} />
+        </>
       )}
     </div>
   );
