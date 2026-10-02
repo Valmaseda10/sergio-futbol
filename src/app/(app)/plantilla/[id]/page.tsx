@@ -45,6 +45,8 @@ type TipoEventoConDetalle =
 type CategoriaDialogoPartidos =
   | "convocado"
   | "desconvocado"
+  | "titular"
+  | "suplente"
   | "gol_encajado"
   | TipoEventoConDetalle;
 
@@ -58,7 +60,9 @@ interface PartidoConCantidad {
 const DIALOGO_PARTIDOS_TITULO: Record<CategoriaDialogoPartidos, string> = {
   convocado: "Partidos convocado",
   desconvocado: "Partidos no convocado",
-  gol: "Partidos con gol",
+  titular: "Partidos como titular",
+  suplente: "Partidos como suplente",
+  gol:"Partidos con gol",
   asistencia: "Partidos con asistencia",
   gol_encajado: "Partidos con gol encajado",
   tarjeta_amarilla: "Partidos con tarjeta amarilla",
@@ -259,6 +263,38 @@ export default function FichaJugadorPage() {
     };
   }, [jugador, partidos, convocatorias, temporada, faseSel]);
 
+  // Partidos en los que ha salido de titular / de suplente (misma fuente que
+  // statsTemporada.titularidades/suplencias: la alineación del partido).
+  const { partidosTitular, partidosSuplente } = useMemo(() => {
+    if (!jugador) return { partidosTitular: [], partidosSuplente: [] };
+
+    const partidosFiltrados = new Map(
+      partidos
+        .filter(
+          (p) =>
+            enTemporada(p.fecha, temporada) &&
+            (faseSel === "todas" || p.fase === faseSel),
+        )
+        .map((p) => [p.id, p]),
+    );
+    const alineacionesJugador = alineaciones.filter(
+      (a) => a.jugador_id === jugador.id && partidosFiltrados.has(a.partido_id),
+    );
+
+    function partidosDe(titular: boolean) {
+      return alineacionesJugador
+        .filter((a) => a.titular === titular)
+        .map((a) => partidosFiltrados.get(a.partido_id) as LocalPartido)
+        .sort((a, b) => b.fecha.localeCompare(a.fecha))
+        .map((partido): PartidoConCantidad => ({ partido, cantidad: 1 }));
+    }
+
+    return {
+      partidosTitular: partidosDe(true),
+      partidosSuplente: partidosDe(false),
+    };
+  }, [jugador, partidos, alineaciones, temporada, faseSel]);
+
   // Partidos en los que ha marcado gol/asistencia/tarjeta (dentro del mismo
   // filtro de temporada/fase), con cuántas veces en cada uno — 2 goles en el
   // mismo partido salen como una fila con "×2", no como dos filas iguales.
@@ -453,16 +489,22 @@ export default function FichaJugadorPage() {
                 valor={partidosDesconvocado.length}
                 onClick={() => setDialogoPartidos("desconvocado")}
               />
-              {[
-                { label: "Titular", valor: statsTemporada.titularidades },
-                { label: "Suplente", valor: statsTemporada.suplencias },
-                { label: "Minutos", valor: statsTemporada.minutosAprox },
-              ].map((d) => (
-                <div key={d.label}>
-                  <p className="font-heading text-xl tabular-nums">{d.valor}</p>
-                  <p className="text-xs text-muted-foreground">{d.label}</p>
-                </div>
-              ))}
+              <TileEstadisticaClicable
+                label="Titular"
+                valor={statsTemporada.titularidades}
+                onClick={() => setDialogoPartidos("titular")}
+              />
+              <TileEstadisticaClicable
+                label="Suplente"
+                valor={statsTemporada.suplencias}
+                onClick={() => setDialogoPartidos("suplente")}
+              />
+              <div>
+                <p className="font-heading text-xl tabular-nums">
+                  {statsTemporada.minutosAprox}
+                </p>
+                <p className="text-xs text-muted-foreground">Minutos</p>
+              </div>
             </div>
             <div className="grid grid-cols-5 gap-y-3">
               {esPortero ? (
@@ -639,11 +681,15 @@ export default function FichaJugadorPage() {
               ? partidosConvocado
               : dialogoPartidos === "desconvocado"
                 ? partidosDesconvocado
-                : dialogoPartidos === "gol_encajado"
-                  ? partidosConGolEncajado
-                  : dialogoPartidos
-                    ? partidosPorEvento[dialogoPartidos]
-                    : []
+                : dialogoPartidos === "titular"
+                  ? partidosTitular
+                  : dialogoPartidos === "suplente"
+                    ? partidosSuplente
+                    : dialogoPartidos === "gol_encajado"
+                      ? partidosConGolEncajado
+                      : dialogoPartidos
+                        ? partidosPorEvento[dialogoPartidos]
+                        : []
             ).map(({ partido: p, cantidad }) => (
               <li key={p.id}>
                 <Link
