@@ -60,8 +60,8 @@ interface PartidoConCantidad {
 const DIALOGO_PARTIDOS_TITULO: Record<CategoriaDialogoPartidos, string> = {
   convocado: "Partidos convocado",
   desconvocado: "Partidos no convocado",
-  titular: "Partidos como titular",
-  suplente: "Partidos como suplente",
+  titular: "Titular y suplente",
+  suplente: "Titular y suplente",
   gol:"Partidos con gol",
   asistencia: "Partidos con asistencia",
   gol_encajado: "Partidos con gol encajado",
@@ -394,6 +394,27 @@ export default function FichaJugadorPage() {
     null,
   );
 
+  const seccionesDialogo: { titulo?: string; lista: PartidoConCantidad[] }[] =
+    dialogoPartidos === "titular" || dialogoPartidos === "suplente"
+      ? [
+          { titulo: "Titular", lista: partidosTitular },
+          { titulo: "Suplente", lista: partidosSuplente },
+        ]
+      : [
+          {
+            lista:
+              dialogoPartidos === "convocado"
+                ? partidosConvocado
+                : dialogoPartidos === "desconvocado"
+                  ? partidosDesconvocado
+                  : dialogoPartidos === "gol_encajado"
+                    ? partidosConGolEncajado
+                    : dialogoPartidos
+                      ? partidosPorEvento[dialogoPartidos]
+                      : [],
+          },
+        ];
+
   if (jugador === undefined) {
     return <p className="text-sm text-muted-foreground">Cargando...</p>;
   }
@@ -676,42 +697,44 @@ export default function FichaJugadorPage() {
               {dialogoPartidos && DIALOGO_PARTIDOS_TITULO[dialogoPartidos]}
             </DialogTitle>
           </DialogHeader>
-          <ul className="max-h-[60vh] divide-y overflow-y-auto">
-            {(dialogoPartidos === "convocado"
-              ? partidosConvocado
-              : dialogoPartidos === "desconvocado"
-                ? partidosDesconvocado
-                : dialogoPartidos === "titular"
-                  ? partidosTitular
-                  : dialogoPartidos === "suplente"
-                    ? partidosSuplente
-                    : dialogoPartidos === "gol_encajado"
-                      ? partidosConGolEncajado
-                      : dialogoPartidos
-                        ? partidosPorEvento[dialogoPartidos]
-                        : []
-            ).map(({ partido: p, cantidad }) => (
-              <li key={p.id}>
-                <Link
-                  href={`/partidos/${p.id}`}
-                  onClick={() => setDialogoPartidos(null)}
-                  className="flex items-center gap-3 py-2 text-sm hover:bg-muted/50"
-                >
-                  <span className="min-w-0 flex-1 truncate font-medium">
-                    vs {p.rival}
-                  </span>
-                  {cantidad > 1 && (
-                    <span className="shrink-0 rounded-full bg-muted px-1.5 py-0.5 text-xs font-semibold tabular-nums">
-                      ×{cantidad}
-                    </span>
-                  )}
-                  <span className="shrink-0 text-xs text-muted-foreground">
-                    {formatearFechaCorta(p.fecha)}
-                  </span>
-                </Link>
-              </li>
+          <div className="max-h-[60vh] space-y-4 overflow-y-auto">
+            {seccionesDialogo.map(({ titulo, lista }) => (
+              <div key={titulo ?? "unica"}>
+                {titulo && (
+                  <p className="mb-1 text-xs font-medium text-muted-foreground">
+                    {titulo} ({lista.length})
+                  </p>
+                )}
+                {lista.length === 0 ? (
+                  <p className="py-2 text-sm text-muted-foreground">Ninguno</p>
+                ) : (
+                  <ul className="divide-y">
+                    {lista.map(({ partido: p, cantidad }) => (
+                      <li key={p.id}>
+                        <Link
+                          href={`/partidos/${p.id}`}
+                          onClick={() => setDialogoPartidos(null)}
+                          className="flex items-center gap-3 py-2 text-sm hover:bg-muted/50"
+                        >
+                          <span className="min-w-0 flex-1 truncate font-medium">
+                            vs {p.rival}
+                          </span>
+                          {cantidad > 1 && (
+                            <span className="shrink-0 rounded-full bg-muted px-1.5 py-0.5 text-xs font-semibold tabular-nums">
+                              ×{cantidad}
+                            </span>
+                          )}
+                          <span className="shrink-0 text-xs text-muted-foreground">
+                            {formatearFechaCorta(p.fecha)}
+                          </span>
+                        </Link>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
             ))}
-          </ul>
+          </div>
         </DialogContent>
       </Dialog>
     </div>
