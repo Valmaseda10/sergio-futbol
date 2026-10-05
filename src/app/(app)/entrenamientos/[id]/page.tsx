@@ -73,6 +73,15 @@ function FichaEntrenamientoDetalle({
   const [tareaImagenSignedUrls, setTareaImagenSignedUrls] = useState<
     (string | null)[]
   >([null, null, null, null]);
+  const jugadoresActivos = useLiveQuery(
+    () =>
+      localDb.jugadores
+        .filter((j) => j.activo)
+        .toArray()
+        .then((rows) => rows.sort((a, b) => a.nombre.localeCompare(b.nombre))),
+    [],
+    [],
+  );
 
   useEffect(() => {
     if (!entrenamiento.documento_url || !navigator.onLine) return;
@@ -167,6 +176,7 @@ function FichaEntrenamientoDetalle({
       <EntrenamientoFichaImprimible
         entrenamiento={entrenamiento}
         tareaImagenSignedUrls={tareaImagenSignedUrls}
+        jugadores={jugadoresActivos}
       />
 
       {entrenamiento.documento_url && documentoSignedUrl && (

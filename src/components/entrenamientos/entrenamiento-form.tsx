@@ -15,6 +15,7 @@ import {
   Sparkles,
   Loader2,
   ImagePlus,
+  PenTool,
 } from "lucide-react";
 import {
   ENTRENAMIENTO_FORM_DEFAULTS,
@@ -27,6 +28,13 @@ import {
   detectarCategoriaPorTexto,
 } from "@/lib/validations/categoria-tarea";
 import { extraerTareasDePdf, type TareaDetectada } from "@/lib/pdf-tareas";
+import {
+  normalizarObjetivosTabla,
+  type Diagrama,
+  type FichaEntrenamiento,
+} from "@/lib/ficha-entrenamiento";
+import { DiagramaEditor } from "@/components/entrenamientos/diagrama-editor";
+import { ObjetivosTablaEditor } from "@/components/entrenamientos/objetivos-tabla";
 import {
   crearEntrenamientoLocal,
   actualizarEntrenamientoLocal,
@@ -164,9 +172,11 @@ function FieldError({ message }: { message?: string }) {
 // elegir/cambiar, al estilo de una casilla de la plantilla.
 function ImagenTarea({
   urlActual,
+  vistaPrevia,
   onChange,
 }: {
   urlActual?: string | null;
+  vistaPrevia?: string | null;
   onChange: (archivo: File) => void;
 }) {
   const inputRef = useRef<HTMLInputElement>(null);
@@ -196,7 +206,7 @@ function ImagenTarea({
     aplicarArchivo(file);
   }
 
-  const preview = previewLocal ?? urlActual ?? null;
+  const preview = vistaPrevia ?? previewLocal ?? urlActual ?? null;
 
   return (
     <div className="space-y-1">
@@ -243,6 +253,7 @@ export function EntrenamientoForm({
     id: string;
     documentoSignedUrl?: string | null;
     tareaImagenSignedUrls?: (string | null)[];
+    ficha?: FichaEntrenamiento;
   };
 }) {
   const router = useRouter();
@@ -252,6 +263,18 @@ export function EntrenamientoForm({
     (File | null)[]
   >([null, null, null, null]);
   const [pickerPara, setPickerPara] = useState<CampoTarea | null>(null);
+  const [ficha, setFicha] = useState<FichaEntrenamiento>(
+    entrenamiento?.ficha ?? {},
+  );
+  const [diagramaEditando, setDiagramaEditando] = useState<number | null>(null);
+  // Vista previa del PNG generado al dibujar un diagrama (el archivo aún no
+  // está subido hasta guardar la sesión).
+  const [previewsDiagrama, setPreviewsDiagrama] = useState<(string | null)[]>([
+    null,
+    null,
+    null,
+    null,
+  ]);
   const [extrayendo, setExtrayendo] = useState(false);
   const [tareasDetectadas, setTareasDetectadas] = useState<
     TareaDetectada[] | null
@@ -381,8 +404,9 @@ export function EntrenamientoForm({
           values,
           documento,
           imagenesTareas,
+          ficha,
         )
-      : await crearEntrenamientoLocal(values, documento, imagenesTareas);
+      : await crearEntrenamientoLocal(values, documento, imagenesTareas, ficha);
 
     if ("error" in result) {
       toast.error(result.error);
@@ -481,6 +505,30 @@ export function EntrenamientoForm({
           </p>
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
+              <Label htmlFor="numero_sesion">Nº sesión</Label>
+              <Input
+                id="numero_sesion"
+                placeholder="Ej: 21-LUNES"
+                value={ficha.numero_sesion ?? ""}
+                onChange={(e) =>
+                  setFicha((f) => ({ ...f, numero_sesion: e.target.value }))
+                }
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="convocados">Jugadores</Label>
+              <Input
+                id="convocados"
+                placeholder="Ej: 14+1P"
+                value={ficha.convocados ?? ""}
+                onChange={(e) =>
+                  setFicha((f) => ({ ...f, convocados: e.target.value }))
+                }
+              />
+            </div>
+          </div>
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
               <Label htmlFor="rival_torneo">Rival / Torneo</Label>
               <Input id="rival_torneo" {...register("rival_torneo")} />
             </div>
@@ -526,6 +574,22 @@ export function EntrenamientoForm({
               />
             </div>
           </div>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardContent className="space-y-3 pt-6">
+          <details>
+            <summary className="cursor-pointer text-xs font-medium text-muted-foreground">
+              Tabla de objetivos (Psicológico / Táctico / Técnico / Físico)
+            </summary>
+            <div className="pt-3">
+              <ObjetivosTablaEditor
+                valor={normalizarObjetivosTabla(ficha.tabla_objetivos)}
+                onChange={(t) => setFicha((f) => ({ ...f, tabla_objetivos: t }))}
+              />
+            </div>
+          </details>
         </CardContent>
       </Card>
 
@@ -583,16 +647,34 @@ export function EntrenamientoForm({
                 </Button>
               </div>
               <div className="flex gap-3">
-                <ImagenTarea
-                  urlActual={entrenamiento?.tareaImagenSignedUrls?.[i]}
-                  onChange={(archivo) =>
-                    setImagenesTareas((prev) => {
-                      const siguiente = [...prev];
-                      siguiente[i] = archivo;
-                      return siguiente;
-                    })
-                  }
-                />
+                <div className="flex flex-col gap-1">
+                  <ImagenTarea
+                    urlActual={entrenamiento?.tareaImagenSignedUrls?.[i]}
+                    vistaPrevia={previewsDiagrama[i]}
+                    onChange={(archivo) => {
+                      setPreviewsDiagrama((prev) => {
+                        const siguiente = [...prev];
+                        siguiente[i] = null;
+                        return siguiente;
+                      });
+                      setImagenesTareas((prev) => {
+                        const siguiente = [...prev];
+                        siguiente[i] = archivo;
+                        return siguiente;
+                      });
+                    }}
+                  />
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className="w-24 px-1 text-xs"
+                    onClick={() => setDiagramaEditando(i)}
+                  >
+                    <PenTool className="size-3.5" />
+                    Dibujar
+                  </Button>
+                </div>
                 <Textarea
                   id={campo}
                   rows={4}
@@ -937,6 +1019,36 @@ export function EntrenamientoForm({
           </div>
         </DialogContent>
       </Dialog>
+
+      {diagramaEditando !== null && (
+        <DiagramaEditor
+          key={diagramaEditando}
+          abierto
+          numeroTarea={diagramaEditando + 1}
+          inicial={ficha.diagramas?.[diagramaEditando] ?? null}
+          onCerrar={() => setDiagramaEditando(null)}
+          onGuardar={(diagrama: Diagrama, png: File) => {
+            const i = diagramaEditando;
+            setFicha((f) => {
+              const diagramas = [...(f.diagramas ?? [null, null, null, null])];
+              diagramas[i] = diagrama;
+              return { ...f, diagramas };
+            });
+            setImagenesTareas((prev) => {
+              const siguiente = [...prev];
+              siguiente[i] = png;
+              return siguiente;
+            });
+            setPreviewsDiagrama((prev) => {
+              const siguiente = [...prev];
+              siguiente[i] = URL.createObjectURL(png);
+              return siguiente;
+            });
+            setDiagramaEditando(null);
+            toast.success(`Diagrama de la tarea ${i + 1} listo — guarda la sesión para conservarlo`);
+          }}
+        />
+      )}
     </form>
   );
 }

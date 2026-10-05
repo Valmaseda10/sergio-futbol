@@ -324,6 +324,9 @@ export interface Database {
           extra_minutos: number | null;
           notas: string | null;
           documento_url: string | null;
+          // Cabecera extra, tabla de objetivos y diagramas de la ficha de
+          // sesión (formato en src/lib/ficha-entrenamiento.ts).
+          ficha: Json | null;
           created_at: string;
         };
         Insert: {
@@ -402,6 +405,7 @@ export interface Database {
           extra_minutos?: number | null;
           notas?: string | null;
           documento_url?: string | null;
+          ficha?: Json | null;
           created_at?: string;
         };
         Update: Partial<

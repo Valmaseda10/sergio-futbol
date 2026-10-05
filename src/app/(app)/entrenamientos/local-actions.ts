@@ -11,6 +11,7 @@ import {
 import { queueMutation } from "@/lib/db/sync";
 import { createClient } from "@/lib/supabase/client";
 import { subirArchivoPrivado, extensionDeArchivo } from "@/lib/storage";
+import { fichaAJson, type FichaEntrenamiento } from "@/lib/ficha-entrenamiento";
 import {
   entrenamientoSchema,
   generarSchema,
@@ -83,6 +84,7 @@ export async function crearEntrenamientoLocal(
   values: EntrenamientoFormValues,
   documento?: File | null,
   imagenesTareas?: ImagenesTareas,
+  ficha?: FichaEntrenamiento,
 ): Promise<ActionResult> {
   const parsed = entrenamientoSchema.safeParse(values);
   if (!parsed.success) {
@@ -98,6 +100,7 @@ export async function crearEntrenamientoLocal(
     tarea_3_imagen_url: null,
     tarea_4_imagen_url: null,
     documento_url: null,
+    ficha: ficha ? fichaAJson(ficha) : null,
     created_at: new Date().toISOString(),
   };
 
@@ -138,13 +141,17 @@ export async function actualizarEntrenamientoLocal(
   values: EntrenamientoFormValues,
   documento?: File | null,
   imagenesTareas?: ImagenesTareas,
+  ficha?: FichaEntrenamiento,
 ): Promise<ActionResult> {
   const parsed = entrenamientoSchema.safeParse(values);
   if (!parsed.success) {
     return { error: parsed.error.issues[0]?.message ?? "Datos no válidos" };
   }
 
-  const patch = toEntrenamientoInsert(parsed.data);
+  const patch = {
+    ...toEntrenamientoInsert(parsed.data),
+    ...(ficha ? { ficha: fichaAJson(ficha) } : {}),
+  };
   await localDb.entrenamientos.update(id, patch);
   await queueMutation("entrenamientos", "update", id, patch);
 
@@ -332,6 +339,7 @@ export async function generarEntrenamientosLocal(
     extra_minutos: null,
     notas: null,
     documento_url: null,
+    ficha: null,
     created_at: now,
   }));
 

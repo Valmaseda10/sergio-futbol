@@ -1,19 +1,30 @@
 "use client";
 
-// Ficha de sesión al estilo de la plantilla que se usaba en PowerPoint
-// (cabecera con celdas, tareas en tabla con D/E/T, imagen + rotación a un
-// lado, reglas de provocación y observaciones abajo), pensada para
-// imprimir/exportar a PDF con window.print() (el mismo mecanismo que ya usa
-// el informe de scouting de rivales) — así no hace falta ninguna licencia de
-// PowerPoint para seguir generando la hoja de cada entrenamiento.
+// Ficha de sesión con el aspecto de la plantilla de PowerPoint: banda roja
+// lateral con el título vertical, barras azul claro (OBJETIVOS, ROTACIÓN...),
+// tabla D/E/T, diagrama a la derecha de cada tarea y, arriba, el tablero con
+// los nombres de los jugadores (en rojo, los que son baja). Se imprime en
+// dos hojas (tareas 1-2 y 3-4) con window.print(), igual que el informe de
+// scouting — así no hace falta ninguna licencia de PowerPoint.
 
 import { Printer } from "lucide-react";
 import { clubConfig } from "@/lib/club-config";
-import { CATEGORIA_TAREA_LABEL } from "@/lib/validations/categoria-tarea";
+import { temporadaDeFecha } from "@/lib/temporada";
 import { grupoMaterialDeFecha } from "@/lib/grupos-material";
-import type { LocalEntrenamiento } from "@/lib/db/local-db";
+import {
+  leerFicha,
+  normalizarObjetivosTabla,
+  objetivosTablaTieneContenido,
+} from "@/lib/ficha-entrenamiento";
+import { demarcacionDePosicion, type Demarcacion } from "@/lib/posiciones";
+import type { LocalEntrenamiento, LocalJugador } from "@/lib/db/local-db";
 import { Button } from "@/components/ui/button";
 import { PdfWatermark } from "@/components/branding/pdf-watermark";
+import { ObjetivosTablaVista } from "@/components/entrenamientos/objetivos-tabla";
+
+const ROJO = "#c00000";
+const AZUL = "#d9e1f2";
+const COLORES_ROTACION = ["#dc2626", "#2563eb", "#16a34a", "#111111"];
 
 function formatearFechaCorta(fecha: string) {
   return new Date(`${fecha}T00:00:00`).toLocaleDateString("es-ES", {
@@ -23,34 +34,184 @@ function formatearFechaCorta(fecha: string) {
   });
 }
 
-// Celda de cabecera al estilo de la tabla FECHA SESIÓN / RIVAL / MICROCICLO
-// de la plantilla: etiqueta sombreada arriba, valor debajo.
-function CampoCelda({
-  etiqueta,
-  valor,
+function normalizar(s: string) {
+  return s
+    .normalize("NFD")
+    .replace(/[̀-ͯ]/g, "")
+    .toLowerCase()
+    .trim();
+}
+
+// Texto con **negrita** (la plantilla resalta con negrita el ítem clave).
+function TextoRico({ texto }: { texto: string | null }) {
+  if (!texto) return null;
+  return (
+    <>
+      {texto.split("\n").map((linea, i) => (
+        <p key={i} className="leading-snug">
+          {linea.split(/(\*\*[^*]+\*\*)/g).map((trozo, j) =>
+            trozo.startsWith("**") && trozo.endsWith("**") ? (
+              <strong key={j}>{trozo.slice(2, -2)}</strong>
+            ) : (
+              <span key={j}>{trozo}</span>
+            ),
+          )}
+        </p>
+      ))}
+    </>
+  );
+}
+
+function BarraAzul({
+  children,
   className = "",
 }: {
-  etiqueta: string;
-  valor: string | null;
+  children: React.ReactNode;
   className?: string;
 }) {
   return (
-    <div className={`border-border p-2 print:p-1 ${className}`}>
-      <p className="text-[9px] font-semibold tracking-wide text-muted-foreground uppercase print:text-[7px]">
-        {etiqueta}
-      </p>
-      <p className="text-xs whitespace-pre-wrap print:text-[9px]">{valor}</p>
+    <p
+      className={`px-2 py-0.5 text-center text-[11px] font-bold tracking-wide uppercase print:py-0 print:text-[8px] ${className}`}
+      style={{ backgroundColor: AZUL }}
+    >
+      {children}
+    </p>
+  );
+}
+
+function CeldaEtiqueta({ children }: { children: React.ReactNode }) {
+  return (
+    <div
+      className="flex items-center justify-center px-1 py-1 text-center text-[10px] font-bold uppercase print:py-0.5 print:text-[7px]"
+      style={{ backgroundColor: AZUL }}
+    >
+      {children}
     </div>
   );
 }
 
-// Cabecera de sección con fondo, igual que "OBJETIVOS" / "ROTACIÓN" /
-// "REGLAS DE PROVOCACIÓN" en la plantilla.
-function TituloSeccion({ children }: { children: React.ReactNode }) {
+function CeldaValor({
+  children,
+  className = "",
+}: {
+  children: React.ReactNode;
+  className?: string;
+}) {
   return (
-    <p className="border-b border-border bg-muted/70 px-2 py-0.5 text-center text-[9px] font-semibold tracking-wide text-muted-foreground uppercase print:px-1 print:py-0 print:text-[7px]">
+    <div
+      className={`flex items-center px-2 py-1 text-xs whitespace-pre-wrap print:px-1 print:py-0.5 print:text-[8px] ${className}`}
+    >
       {children}
-    </p>
+    </div>
+  );
+}
+
+// Banda roja lateral con texto vertical (título de la sesión / de cada tarea).
+function BandaRoja({ children }: { children: React.ReactNode }) {
+  return (
+    <div
+      className="flex w-7 shrink-0 items-center justify-center overflow-hidden py-2 text-white print:w-5"
+      style={{ backgroundColor: ROJO }}
+    >
+      <p
+        className="max-h-full text-[11px] font-semibold tracking-wide uppercase print:text-[8px]"
+        style={{ writingMode: "vertical-rl", transform: "rotate(180deg)" }}
+      >
+        {children}
+      </p>
+    </div>
+  );
+}
+
+function Rotacion({ texto }: { texto: string }) {
+  const segmentos = texto
+    .split("\n")
+    .flatMap((linea) => linea.split(" — "))
+    .map((s) => s.trim())
+    .filter(Boolean);
+  return (
+    <div className="grid grid-cols-2 gap-x-3 gap-y-0.5 p-2 text-[11px] font-bold print:p-1 print:text-[8px]">
+      {segmentos.map((s, i) => (
+        <p
+          key={i}
+          className="leading-snug"
+          style={{ color: COLORES_ROTACION[i % COLORES_ROTACION.length] }}
+        >
+          {s}
+        </p>
+      ))}
+    </div>
+  );
+}
+
+const ORDEN_FILAS: { dem: Demarcacion; y: number }[] = [
+  { dem: "delantero", y: 14 },
+  { dem: "extremo", y: 36 },
+  { dem: "mediocentro", y: 58 },
+  { dem: "defensa", y: 78 },
+  { dem: "portero", y: 92 },
+];
+
+// Campo con los nombres de la plantilla colocados por demarcación. Los que
+// aparecen en el campo "Bajas" salen en rojo, como en la plantilla.
+function TableroJugadores({
+  jugadores,
+  bajas,
+  convocados,
+}: {
+  jugadores: LocalJugador[];
+  bajas: string | null;
+  convocados: string | null;
+}) {
+  const tokens = normalizar(bajas ?? "")
+    .split(/[^a-z0-9]+/)
+    .filter((t) => t.length >= 3);
+  const esBaja = (j: LocalJugador) => {
+    const nombres = [j.alias, j.nombre, j.apellidos.split(" ")[0]]
+      .filter((n): n is string => !!n)
+      .map(normalizar);
+    return tokens.some((t) =>
+      nombres.some((n) => n === t || (t.length >= 4 && n.startsWith(t))),
+    );
+  };
+
+  const porFila = ORDEN_FILAS.map(({ dem, y }) => ({
+    y,
+    lista: jugadores.filter(
+      (j) => (demarcacionDePosicion(j.posicion) ?? "mediocentro") === dem,
+    ),
+  }));
+
+  return (
+    <div
+      className="relative aspect-[16/8] w-full overflow-hidden"
+      style={{ backgroundColor: "#2f8f3a" }}
+    >
+      <div className="absolute inset-x-[6%] top-[4%] bottom-[4%] border border-white/60" />
+      <div className="absolute inset-x-[30%] bottom-[4%] h-[26%] border border-white/60" />
+      <div className="absolute top-[4%] left-1/2 size-12 -translate-x-1/2 -translate-y-1/2 rounded-full border border-white/60" />
+      {convocados && (
+        <p className="absolute top-1 right-2 rounded bg-white px-1.5 text-xs font-bold text-black print:text-[9px]">
+          {convocados}
+        </p>
+      )}
+      {porFila.map(({ y, lista }) =>
+        lista.map((j, i) => (
+          <span
+            key={j.id}
+            className="absolute -translate-x-1/2 -translate-y-1/2 border border-neutral-400 px-1 text-[8px] leading-tight font-bold whitespace-nowrap uppercase print:text-[6px]"
+            style={{
+              left: `${((i + 1) / (lista.length + 1)) * 88 + 6}%`,
+              top: `${y}%`,
+              backgroundColor: esBaja(j) ? "#c00000" : "#ffffff",
+              color: esBaja(j) ? "#ffffff" : "#111111",
+            }}
+          >
+            {j.alias || j.nombre}
+          </span>
+        )),
+      )}
+    </div>
   );
 }
 
@@ -61,8 +222,6 @@ function BloqueTarea({
   dimension,
   series,
   tiempo,
-  minutos,
-  categoria,
   objetivosDef,
   objetivosOfe,
   rotacion,
@@ -76,16 +235,11 @@ function BloqueTarea({
   dimension: string | null;
   series: string | null;
   tiempo: string | null;
-  minutos: number | null;
-  categoria: string | null;
   objetivosDef: string | null;
   objetivosOfe: string | null;
   rotacion: string | null;
   reglasProvocacion: string | null;
   observaciones: string | null;
-  // Tareas 3 y 4 van en la segunda hoja (Tarea 1 y 2 en la primera), igual
-  // que en la plantilla — así la ficha imprime siempre en dos páginas, para
-  // poder sacarla a doble cara.
   saltoPagina?: boolean;
 }) {
   const sinContenido =
@@ -103,118 +257,72 @@ function BloqueTarea({
 
   return (
     <div
-      className={`flex min-h-[240px] flex-col break-inside-avoid border-t border-border first:border-t-0 print:min-h-[210px] ${
+      className={`flex break-inside-avoid border-t border-neutral-300 ${
         saltoPagina ? "print:break-before-page" : ""
       }`}
     >
-      <div className="flex flex-wrap items-center justify-between gap-2 bg-primary px-2 py-1 text-primary-foreground print:px-1.5 print:py-0.5">
-        <p className="text-sm font-bold tracking-wide uppercase print:text-[11px]">
-          Tarea {numero}
-          {titulo ? ` · ${titulo}` : ""}
-        </p>
-        <div className="flex items-center gap-2 text-[10px] print:text-[8px]">
-          {categoria && (
-            <span className="rounded-full bg-primary-foreground/20 px-2 py-0.5 font-medium print:px-1 print:py-0">
-              {CATEGORIA_TAREA_LABEL[
-                categoria as keyof typeof CATEGORIA_TAREA_LABEL
-              ] ?? categoria}
-            </span>
-          )}
-          {minutos != null && <span>{minutos}&prime; en total</span>}
+      <BandaRoja>{titulo || `Tarea ${numero}`}</BandaRoja>
+      <div className="min-w-0 flex-1">
+        <div className="grid grid-cols-[2rem_1fr_2rem_1fr_2rem_1fr] border-b border-neutral-300 print:grid-cols-[1.4rem_1fr_1.4rem_1fr_1.4rem_1fr]">
+          <CeldaEtiqueta>D</CeldaEtiqueta>
+          <CeldaValor className="justify-center">{dimension}</CeldaValor>
+          <CeldaEtiqueta>E</CeldaEtiqueta>
+          <CeldaValor className="justify-center">{series}</CeldaValor>
+          <CeldaEtiqueta>T</CeldaEtiqueta>
+          <CeldaValor className="justify-center">{tiempo}</CeldaValor>
         </div>
-      </div>
 
-      {(dimension || series || tiempo) && (
-        <div className="grid grid-cols-3 divide-x divide-border border-b border-border text-xs print:text-[9px]">
-          <div className="flex items-baseline gap-1 p-1.5 print:p-1">
-            <span className="font-semibold">D</span>
-            <span className="whitespace-pre-wrap">{dimension}</span>
-          </div>
-          <div className="flex items-baseline gap-1 p-1.5 print:p-1">
-            <span className="font-semibold">E</span>
-            <span className="whitespace-pre-wrap">{series}</span>
-          </div>
-          <div className="flex items-baseline gap-1 p-1.5 print:p-1">
-            <span className="font-semibold">T</span>
-            <span className="whitespace-pre-wrap">{tiempo}</span>
-          </div>
-        </div>
-      )}
-
-      <div className="grid flex-1 grid-cols-1 divide-border border-b border-border sm:grid-cols-[1fr_260px] sm:divide-x print:grid-cols-[1fr_170px] print:divide-x">
-        <div className="border border-border sm:border-y-0 sm:border-l-0">
-          {(objetivosDef || objetivosOfe) && (
-            <>
-              <TituloSeccion>Objetivos</TituloSeccion>
-              <div className="grid grid-cols-2 divide-x divide-border border-b border-border">
-                <div className="p-2 print:p-1">
-                  <p className="text-[9px] font-semibold text-muted-foreground uppercase underline underline-offset-2 print:text-[7px]">
-                    Ítems fase defensiva
+        <div className="grid grid-cols-1 sm:grid-cols-2 print:grid-cols-2">
+          <div className="border-neutral-300 sm:border-r print:border-r">
+            <BarraAzul>Objetivos</BarraAzul>
+            <div className="space-y-2 p-2 text-sm print:space-y-1 print:p-1 print:text-[9px]">
+              {objetivosDef && (
+                <div>
+                  <p className="text-center font-bold underline underline-offset-2">
+                    ITEMS FASE DEF
                   </p>
-                  <p className="text-xs whitespace-pre-wrap print:text-[10px]">{objetivosDef}</p>
+                  <TextoRico texto={objetivosDef} />
                 </div>
-                <div className="p-2 print:p-1">
-                  <p className="text-[9px] font-semibold text-muted-foreground uppercase underline underline-offset-2 print:text-[7px]">
-                    Ítems fase ofensiva
+              )}
+              {objetivosOfe && (
+                <div>
+                  <p className="text-center font-bold underline underline-offset-2">
+                    ITEMS FASE OFE
                   </p>
-                  <p className="text-xs whitespace-pre-wrap print:text-[10px]">{objetivosOfe}</p>
+                  <TextoRico texto={objetivosOfe} />
                 </div>
-              </div>
-            </>
-          )}
-        </div>
-        <div className="flex flex-col border-t border-border sm:border-t-0 print:border-t-0">
-          {imagenUrl && (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img
-              src={imagenUrl}
-              alt={`Diagrama de la tarea ${numero}`}
-              className="aspect-[4/3] w-full border-b border-border object-cover"
-            />
-          )}
-          {rotacion && (
-            <div className="flex-1">
-              <TituloSeccion>Rotación</TituloSeccion>
-              <p className="p-2 text-xs whitespace-pre-wrap print:p-1 print:text-[10px]">
-                {rotacion}
-              </p>
+              )}
             </div>
-          )}
-        </div>
-      </div>
-
-      {(reglasProvocacion || observaciones) && (
-        <div className="grid grid-cols-1 divide-border sm:grid-cols-2 sm:divide-x print:grid-cols-2 print:divide-x">
-          <div className="border-t border-border sm:border-t-0 print:border-t-0">
-            <TituloSeccion>Reglas de provocación</TituloSeccion>
-            <p className="p-2 text-xs whitespace-pre-wrap print:p-1 print:text-[10px]">
-              {reglasProvocacion}
-            </p>
           </div>
-          <div className="border-t border-border">
-            <TituloSeccion>Observaciones</TituloSeccion>
-            <p className="p-2 text-xs whitespace-pre-wrap print:p-1 print:text-[10px]">
-              {observaciones}
-            </p>
+          <div className="flex flex-col">
+            {imagenUrl ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={imagenUrl}
+                alt={`Diagrama de la tarea ${numero}`}
+                className="aspect-[3/2] w-full object-contain"
+                style={{ backgroundColor: "#f3f4f6" }}
+              />
+            ) : null}
+            <BarraAzul>Rotación</BarraAzul>
+            {rotacion && <Rotacion texto={rotacion} />}
           </div>
         </div>
-      )}
-    </div>
-  );
-}
 
-// Campo horizontal en blanco, para tomar notas a mano sobre el PDF impreso.
-function CampoNotas() {
-  return (
-    <div className="break-inside-avoid border-t border-border print:break-inside-avoid">
-      <TituloSeccion>Notas / pizarra</TituloSeccion>
-      <div className="relative mx-auto my-2 aspect-[16/9] w-full max-w-xl overflow-hidden rounded-md bg-pitch print:my-1 print:max-w-sm print:rounded-none">
-        <div className="absolute inset-y-0 left-1/2 w-px -translate-x-1/2 bg-white/40" />
-        <div className="absolute top-1/2 left-1/2 size-16 -translate-x-1/2 -translate-y-1/2 rounded-full border border-white/40" />
-        <div className="absolute inset-y-[18%] left-0 w-[10%] border-y border-r border-white/40" />
-        <div className="absolute inset-y-[18%] right-0 w-[10%] border-y border-l border-white/40" />
-        <div className="absolute inset-y-[38%] left-0 w-[4%] border-y border-r border-white/40" />
-        <div className="absolute inset-y-[38%] right-0 w-[4%] border-y border-l border-white/40" />
+        <div className="grid grid-cols-1 sm:grid-cols-2 print:grid-cols-2">
+          <div>
+            <BarraAzul>Reglas de provocación</BarraAzul>
+            <div className="min-h-6 p-2 text-sm print:p-1 print:text-[9px]">
+              <TextoRico texto={reglasProvocacion} />
+            </div>
+          </div>
+          <div>
+            <BarraAzul>Observaciones</BarraAzul>
+            <div className="min-h-6 p-2 text-sm print:p-1 print:text-[9px]">
+              <TextoRico texto={observaciones} />
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   );
@@ -223,105 +331,47 @@ function CampoNotas() {
 export function EntrenamientoFichaImprimible({
   entrenamiento,
   tareaImagenSignedUrls,
+  jugadores,
 }: {
   entrenamiento: LocalEntrenamiento;
   tareaImagenSignedUrls?: (string | null)[];
+  jugadores?: LocalJugador[];
 }) {
-  const tareas = [
-    {
-      numero: 1,
-      titulo: entrenamiento.tarea_1,
-      imagenUrl: tareaImagenSignedUrls?.[0] ?? null,
-      dimension: entrenamiento.tarea_1_dimension,
-      series: entrenamiento.tarea_1_series,
-      tiempo: entrenamiento.tarea_1_tiempo,
-      minutos: entrenamiento.tarea_1_minutos,
-      categoria: entrenamiento.tarea_1_categoria,
-      objetivosDef: entrenamiento.tarea_1_objetivos_def,
-      objetivosOfe: entrenamiento.tarea_1_objetivos_ofe,
-      rotacion: entrenamiento.tarea_1_rotacion,
-      reglasProvocacion: entrenamiento.tarea_1_reglas_provocacion,
-      observaciones: entrenamiento.tarea_1_observaciones,
-    },
-    {
-      numero: 2,
-      titulo: entrenamiento.tarea_2,
-      imagenUrl: tareaImagenSignedUrls?.[1] ?? null,
-      dimension: entrenamiento.tarea_2_dimension,
-      series: entrenamiento.tarea_2_series,
-      tiempo: entrenamiento.tarea_2_tiempo,
-      minutos: entrenamiento.tarea_2_minutos,
-      categoria: entrenamiento.tarea_2_categoria,
-      objetivosDef: entrenamiento.tarea_2_objetivos_def,
-      objetivosOfe: entrenamiento.tarea_2_objetivos_ofe,
-      rotacion: entrenamiento.tarea_2_rotacion,
-      reglasProvocacion: entrenamiento.tarea_2_reglas_provocacion,
-      observaciones: entrenamiento.tarea_2_observaciones,
-    },
-    {
-      numero: 3,
-      titulo: entrenamiento.tarea_3,
-      imagenUrl: tareaImagenSignedUrls?.[2] ?? null,
-      dimension: entrenamiento.tarea_3_dimension,
-      series: entrenamiento.tarea_3_series,
-      tiempo: entrenamiento.tarea_3_tiempo,
-      minutos: entrenamiento.tarea_3_minutos,
-      categoria: entrenamiento.tarea_3_categoria,
-      objetivosDef: entrenamiento.tarea_3_objetivos_def,
-      objetivosOfe: entrenamiento.tarea_3_objetivos_ofe,
-      rotacion: entrenamiento.tarea_3_rotacion,
-      reglasProvocacion: entrenamiento.tarea_3_reglas_provocacion,
-      observaciones: entrenamiento.tarea_3_observaciones,
-    },
-    {
-      numero: 4,
-      titulo: entrenamiento.tarea_4,
-      imagenUrl: tareaImagenSignedUrls?.[3] ?? null,
-      dimension: entrenamiento.tarea_4_dimension,
-      series: entrenamiento.tarea_4_series,
-      tiempo: entrenamiento.tarea_4_tiempo,
-      minutos: entrenamiento.tarea_4_minutos,
-      categoria: entrenamiento.tarea_4_categoria,
-      objetivosDef: entrenamiento.tarea_4_objetivos_def,
-      objetivosOfe: entrenamiento.tarea_4_objetivos_ofe,
-      rotacion: entrenamiento.tarea_4_rotacion,
-      reglasProvocacion: entrenamiento.tarea_4_reglas_provocacion,
-      observaciones: entrenamiento.tarea_4_observaciones,
-    },
-  ];
+  const ficha = leerFicha(entrenamiento.ficha);
+  const e = entrenamiento;
 
-  const roles = [
-    {
-      numero: 1,
-      campos: entrenamiento.tarea_1_rol_campos,
-      paco: entrenamiento.tarea_1_rol_paco,
-    },
-    {
-      numero: 2,
-      campos: entrenamiento.tarea_2_rol_campos,
-      paco: entrenamiento.tarea_2_rol_paco,
-    },
-    {
-      numero: 3,
-      campos: entrenamiento.tarea_3_rol_campos,
-      paco: entrenamiento.tarea_3_rol_paco,
-    },
-    {
-      numero: 4,
-      campos: entrenamiento.tarea_4_rol_campos,
-      paco: entrenamiento.tarea_4_rol_paco,
-    },
-  ];
-  const hayRoles = roles.some((r) => r.campos || r.paco);
-  const grupoMaterialHoy = grupoMaterialDeFecha(entrenamiento.fecha);
-  // Quién recoge el material va dentro del propio apartado de Material, no
-  // en uno aparte — así ese hueco lo aprovecha el resto de la ficha.
+  const tareas = [1, 2, 3, 4].map((n) => {
+    const k = (campo: string) =>
+      (e as unknown as Record<string, string | null>)[`tarea_${n}${campo}`] ?? null;
+    return {
+      numero: n,
+      titulo: k(""),
+      imagenUrl: tareaImagenSignedUrls?.[n - 1] ?? null,
+      dimension: k("_dimension"),
+      series: k("_series"),
+      tiempo: k("_tiempo"),
+      objetivosDef: k("_objetivos_def"),
+      objetivosOfe: k("_objetivos_ofe"),
+      rotacion: k("_rotacion"),
+      reglasProvocacion: k("_reglas_provocacion"),
+      observaciones: k("_observaciones"),
+      campos: k("_rol_campos"),
+      paco: k("_rol_paco"),
+    };
+  });
+  const hayRoles = tareas.some((t) => t.campos || t.paco);
+
+  const tabla = ficha.tabla_objetivos
+    ? normalizarObjetivosTabla(ficha.tabla_objetivos)
+    : null;
+  const grupoMaterialHoy = grupoMaterialDeFecha(e.fecha);
   const materialTexto = [
     grupoMaterialHoy ? `Recoge y lleva: ${grupoMaterialHoy.join(", ")}` : null,
-    entrenamiento.material,
+    e.material,
   ]
     .filter(Boolean)
     .join("\n");
+  const temporada = temporadaDeFecha(e.fecha).replace("-", "/");
 
   return (
     <div className="space-y-3">
@@ -341,66 +391,74 @@ export function EntrenamientoFichaImprimible({
         </Button>
       </div>
 
-      <div className="relative overflow-hidden rounded-md border border-border bg-card print:overflow-visible print:rounded-none print:border-none">
-        <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-0.5 bg-primary px-3 py-1.5 text-primary-foreground print:px-2 print:py-1">
-          <p className="min-w-0 font-heading text-sm tracking-wide uppercase print:text-xs">
-            {clubConfig.nombreEquipo} — Sesión de entrenamiento
-          </p>
-          <p className="min-w-0 text-right text-[10px] font-semibold tracking-wide uppercase print:text-[8px]">
-            {clubConfig.nombreClub}
-          </p>
-        </div>
-
-        <div className="grid grid-cols-2 divide-x divide-y divide-border border-b border-border sm:grid-cols-4 sm:divide-y-0 print:grid-cols-4 print:divide-y-0">
-          <CampoCelda
-            etiqueta="Fecha sesión"
-            valor={formatearFechaCorta(entrenamiento.fecha)}
-          />
-          <CampoCelda etiqueta="Rival / Torneo" valor={entrenamiento.rival_torneo} />
-          <CampoCelda etiqueta="Microciclo" valor={entrenamiento.microciclo} />
-          <CampoCelda etiqueta="Lugar" valor={entrenamiento.lugar} />
-        </div>
-        <div className="grid grid-cols-1 divide-border border-b border-border sm:grid-cols-2 sm:divide-x print:grid-cols-2 print:divide-x">
-          <CampoCelda
-            etiqueta="Bajas"
-            valor={entrenamiento.bajas}
-            className="border-b border-border sm:border-b-0 print:border-b-0"
-          />
-          <CampoCelda etiqueta="Obj. semanal" valor={entrenamiento.objetivos} />
-        </div>
-
-        {(entrenamiento.charla || materialTexto) && (
-          <div className="grid grid-cols-1 divide-border border-b border-border sm:grid-cols-2 sm:divide-x print:grid-cols-2 print:divide-x">
-            <div className="border-b border-border sm:border-b-0 print:border-b-0">
-              <TituloSeccion>Charla</TituloSeccion>
-              <p className="p-2 text-xs whitespace-pre-wrap print:p-1 print:text-[9px]">
-                {entrenamiento.charla}
-              </p>
+      <div
+        className="overflow-hidden rounded-md border border-neutral-300 bg-white text-neutral-900 print:overflow-visible print:rounded-none print:border-none"
+        style={{ printColorAdjust: "exact", WebkitPrintColorAdjust: "exact" }}
+      >
+        <div className="flex">
+          <BandaRoja>
+            Sesión de entrenamiento · {clubConfig.nombreEquipo} - {temporada}
+          </BandaRoja>
+          <div className="grid min-w-0 flex-1 grid-cols-1 sm:grid-cols-2 print:grid-cols-2">
+            <div className="border-neutral-300 sm:border-r print:border-r">
+              <div className="grid grid-cols-[5.5rem_1fr_5.5rem_1fr] border-b border-neutral-300 print:grid-cols-[4rem_1fr_4rem_1fr]">
+                <CeldaEtiqueta>Fecha sesión</CeldaEtiqueta>
+                <CeldaValor>{formatearFechaCorta(e.fecha)}</CeldaValor>
+                <CeldaEtiqueta>Nº sesión</CeldaEtiqueta>
+                <CeldaValor>{ficha.numero_sesion}</CeldaValor>
+                <CeldaEtiqueta>Rival</CeldaEtiqueta>
+                <CeldaValor>{e.rival_torneo}</CeldaValor>
+                <CeldaEtiqueta>Microciclo</CeldaEtiqueta>
+                <CeldaValor>{e.microciclo}</CeldaValor>
+                <CeldaEtiqueta>Bajas</CeldaEtiqueta>
+                <CeldaValor className="col-span-3">{e.bajas}</CeldaValor>
+                <CeldaEtiqueta>Obj. semanal</CeldaEtiqueta>
+                <CeldaValor className="col-span-3">{e.objetivos}</CeldaValor>
+              </div>
+              <BarraAzul>Charla</BarraAzul>
+              <div className="min-h-10 p-2 text-sm whitespace-pre-wrap print:p-1 print:text-[9px]">
+                {e.charla}
+              </div>
+              {tabla && objetivosTablaTieneContenido(tabla) && (
+                <div className="p-1">
+                  <ObjetivosTablaVista tabla={tabla} />
+                </div>
+              )}
             </div>
-            <div>
-              <TituloSeccion>Material</TituloSeccion>
-              <p className="p-2 text-xs whitespace-pre-wrap print:p-1 print:text-[9px]">
+            <div className="flex flex-col">
+              {jugadores && jugadores.length > 0 ? (
+                <TableroJugadores
+                  jugadores={jugadores}
+                  bajas={e.bajas}
+                  convocados={ficha.convocados ?? null}
+                />
+              ) : (
+                <div className="aspect-[16/8] w-full" style={{ backgroundColor: "#2f8f3a" }} />
+              )}
+              <BarraAzul>Material</BarraAzul>
+              <div className="flex-1 p-2 text-sm whitespace-pre-wrap print:p-1 print:text-[9px]">
                 {materialTexto}
-              </p>
+              </div>
             </div>
           </div>
-        )}
+        </div>
 
         {hayRoles && (
-          <div className="border-b border-border">
-            <TituloSeccion>Roles entrenador</TituloSeccion>
-            <div className="grid grid-cols-2 divide-x divide-y divide-border sm:grid-cols-4 sm:divide-y-0 print:grid-cols-4 print:divide-y-0">
-              {roles.map((r) => (
-                <div key={r.numero} className="p-2 text-xs print:p-1 print:text-[8px]">
-                  <p className="text-[9px] font-semibold text-muted-foreground uppercase print:text-[7px]">
-                    Tarea {r.numero}
+          <div className="border-t border-neutral-300">
+            <BarraAzul>Roles</BarraAzul>
+            <div className="grid grid-cols-2 sm:grid-cols-4 print:grid-cols-4">
+              {tareas.map((t) => (
+                <div key={t.numero} className="border-r border-neutral-200 last:border-r-0">
+                  <p
+                    className="py-0.5 text-center text-[10px] font-bold uppercase print:text-[7px]"
+                    style={{ backgroundColor: AZUL }}
+                  >
+                    Tarea {t.numero}
                   </p>
-                  <p>
-                    <span className="font-semibold">Campos:</span> {r.campos}
-                  </p>
-                  <p>
-                    <span className="font-semibold">Paco:</span> {r.paco}
-                  </p>
+                  <div className="p-1.5 text-xs print:p-1 print:text-[8px]">
+                    <p>Campos: {t.campos}</p>
+                    <p>Paco: {t.paco}</p>
+                  </div>
                 </div>
               ))}
             </div>
@@ -411,16 +469,14 @@ export function EntrenamientoFichaImprimible({
           <BloqueTarea key={t.numero} {...t} saltoPagina={t.numero === 3} />
         ))}
 
-        {entrenamiento.notas && (
-          <div className="border-t border-border">
-            <TituloSeccion>Notas</TituloSeccion>
-            <p className="p-2 text-xs whitespace-pre-wrap print:p-1 print:text-[9px]">
-              {entrenamiento.notas}
+        {e.notas && (
+          <div className="border-t border-neutral-300">
+            <BarraAzul>Notas</BarraAzul>
+            <p className="p-2 text-sm whitespace-pre-wrap print:p-1 print:text-[9px]">
+              {e.notas}
             </p>
           </div>
         )}
-
-        <CampoNotas />
       </div>
     </div>
   );

@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import { useLiveQuery } from "dexie-react-hooks";
 import { localDb, type LocalEntrenamiento } from "@/lib/db/local-db";
+import { leerFicha } from "@/lib/ficha-entrenamiento";
 import { createClient } from "@/lib/supabase/client";
 import { EntrenamientoForm } from "@/components/entrenamientos/entrenamiento-form";
 
@@ -162,6 +163,7 @@ function EditarEntrenamientoDetalle({
           notas: entrenamiento.notas ?? "",
           documentoSignedUrl,
           tareaImagenSignedUrls,
+          ficha: leerFicha(entrenamiento.ficha),
         }}
       />
     </div>
