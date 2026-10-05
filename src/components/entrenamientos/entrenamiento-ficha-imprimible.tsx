@@ -130,7 +130,7 @@ function Rotacion({ texto }: { texto: string }) {
     .map((s) => s.trim())
     .filter(Boolean);
   return (
-    <div className="grid grid-cols-2 gap-x-3 gap-y-0.5 p-2 text-[11px] font-bold print:p-1 print:text-[8px]">
+    <div className="grid grid-cols-2 gap-x-3 gap-y-0.5 p-2 text-[11px] font-bold print:p-1 print:text-[7.5px]">
       {segmentos.map((s, i) => (
         <p
           key={i}
@@ -227,7 +227,6 @@ function BloqueTarea({
   rotacion,
   reglasProvocacion,
   observaciones,
-  saltoPagina,
 }: {
   numero: number;
   titulo: string | null;
@@ -240,7 +239,6 @@ function BloqueTarea({
   rotacion: string | null;
   reglasProvocacion: string | null;
   observaciones: string | null;
-  saltoPagina?: boolean;
 }) {
   const sinContenido =
     !titulo &&
@@ -256,13 +254,9 @@ function BloqueTarea({
   if (sinContenido) return null;
 
   return (
-    <div
-      className={`flex break-inside-avoid border-t border-neutral-300 ${
-        saltoPagina ? "print:break-before-page" : ""
-      }`}
-    >
+    <div className="flex border-t border-neutral-300 print:min-h-0 print:flex-1 print:overflow-hidden">
       <BandaRoja>{titulo || `Tarea ${numero}`}</BandaRoja>
-      <div className="min-w-0 flex-1">
+      <div className="flex min-w-0 flex-1 flex-col">
         <div className="grid grid-cols-[2rem_1fr_2rem_1fr_2rem_1fr] border-b border-neutral-300 print:grid-cols-[1.4rem_1fr_1.4rem_1fr_1.4rem_1fr]">
           <CeldaEtiqueta>D</CeldaEtiqueta>
           <CeldaValor className="justify-center">{dimension}</CeldaValor>
@@ -272,8 +266,8 @@ function BloqueTarea({
           <CeldaValor className="justify-center">{tiempo}</CeldaValor>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 print:grid-cols-2">
-          <div className="border-neutral-300 sm:border-r print:border-r">
+        <div className="grid grid-cols-1 sm:grid-cols-2 print:min-h-0 print:flex-1 print:grid-cols-2">
+          <div className="border-neutral-300 sm:border-r print:min-h-0 print:overflow-hidden print:border-r">
             <BarraAzul>Objetivos</BarraAzul>
             <div className="space-y-2 p-2 text-sm print:space-y-1 print:p-1 print:text-[9px]">
               {objetivosDef && (
@@ -294,15 +288,16 @@ function BloqueTarea({
               )}
             </div>
           </div>
-          <div className="flex flex-col">
+          <div className="flex min-h-0 flex-col">
             {imagenUrl ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img
-                src={imagenUrl}
-                alt={`Diagrama de la tarea ${numero}`}
-                className="aspect-[3/2] w-full object-contain"
-                style={{ backgroundColor: "#f3f4f6" }}
-              />
+              <div className="print:min-h-0 print:flex-1" style={{ backgroundColor: "#f3f4f6" }}>
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={imagenUrl}
+                  alt={`Diagrama de la tarea ${numero}`}
+                  className="aspect-[3/2] w-full object-contain print:aspect-auto print:h-full"
+                />
+              </div>
             ) : null}
             <BarraAzul>Rotación</BarraAzul>
             {rotacion && <Rotacion texto={rotacion} />}
@@ -391,92 +386,100 @@ export function EntrenamientoFichaImprimible({
         </Button>
       </div>
 
+      <style>{`@media print { @page { size: A4 portrait; margin: 6mm; } }`}</style>
       <div
-        className="overflow-hidden rounded-md border border-neutral-300 bg-white text-neutral-900 print:overflow-visible print:rounded-none print:border-none"
+        className="space-y-3 text-neutral-900 print:space-y-0"
         style={{ printColorAdjust: "exact", WebkitPrintColorAdjust: "exact" }}
       >
-        <div className="flex">
-          <BandaRoja>
-            Sesión de entrenamiento · {clubConfig.nombreEquipo} - {temporada}
-          </BandaRoja>
-          <div className="grid min-w-0 flex-1 grid-cols-1 sm:grid-cols-2 print:grid-cols-2">
-            <div className="border-neutral-300 sm:border-r print:border-r">
-              <div className="grid grid-cols-[5.5rem_1fr_5.5rem_1fr] border-b border-neutral-300 print:grid-cols-[4rem_1fr_4rem_1fr]">
-                <CeldaEtiqueta>Fecha sesión</CeldaEtiqueta>
-                <CeldaValor>{formatearFechaCorta(e.fecha)}</CeldaValor>
-                <CeldaEtiqueta>Nº sesión</CeldaEtiqueta>
-                <CeldaValor>{ficha.numero_sesion}</CeldaValor>
-                <CeldaEtiqueta>Rival</CeldaEtiqueta>
-                <CeldaValor>{e.rival_torneo}</CeldaValor>
-                <CeldaEtiqueta>Microciclo</CeldaEtiqueta>
-                <CeldaValor>{e.microciclo}</CeldaValor>
-                <CeldaEtiqueta>Bajas</CeldaEtiqueta>
-                <CeldaValor className="col-span-3">{e.bajas}</CeldaValor>
-                <CeldaEtiqueta>Obj. semanal</CeldaEtiqueta>
-                <CeldaValor className="col-span-3">{e.objetivos}</CeldaValor>
-              </div>
-              <BarraAzul>Charla</BarraAzul>
-              <div className="min-h-10 p-2 text-sm whitespace-pre-wrap print:p-1 print:text-[9px]">
-                {e.charla}
-              </div>
-              {tabla && objetivosTablaTieneContenido(tabla) && (
-                <div className="p-1">
-                  <ObjetivosTablaVista tabla={tabla} />
+        <div className="flex flex-col overflow-hidden rounded-md border border-neutral-300 bg-white print:h-[283mm] print:break-after-page print:rounded-none print:border-none">
+          <div className="flex">
+            <BandaRoja>
+              Sesión de entrenamiento · {clubConfig.nombreEquipo} - {temporada}
+            </BandaRoja>
+            <div className="grid min-w-0 flex-1 grid-cols-1 sm:grid-cols-2 print:grid-cols-2">
+              <div className="border-neutral-300 sm:border-r print:border-r">
+                <div className="grid grid-cols-[5.5rem_1fr_5.5rem_1fr] border-b border-neutral-300 print:grid-cols-[4rem_1fr_4rem_1fr]">
+                  <CeldaEtiqueta>Fecha sesión</CeldaEtiqueta>
+                  <CeldaValor>{formatearFechaCorta(e.fecha)}</CeldaValor>
+                  <CeldaEtiqueta>Nº sesión</CeldaEtiqueta>
+                  <CeldaValor>{ficha.numero_sesion}</CeldaValor>
+                  <CeldaEtiqueta>Rival</CeldaEtiqueta>
+                  <CeldaValor>{e.rival_torneo}</CeldaValor>
+                  <CeldaEtiqueta>Microciclo</CeldaEtiqueta>
+                  <CeldaValor>{e.microciclo}</CeldaValor>
+                  <CeldaEtiqueta>Bajas</CeldaEtiqueta>
+                  <CeldaValor className="col-span-3">{e.bajas}</CeldaValor>
+                  <CeldaEtiqueta>Obj. semanal</CeldaEtiqueta>
+                  <CeldaValor className="col-span-3">{e.objetivos}</CeldaValor>
                 </div>
-              )}
-            </div>
-            <div className="flex flex-col">
-              {jugadores && jugadores.length > 0 ? (
-                <TableroJugadores
-                  jugadores={jugadores}
-                  bajas={e.bajas}
-                  convocados={ficha.convocados ?? null}
-                />
-              ) : (
-                <div className="aspect-[16/8] w-full" style={{ backgroundColor: "#2f8f3a" }} />
-              )}
-              <BarraAzul>Material</BarraAzul>
-              <div className="flex-1 p-2 text-sm whitespace-pre-wrap print:p-1 print:text-[9px]">
-                {materialTexto}
+                <BarraAzul>Charla</BarraAzul>
+                <div className="min-h-10 p-2 text-sm whitespace-pre-wrap print:min-h-0 print:p-1 print:text-[8px] print:leading-tight">
+                  {e.charla}
+                </div>
+                {tabla && objetivosTablaTieneContenido(tabla) && (
+                  <div className="p-1 print:p-0.5">
+                    <ObjetivosTablaVista tabla={tabla} />
+                  </div>
+                )}
+              </div>
+              <div className="flex flex-col">
+                {jugadores && jugadores.length > 0 ? (
+                  <TableroJugadores
+                    jugadores={jugadores}
+                    bajas={e.bajas}
+                    convocados={ficha.convocados ?? null}
+                  />
+                ) : (
+                  <div className="aspect-[16/8] w-full" style={{ backgroundColor: "#2f8f3a" }} />
+                )}
+                <BarraAzul>Material</BarraAzul>
+                <div className="flex-1 p-2 text-sm whitespace-pre-wrap print:p-1 print:text-[8px] print:leading-tight">
+                  {materialTexto}
+                </div>
               </div>
             </div>
           </div>
+
+          {hayRoles && (
+            <div className="border-t border-neutral-300">
+              <BarraAzul>Roles</BarraAzul>
+              <div className="grid grid-cols-2 sm:grid-cols-4 print:grid-cols-4">
+                {tareas.map((t) => (
+                  <div key={t.numero} className="border-r border-neutral-200 last:border-r-0">
+                    <p
+                      className="py-0.5 text-center text-[10px] font-bold uppercase print:py-0 print:text-[7px]"
+                      style={{ backgroundColor: AZUL }}
+                    >
+                      Tarea {t.numero}
+                    </p>
+                    <div className="p-1.5 text-xs print:p-0.5 print:text-[7.5px] print:leading-tight">
+                      <p>Campos: {t.campos}</p>
+                      <p>Paco: {t.paco}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {tareas.slice(0, 2).map((t) => (
+            <BloqueTarea key={t.numero} {...t} />
+          ))}
         </div>
 
-        {hayRoles && (
-          <div className="border-t border-neutral-300">
-            <BarraAzul>Roles</BarraAzul>
-            <div className="grid grid-cols-2 sm:grid-cols-4 print:grid-cols-4">
-              {tareas.map((t) => (
-                <div key={t.numero} className="border-r border-neutral-200 last:border-r-0">
-                  <p
-                    className="py-0.5 text-center text-[10px] font-bold uppercase print:text-[7px]"
-                    style={{ backgroundColor: AZUL }}
-                  >
-                    Tarea {t.numero}
-                  </p>
-                  <div className="p-1.5 text-xs print:p-1 print:text-[8px]">
-                    <p>Campos: {t.campos}</p>
-                    <p>Paco: {t.paco}</p>
-                  </div>
-                </div>
-              ))}
+        <div className="flex flex-col overflow-hidden rounded-md border border-neutral-300 bg-white print:h-[283mm] print:rounded-none print:border-none">
+          {tareas.slice(2).map((t) => (
+            <BloqueTarea key={t.numero} {...t} />
+          ))}
+          {e.notas && (
+            <div className="border-t border-neutral-300">
+              <BarraAzul>Notas</BarraAzul>
+              <p className="p-2 text-sm whitespace-pre-wrap print:p-1 print:text-[8px] print:leading-tight">
+                {e.notas}
+              </p>
             </div>
-          </div>
-        )}
-
-        {tareas.map((t) => (
-          <BloqueTarea key={t.numero} {...t} saltoPagina={t.numero === 3} />
-        ))}
-
-        {e.notas && (
-          <div className="border-t border-neutral-300">
-            <BarraAzul>Notas</BarraAzul>
-            <p className="p-2 text-sm whitespace-pre-wrap print:p-1 print:text-[9px]">
-              {e.notas}
-            </p>
-          </div>
-        )}
+          )}
+        </div>
       </div>
     </div>
   );
