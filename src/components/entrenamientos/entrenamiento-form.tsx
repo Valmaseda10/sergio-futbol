@@ -613,11 +613,10 @@ export function EntrenamientoForm({
 
       <Card>
         <CardContent className="space-y-3 pt-6">
-          <details>
-            <summary className="cursor-pointer text-xs font-medium text-muted-foreground">
-              Tabla de objetivos (Psicológico / Táctico / Técnico / Físico)
-            </summary>
-            <div className="space-y-4 pt-3">
+          <p className="text-xs font-medium text-muted-foreground">
+            Tabla de objetivos (Psicológico / Táctico / Técnico / Físico)
+          </p>
+          <div className="space-y-4">
               <div className="space-y-2 rounded-md border p-3">
                 <p className="text-xs font-semibold">Adjuntar la tabla como imagen</p>
                 <p className="text-xs text-muted-foreground">
@@ -687,12 +686,18 @@ export function EntrenamientoForm({
                   }}
                 />
               </div>
-              <ObjetivosTablaEditor
-                valor={normalizarObjetivosTabla(ficha.tabla_objetivos)}
-                onChange={(t) => setFicha((f) => ({ ...f, tabla_objetivos: t }))}
-              />
+              <details>
+                <summary className="cursor-pointer text-xs font-medium text-muted-foreground">
+                  O rellenarla escribiendo
+                </summary>
+                <div className="pt-3">
+                  <ObjetivosTablaEditor
+                    valor={normalizarObjetivosTabla(ficha.tabla_objetivos)}
+                    onChange={(t) => setFicha((f) => ({ ...f, tabla_objetivos: t }))}
+                  />
+                </div>
+              </details>
             </div>
-          </details>
         </CardContent>
       </Card>
 
