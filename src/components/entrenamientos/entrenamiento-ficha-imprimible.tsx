@@ -395,7 +395,7 @@ function BloqueTarea({
   if (sinContenido) return null;
 
   return (
-    <div className="flex border-t border-neutral-300 print:min-h-0 print:flex-1 print:overflow-hidden">
+    <div className="flex border-t border-neutral-300 print:shrink-0 print:grow">
       <BandaRoja>{titulo || `Tarea ${numero}`}</BandaRoja>
       <div className="flex min-w-0 flex-1 flex-col">
         <div className="grid grid-cols-[2rem_1fr_2rem_1fr_2rem_1fr] border-b border-neutral-300 print:grid-cols-[1.4rem_1fr_1.4rem_1fr_1.4rem_1fr]">
@@ -407,8 +407,8 @@ function BloqueTarea({
           <CeldaValor className="justify-center">{tiempo}</CeldaValor>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 print:min-h-0 print:flex-1 print:grid-cols-2">
-          <div className="border-neutral-300 sm:border-r print:min-h-0 print:overflow-hidden print:border-r">
+        <div className="grid grid-cols-1 sm:grid-cols-2 print:flex-1 print:grid-cols-2">
+          <div className="border-neutral-300 sm:border-r print:border-r">
             <BarraAzul>Objetivos</BarraAzul>
             <div className="space-y-2 p-2 text-sm print:space-y-1 print:p-1 print:text-[11px]">
               {objetivosDef && (
@@ -431,12 +431,12 @@ function BloqueTarea({
           </div>
           <div className="flex min-h-0 flex-col">
             {imagenUrl ? (
-              <div className="print:min-h-0 print:flex-1" style={{ backgroundColor: "#f3f4f6" }}>
+              <div className="relative bg-neutral-100 print:min-h-[32mm] print:flex-1 print:bg-white">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
                   src={imagenUrl}
                   alt={`Diagrama de la tarea ${numero}`}
-                  className="aspect-[3/2] w-full object-contain print:aspect-auto print:h-full"
+                  className="aspect-[3/2] w-full object-contain print:absolute print:inset-0 print:aspect-auto print:size-full"
                 />
               </div>
             ) : null}
