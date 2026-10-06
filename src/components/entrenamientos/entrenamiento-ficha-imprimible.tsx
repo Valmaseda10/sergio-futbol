@@ -16,6 +16,7 @@ import {
   leerFicha,
   normalizarObjetivosTabla,
   objetivosTablaTieneContenido,
+  type EquipoRotacion,
 } from "@/lib/ficha-entrenamiento";
 import {
   localDb,
@@ -25,6 +26,10 @@ import {
 import { Button } from "@/components/ui/button";
 import { PdfWatermark } from "@/components/branding/pdf-watermark";
 import { ObjetivosTablaVista } from "@/components/entrenamientos/objetivos-tabla";
+import {
+  equiposConContenido,
+  RotacionEquiposVista,
+} from "@/components/entrenamientos/rotacion-equipos";
 
 const ROJO = "#c00000";
 const AZUL = "#d9e1f2";
@@ -366,6 +371,9 @@ function BloqueTarea({
   objetivosDef,
   objetivosOfe,
   rotacion,
+  equipos,
+  jugadores,
+  ausentes,
   reglasProvocacion,
   observaciones,
 }: {
@@ -378,6 +386,9 @@ function BloqueTarea({
   objetivosDef: string | null;
   objetivosOfe: string | null;
   rotacion: string | null;
+  equipos: EquipoRotacion[];
+  jugadores: LocalJugador[];
+  ausentes: Set<string>;
   reglasProvocacion: string | null;
   observaciones: string | null;
 }) {
@@ -390,6 +401,7 @@ function BloqueTarea({
     !objetivosDef &&
     !objetivosOfe &&
     !rotacion &&
+    equipos.length === 0 &&
     !reglasProvocacion &&
     !observaciones;
   if (sinContenido) return null;
@@ -441,7 +453,15 @@ function BloqueTarea({
               </div>
             ) : null}
             <BarraAzul>Rotación</BarraAzul>
-            {rotacion && <Rotacion texto={rotacion} />}
+            {equipos.length > 0 ? (
+              <RotacionEquiposVista
+                equipos={equipos}
+                jugadores={jugadores}
+                ausentes={ausentes}
+              />
+            ) : (
+              rotacion && <Rotacion texto={rotacion} />
+            )}
           </div>
         </div>
 
@@ -492,6 +512,9 @@ export function EntrenamientoFichaImprimible({
       objetivosDef: k("_objetivos_def"),
       objetivosOfe: k("_objetivos_ofe"),
       rotacion: k("_rotacion"),
+      equipos: equiposConContenido(ficha.rotaciones?.[n - 1]),
+      jugadores: jugadores ?? [],
+      ausentes,
       reglasProvocacion: k("_reglas_provocacion"),
       observaciones: k("_observaciones"),
       campos: k("_rol_campos"),

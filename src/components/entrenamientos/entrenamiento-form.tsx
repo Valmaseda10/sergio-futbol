@@ -35,6 +35,7 @@ import {
 } from "@/lib/ficha-entrenamiento";
 import { DiagramaEditor } from "@/components/entrenamientos/diagrama-editor";
 import { ObjetivosTablaEditor } from "@/components/entrenamientos/objetivos-tabla";
+import { RotacionEquiposEditor } from "@/components/entrenamientos/rotacion-equipos";
 import {
   crearEntrenamientoLocal,
   actualizarEntrenamientoLocal,
@@ -265,6 +266,15 @@ export function EntrenamientoForm({
   const [pickerPara, setPickerPara] = useState<CampoTarea | null>(null);
   const [ficha, setFicha] = useState<FichaEntrenamiento>(
     entrenamiento?.ficha ?? {},
+  );
+  const jugadoresActivos = useLiveQuery(
+    () =>
+      localDb.jugadores
+        .filter((j) => j.activo)
+        .toArray()
+        .then((rows) => rows.sort((a, b) => a.nombre.localeCompare(b.nombre))),
+    [],
+    [],
   );
   const [tablaImagen, setTablaImagen] = useState<File | null>(null);
   const [tablaImagenPreview, setTablaImagenPreview] = useState<string | null>(null);
@@ -921,6 +931,30 @@ export function EntrenamientoForm({
                   placeholder="Grupos de jugadores y cómo rotan"
                   {...register(CAMPO_ROTACION[campo])}
                 />
+                <details open={(ficha.rotaciones?.[i]?.equipos.length ?? 0) > 0}>
+                  <summary className="cursor-pointer pt-1 text-xs font-medium text-muted-foreground">
+                    Rotación por equipos con color
+                  </summary>
+                  <div className="space-y-2 pt-2">
+                    <p className="text-[11px] text-muted-foreground">
+                      Si añades equipos, salen en la ficha (cada uno en su color y por
+                      posiciones) en lugar del texto de arriba.
+                    </p>
+                    <RotacionEquiposEditor
+                      valor={ficha.rotaciones?.[i]}
+                      jugadores={jugadoresActivos}
+                      onChange={(r) =>
+                        setFicha((f) => {
+                          const rotaciones = [
+                            ...(f.rotaciones ?? [null, null, null, null]),
+                          ];
+                          rotaciones[i] = r;
+                          return { ...f, rotaciones };
+                        })
+                      }
+                    />
+                  </div>
+                </details>
               </div>
               <div className="space-y-1">
                 <Label

@@ -60,6 +60,28 @@ export interface ObjetivosTabla {
   fisico: { contenido: string; principio: string };
 }
 
+// Rotación de una tarea por equipos con color: cada equipo lleva los
+// jugadores elegidos de la plantilla (ids) y, opcionalmente, una nota.
+export interface EquipoRotacion {
+  nombre: string;
+  color: string;
+  jugadores: string[];
+  texto?: string;
+}
+
+export interface RotacionTarea {
+  equipos: EquipoRotacion[];
+}
+
+export const COLORES_EQUIPO: { valor: string; nombre: string }[] = [
+  { valor: "#dc2626", nombre: "Rojo" },
+  { valor: "#2563eb", nombre: "Azul" },
+  { valor: "#16a34a", nombre: "Verde" },
+  { valor: "#111111", nombre: "Negro" },
+  { valor: "#ea580c", nombre: "Naranja" },
+  { valor: "#9333ea", nombre: "Morado" },
+];
+
 export interface FichaEntrenamiento {
   numero_sesion?: string;
   // Obsoleto: ahora el recuento (p. ej. 14+1P) se calcula con la lista.
@@ -69,6 +91,8 @@ export interface FichaEntrenamiento {
   // (p. ej. captura de la plantilla); si existe, sustituye a la tabla.
   tabla_imagen_url?: string;
   diagramas?: (Diagrama | null)[];
+  // Una por tarea (índice 0 = tarea 1).
+  rotaciones?: (RotacionTarea | null)[];
 }
 
 const par = (): ParPrincipio => ({
