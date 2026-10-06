@@ -72,6 +72,9 @@ export function MapaGoles({
     (g) => !excluidos.has(g.tipo_gol ?? SIN_TIPO),
   );
 
+  const aFavor = golesFiltrados.filter((g) => g.a_favor).length;
+  const enContra = golesFiltrados.length - aFavor;
+
   return (
     <div className="space-y-3">
       <div className="flex gap-1.5 print:hidden">
@@ -122,6 +125,22 @@ export function MapaGoles({
         </div>
       )}
 
+      <div className="grid grid-cols-3 gap-2 text-center">
+        <div className="rounded-md border py-1.5">
+          <p className="text-2xl leading-none font-bold">{golesFiltrados.length}</p>
+          <p className="mt-0.5 text-[11px] text-muted-foreground">
+            {golesFiltrados.length === 1 ? "gol" : "goles"} en total
+          </p>
+        </div>
+        <div className="rounded-md border border-[#1b5e3a]/40 py-1.5">
+          <p className="text-2xl leading-none font-bold text-[#1b5e3a]">{aFavor}</p>
+          <p className="mt-0.5 text-[11px] text-muted-foreground">a favor</p>
+        </div>
+        <div className="rounded-md border border-destructive/40 py-1.5">
+          <p className="text-2xl leading-none font-bold text-destructive">{enContra}</p>
+          <p className="mt-0.5 text-[11px] text-muted-foreground">en contra</p>
+        </div>
+      </div>
       <p className="text-xs text-muted-foreground">
         Verde oscuro = a favor · Rojo = en contra
       </p>
