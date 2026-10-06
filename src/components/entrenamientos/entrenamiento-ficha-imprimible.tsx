@@ -289,8 +289,8 @@ function TableroJugadores({
         <div className="absolute inset-x-[30%] bottom-[4%] h-[26%] border border-white/60" />
         <div className="absolute top-[4%] left-1/2 size-12 -translate-x-1/2 -translate-y-1/2 rounded-full border border-white/60" />
         <span
-          className="absolute -translate-x-1/2 -translate-y-1/2 border-2 border-neutral-900 bg-white px-2 py-0.5 text-sm leading-tight font-extrabold whitespace-nowrap text-neutral-900 print:border-[1.5px] print:px-1.5 print:text-[10px]"
-          style={{ left: "92%", top: "8%" }}
+          className="absolute -translate-x-1/2 -translate-y-1/2 border-2 border-neutral-900 bg-white px-3 py-1 text-xl leading-tight font-black whitespace-nowrap text-neutral-900 print:border-2 print:px-2 print:py-0.5 print:text-[15px]"
+          style={{ left: "91%", top: "8%" }}
           title="Jugadores + porteros disponibles"
         >
           {resumen}
