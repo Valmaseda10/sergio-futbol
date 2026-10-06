@@ -10,8 +10,10 @@ import { toSvg } from "html-to-image";
 export async function capturarComoPng(
   nodo: HTMLElement,
   pixelRatio = 2,
+  formato: "png" | "jpeg" = "png",
+  opciones?: Parameters<typeof toSvg>[1],
 ): Promise<string> {
-  const svgUrl = await toSvg(nodo);
+  const svgUrl = await toSvg(nodo, opciones);
   const rect = nodo.getBoundingClientRect();
 
   const imagen = new Image();
@@ -31,7 +33,9 @@ export async function capturarComoPng(
   ctx.scale(pixelRatio, pixelRatio);
   ctx.drawImage(imagen, 0, 0, rect.width, rect.height);
 
-  return canvas.toDataURL("image/png");
+  return formato === "jpeg"
+    ? canvas.toDataURL("image/jpeg", 0.92)
+    : canvas.toDataURL("image/png");
 }
 
 export function descargarDataUrl(dataUrl: string, nombreArchivo: string) {

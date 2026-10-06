@@ -7,7 +7,10 @@
 // dos hojas (tareas 1-2 y 3-4) con window.print(), igual que el informe de
 // scouting — así no hace falta ninguna licencia de PowerPoint.
 
-import { Printer } from "lucide-react";
+import { useRef, useState } from "react";
+import { Download, Printer, Share2 } from "lucide-react";
+import { toast } from "sonner";
+import { generarPdfFicha } from "@/lib/ficha-pdf";
 import { useLiveQuery } from "dexie-react-hooks";
 import { clubConfig } from "@/lib/club-config";
 import { temporadaDeFecha } from "@/lib/temporada";
@@ -497,6 +500,61 @@ export function EntrenamientoFichaImprimible({
 }) {
   const ficha = leerFicha(entrenamiento.ficha);
   const ausentes = useAusentes(entrenamiento.id);
+  const hojasRef = useRef<HTMLDivElement>(null);
+  const [generandoPdf, setGenerandoPdf] = useState(false);
+  // El PDF generado se guarda: en iPad/iPhone compartir solo funciona justo
+  // tras tocar el botón, y generar tarda unos segundos.
+  const pdfRef = useRef<File | null>(null);
+  const puedeCompartir =
+    typeof navigator !== "undefined" &&
+    typeof navigator.canShare === "function" &&
+    navigator.canShare({ files: [new File([], "a.pdf", { type: "application/pdf" })] });
+
+  async function obtenerPdf(): Promise<File | null> {
+    if (pdfRef.current) return pdfRef.current;
+    const hojas = Array.from(
+      hojasRef.current?.querySelectorAll<HTMLElement>("[data-hoja-pdf]") ?? [],
+    );
+    if (hojas.length === 0) return null;
+    setGenerandoPdf(true);
+    try {
+      const nombre = `Sesión ${ficha.numero_sesion || entrenamiento.fecha}.pdf`;
+      pdfRef.current = await generarPdfFicha(hojas, nombre);
+      return pdfRef.current;
+    } catch (e) {
+      toast.error(
+        e instanceof Error ? e.message : "No se ha podido generar el PDF",
+      );
+      return null;
+    } finally {
+      setGenerandoPdf(false);
+    }
+  }
+
+  async function descargarPdf() {
+    pdfRef.current = null; // por si se ha editado la sesión desde la última vez
+    const archivo = await obtenerPdf();
+    if (!archivo) return;
+    const url = URL.createObjectURL(archivo);
+    const enlace = document.createElement("a");
+    enlace.href = url;
+    enlace.download = archivo.name;
+    enlace.click();
+    setTimeout(() => URL.revokeObjectURL(url), 10_000);
+  }
+
+  async function compartirPdf() {
+    const archivo = await obtenerPdf();
+    if (!archivo) return;
+    try {
+      await navigator.share({ files: [archivo], title: archivo.name });
+    } catch (e) {
+      if (e instanceof DOMException && e.name === "AbortError") return;
+      // Safari exige que compartir salga directamente de un toque; si el PDF
+      // ha tardado en generarse hay que volver a tocar (ya está listo).
+      toast.message("PDF listo: pulsa Compartir otra vez");
+    }
+  }
   const e = entrenamiento;
 
   const tareas = [1, 2, 3, 4].map((n) => {
@@ -540,25 +598,50 @@ export function EntrenamientoFichaImprimible({
       <PdfWatermark />
       <div className="flex items-center justify-between print:hidden">
         <p className="text-xs text-muted-foreground">
-          Ficha de la sesión, lista para descargar en PDF.
+          Ficha de la sesión: descárgala en PDF, compártela o imprímela.
         </p>
-        <Button
-          type="button"
-          size="sm"
-          variant="outline"
-          onClick={() => window.print()}
-        >
-          <Printer className="size-4" />
-          Descargar PDF
-        </Button>
+        <div className="flex flex-wrap justify-end gap-2">
+          <Button
+            type="button"
+            size="sm"
+            variant="outline"
+            disabled={generandoPdf}
+            onClick={descargarPdf}
+          >
+            <Download className="size-4" />
+            {generandoPdf ? "Generando…" : "Descargar PDF"}
+          </Button>
+          {puedeCompartir && (
+            <Button
+              type="button"
+              size="sm"
+              variant="outline"
+              disabled={generandoPdf}
+              onClick={compartirPdf}
+            >
+              <Share2 className="size-4" />
+              Compartir
+            </Button>
+          )}
+          <Button
+            type="button"
+            size="sm"
+            variant="ghost"
+            onClick={() => window.print()}
+          >
+            <Printer className="size-4" />
+            Imprimir
+          </Button>
+        </div>
       </div>
 
       <style>{`@media print { @page { size: A4 portrait; margin: 6mm; } }`}</style>
       <div
+        ref={hojasRef}
         className="space-y-3 text-neutral-900 print:space-y-0"
         style={{ printColorAdjust: "exact", WebkitPrintColorAdjust: "exact" }}
       >
-        <div className="flex flex-col overflow-hidden rounded-md border border-neutral-300 bg-white print:h-[283mm] print:break-after-page print:rounded-none print:border-none">
+        <div data-hoja-pdf className="flex flex-col overflow-hidden rounded-md border border-neutral-300 bg-white print:h-[283mm] print:break-after-page print:rounded-none print:border-none">
           <div className="flex">
             <BandaRoja>
               Sesión de entrenamiento · {clubConfig.nombreEquipo} - {temporada}
@@ -646,7 +729,7 @@ export function EntrenamientoFichaImprimible({
           ))}
         </div>
 
-        <div className="flex flex-col overflow-hidden rounded-md border border-neutral-300 bg-white print:h-[283mm] print:rounded-none print:border-none">
+        <div data-hoja-pdf className="flex flex-col overflow-hidden rounded-md border border-neutral-300 bg-white print:h-[283mm] print:rounded-none print:border-none">
           {tareas.slice(2).map((t) => (
             <BloqueTarea key={t.numero} {...t} />
           ))}
