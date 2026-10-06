@@ -67,9 +67,6 @@ export interface FichaEntrenamiento {
   // Ruta en el bucket "adjuntos" de una imagen de la tabla de objetivos
   // (p. ej. captura de la plantilla); si existe, sustituye a la tabla.
   tabla_imagen_url?: string;
-  // Jugadores que salen en el campograma de la cabecera. Sin definir =
-  // toda la plantilla activa.
-  jugadores_campo?: string[];
   diagramas?: (Diagrama | null)[];
 }
 

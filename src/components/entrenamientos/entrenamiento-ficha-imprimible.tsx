@@ -8,6 +8,7 @@
 // scouting — así no hace falta ninguna licencia de PowerPoint.
 
 import { Printer } from "lucide-react";
+import { useLiveQuery } from "dexie-react-hooks";
 import { clubConfig } from "@/lib/club-config";
 import { temporadaDeFecha } from "@/lib/temporada";
 import { grupoMaterialDeFecha } from "@/lib/grupos-material";
@@ -17,7 +18,11 @@ import {
   objetivosTablaTieneContenido,
 } from "@/lib/ficha-entrenamiento";
 import { demarcacionDePosicion, type Demarcacion } from "@/lib/posiciones";
-import type { LocalEntrenamiento, LocalJugador } from "@/lib/db/local-db";
+import {
+  localDb,
+  type LocalEntrenamiento,
+  type LocalJugador,
+} from "@/lib/db/local-db";
 import { Button } from "@/components/ui/button";
 import { PdfWatermark } from "@/components/branding/pdf-watermark";
 import { ObjetivosTablaVista } from "@/components/entrenamientos/objetivos-tabla";
@@ -144,6 +149,30 @@ function Rotacion({ texto }: { texto: string }) {
   );
 }
 
+// Jugadores que según "Pasar lista" no asisten a la sesión (cualquier estado
+// distinto de "SI"); sin lista pasada no hay ausentes.
+function useAusentes(entrenamientoId: string): Set<string> {
+  const asistencias = useLiveQuery(
+    () =>
+      localDb.asistencias_entrenamiento
+        .where("entrenamiento_id")
+        .equals(entrenamientoId)
+        .toArray(),
+    [entrenamientoId],
+    [],
+  );
+  const estados = useLiveQuery(() => localDb.estados.toArray(), [], []);
+  const nombrePorEstado = new Map(estados.map((e) => [e.id, e.nombre]));
+  return new Set(
+    asistencias
+      .filter((a) => {
+        const nombre = a.estado_id ? nombrePorEstado.get(a.estado_id) : undefined;
+        return nombre !== undefined && nombre !== "SI";
+      })
+      .map((a) => a.jugador_id),
+  );
+}
+
 // Altura (en % del campo, el ataque va hacia arriba) de cada posición de la
 // ficha de plantilla; las que comparten altura forman una fila.
 const Y_POSICION: Record<string, number> = {
@@ -182,10 +211,12 @@ function ladoDeJugador(j: LocalJugador): number {
 // aparecen en el campo "Bajas" salen en rojo, como en la plantilla.
 function TableroJugadores({
   jugadores,
+  ausentes,
   bajas,
   convocados,
 }: {
   jugadores: LocalJugador[];
+  ausentes: Set<string>;
   bajas: string | null;
   convocados: string | null;
 }) {
@@ -193,6 +224,7 @@ function TableroJugadores({
     .split(/[^a-z0-9]+/)
     .filter((t) => t.length >= 3);
   const esBaja = (j: LocalJugador) => {
+    if (ausentes.has(j.id)) return true;
     const nombres = [j.alias, j.nombre, j.apellidos.split(" ")[0]]
       .filter((n): n is string => !!n)
       .map(normalizar);
@@ -404,9 +436,7 @@ export function EntrenamientoFichaImprimible({
   jugadores?: LocalJugador[];
 }) {
   const ficha = leerFicha(entrenamiento.ficha);
-  const jugadoresCampo = ficha.jugadores_campo
-    ? jugadores?.filter((j) => ficha.jugadores_campo?.includes(j.id))
-    : jugadores;
+  const ausentes = useAusentes(entrenamiento.id);
   const e = entrenamiento;
 
   const tareas = [1, 2, 3, 4].map((n) => {
@@ -509,9 +539,10 @@ export function EntrenamientoFichaImprimible({
                 )}
               </div>
               <div className="flex flex-col">
-                {jugadoresCampo && jugadoresCampo.length > 0 ? (
+                {jugadores && jugadores.length > 0 ? (
                   <TableroJugadores
-                    jugadores={jugadoresCampo}
+                    jugadores={jugadores}
+                    ausentes={ausentes}
                     bajas={e.bajas}
                     convocados={ficha.convocados ?? null}
                   />

@@ -11,7 +11,8 @@ import {
 } from "@/app/(app)/inicio/local-actions";
 import { localDb } from "@/lib/db/local-db";
 import { cn } from "@/lib/utils";
-import { CATEGORIAS_NORMA, NORMAS, PUNTOS_CASTIGO } from "@/lib/validations/norma";
+import { CATEGORIAS_NORMA, PUNTOS_CASTIGO } from "@/lib/validations/norma";
+import { useNormas } from "@/lib/use-normas";
 import type { CategoriaNorma } from "@/lib/types/database.types";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -29,6 +30,7 @@ import {
 const NORMA_OTRA = "__otra__";
 
 export function MultasPanel() {
+  const normas = useNormas();
   const jugadores = useLiveQuery(
     () =>
       localDb.jugadores
@@ -63,7 +65,7 @@ export function MultasPanel() {
   const [pendiente, setPendiente] = useState<string | null>(null);
 
   const esOtra = normaSel === NORMA_OTRA;
-  const normaElegida = NORMAS.find(
+  const normaElegida = normas.find(
     (n) => `${n.categoria}::${n.texto}` === normaSel,
   );
 
@@ -150,7 +152,7 @@ export function MultasPanel() {
                 <SelectValue placeholder="Falta cometida">
                   {(value) => {
                     if (value === NORMA_OTRA) return "Otra falta...";
-                    const n = NORMAS.find(
+                    const n = normas.find(
                       (n) => `${n.categoria}::${n.texto}` === value,
                     );
                     return n ? n.texto : "Falta cometida";
@@ -161,7 +163,7 @@ export function MultasPanel() {
                 {CATEGORIAS_NORMA.map((cat) => (
                   <SelectGroup key={cat.value}>
                     <SelectLabel>{cat.label}</SelectLabel>
-                    {NORMAS.filter((n) => n.categoria === cat.value).map((n) => (
+                    {normas.filter((n) => n.categoria === cat.value).map((n) => (
                       <SelectItem
                         key={`${n.categoria}::${n.texto}`}
                         value={`${n.categoria}::${n.texto}`}

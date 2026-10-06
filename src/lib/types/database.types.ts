@@ -1089,6 +1089,26 @@ export interface Database {
         Update: Partial<Database["public"]["Tables"]["multas"]["Insert"]>;
         Relationships: [];
       };
+      normas: {
+        Row: {
+          id: string;
+          categoria: CategoriaNorma;
+          texto: string;
+          puntos: number;
+          orden: number;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          categoria: CategoriaNorma;
+          texto: string;
+          puntos?: number;
+          orden?: number;
+          created_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["normas"]["Insert"]>;
+        Relationships: [];
+      };
     };
     Views: Record<string, never>;
     Functions: {

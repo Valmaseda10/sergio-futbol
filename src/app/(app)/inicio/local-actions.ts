@@ -3,14 +3,25 @@
 // Recordatorios del dashboard de Inicio: mismo patrón local-first (Dexie +
 // outbox) que el resto de la app.
 
-import { localDb, type LocalRecordatorio, type LocalNota, type LocalMulta } from "@/lib/db/local-db";
+import {
+  localDb,
+  type LocalRecordatorio,
+  type LocalNota,
+  type LocalMulta,
+  type LocalNorma,
+} from "@/lib/db/local-db";
 import { queueMutation } from "@/lib/db/sync";
 import {
   recordatorioSchema,
   type RecordatorioFormValues,
 } from "@/lib/validations/recordatorio";
 import { notaSchema, type NotaFormValues } from "@/lib/validations/nota";
-import { multaSchema, type MultaFormValues } from "@/lib/validations/norma";
+import {
+  multaSchema,
+  normaSchema,
+  type MultaFormValues,
+  type NormaFormValues,
+} from "@/lib/validations/norma";
 
 type ActionResult = { error: string } | { success: true; id: string };
 type SimpleResult = { error: string } | { success: true };
@@ -106,6 +117,57 @@ export async function crearMultaLocal(
   await queueMutation("multas", "insert", id, row);
 
   return { success: true, id };
+}
+
+export async function crearNormaLocal(
+  values: NormaFormValues,
+): Promise<ActionResult> {
+  const parsed = normaSchema.safeParse(values);
+  if (!parsed.success) {
+    return { error: parsed.error.issues[0]?.message ?? "Datos no válidos" };
+  }
+
+  const existentes = await localDb.normas.toArray();
+  const id = crypto.randomUUID();
+  const row: LocalNorma = {
+    id,
+    categoria: parsed.data.categoria,
+    texto: parsed.data.texto,
+    puntos: parsed.data.puntos,
+    orden: Math.max(0, ...existentes.map((n) => n.orden)) + 1,
+    created_at: new Date().toISOString(),
+  };
+
+  await localDb.normas.put(row);
+  await queueMutation("normas", "insert", id, row);
+
+  return { success: true, id };
+}
+
+export async function actualizarNormaLocal(
+  id: string,
+  values: NormaFormValues,
+): Promise<SimpleResult> {
+  const parsed = normaSchema.safeParse(values);
+  if (!parsed.success) {
+    return { error: parsed.error.issues[0]?.message ?? "Datos no válidos" };
+  }
+
+  const patch = {
+    categoria: parsed.data.categoria,
+    texto: parsed.data.texto,
+    puntos: parsed.data.puntos,
+  };
+  await localDb.normas.update(id, patch);
+  await queueMutation("normas", "update", id, patch);
+
+  return { success: true };
+}
+
+export async function eliminarNormaLocal(id: string): Promise<SimpleResult> {
+  await localDb.normas.delete(id);
+  await queueMutation("normas", "delete", id);
+  return { success: true };
 }
 
 export async function eliminarMultaLocal(id: string): Promise<SimpleResult> {
