@@ -203,46 +203,52 @@ const PASO_SUPLENTE = 7;
 
 // Reparte a los disponibles en los 11 huecos, primero las mejores parejas;
 // los que sobran se ponen debajo del titular del hueco donde mejor encajan.
-function colocar433(disponibles: LocalJugador[]) {
+function colocar433(disponibles: LocalJugador[], ausentes: LocalJugador[]) {
   const parejas = HUECOS_433.flatMap((h, hi) =>
     disponibles.map((j, ji) => ({ hi, ji, coste: costeHueco(j, h.prefs) })),
   ).sort((a, b) => a.coste - b.coste || a.hi - b.hi || a.ji - b.ji);
   const huecoUsado = new Set<number>();
   const jugadorUsado = new Set<number>();
-  const colocados: { jugador: LocalJugador; x: number; y: number }[] = [];
+  const colocados: { jugador: LocalJugador; x: number; y: number; rojo: boolean }[] = [];
   const apilados = new Map<number, number>();
   for (const { hi, ji, coste } of parejas) {
     if (coste >= 100 || huecoUsado.has(hi) || jugadorUsado.has(ji)) continue;
     huecoUsado.add(hi);
     jugadorUsado.add(ji);
     apilados.set(hi, 0);
-    colocados.push({ jugador: disponibles[ji], x: HUECOS_433[hi].x, y: HUECOS_433[hi].y });
+    colocados.push({ jugador: disponibles[ji], x: HUECOS_433[hi].x, y: HUECOS_433[hi].y, rojo: false });
   }
-  disponibles.forEach((jugador, ji) => {
-    if (jugadorUsado.has(ji)) return;
+  // Los que sobran y los no disponibles (en rojo) se colocan después, en su
+  // posición: en un hueco libre si lo hay, o debajo de quien lo ocupa.
+  const pendientes = [
+    ...disponibles.filter((_, ji) => !jugadorUsado.has(ji)).map((jugador) => ({ jugador, rojo: false })),
+    ...ausentes.map((jugador) => ({ jugador, rojo: true })),
+  ];
+  for (const { jugador, rojo } of pendientes) {
     const mejor = HUECOS_433.map((h, hi) => ({
       hi,
       coste: costeHueco(jugador, h.prefs),
-      ocupantes: apilados.get(hi) ?? 0,
+      ocupantes: apilados.has(hi) ? (apilados.get(hi) as number) : -1,
     }))
       .filter((c) => c.coste < 100)
       .sort((a, b) => a.coste - b.coste || a.ocupantes - b.ocupantes || a.hi - b.hi)[0];
-    if (!mejor) return;
-    const n = (apilados.get(mejor.hi) ?? 0) + 1;
+    if (!mejor) continue;
+    const n = mejor.ocupantes + 1;
     apilados.set(mejor.hi, n);
     colocados.push({
       jugador,
       x: HUECOS_433[mejor.hi].x,
       y: HUECOS_433[mejor.hi].y + n * PASO_SUPLENTE,
+      rojo,
     });
-  });
+  }
   return colocados;
 }
 
 // Campo con los disponibles colocados en un 1-4-3-3 según su posición de la
 // plantilla; si comparten posición, el segundo va debajo del primero. Los que
-// no están disponibles (según "Pasar lista" o el campo "Bajas") salen en rojo
-// debajo del campo.
+// no están disponibles (según "Pasar lista" o el campo "Bajas") salen también
+// en su posición, pero en rojo.
 function TableroJugadores({
   jugadores,
   ausentes,
@@ -267,8 +273,10 @@ function TableroJugadores({
     );
   };
 
-  const colocados = colocar433(jugadores.filter((j) => !esBaja(j)));
-  const bajasLista = jugadores.filter(esBaja);
+  const colocados = colocar433(
+    jugadores.filter((j) => !esBaja(j)),
+    jugadores.filter(esBaja),
+  );
   const nombre = (j: LocalJugador) => j.alias || j.nombre;
   const chip =
     "border border-neutral-400 px-1 text-[8px] leading-tight font-bold whitespace-nowrap uppercase print:text-[6px]";
@@ -287,42 +295,33 @@ function TableroJugadores({
             {convocados}
           </p>
         )}
-        {colocados.map(({ jugador, x, y }) => (
+        {colocados.map(({ jugador, x, y, rojo }) => (
           <span
             key={jugador.id}
-            className={`absolute -translate-x-1/2 -translate-y-1/2 bg-white text-neutral-900 ${chip}`}
-            style={{ left: `${x}%`, top: `${y}%` }}
+            className={`absolute -translate-x-1/2 -translate-y-1/2 ${chip} ${rojo ? "text-white" : "bg-white text-neutral-900"}`}
+            style={{
+              left: `${x}%`,
+              top: `${y}%`,
+              ...(rojo ? { backgroundColor: "#c00000" } : {}),
+            }}
           >
             {nombre(jugador)}
           </span>
         ))}
       </div>
-      {bajasLista.length > 0 && (
-        <div className="flex flex-wrap items-center gap-1 border-t border-neutral-300 bg-neutral-100 px-1 py-0.5">
-          {bajasLista.map((j) => (
-            <span
-              key={j.id}
-              className={`text-white ${chip}`}
-              style={{ backgroundColor: "#c00000" }}
-            >
-              {nombre(j)}
-            </span>
-          ))}
-        </div>
-      )}
     </div>
   );
 }
 
 // Campo en blanco al pie de la hoja 2, a todo el ancho, para dibujar a mano
-// la alineación del fin de semana o apuntar lo que haga falta; las notas de
-// la sesión, si las hay, van encima. Las proporciones del dibujo coinciden
-// con las de la caja impresa (≈198 x 80 mm), así el círculo sale redondo.
+// la alineación del fin de semana o apuntar lo que haga falta (sin título);
+// las notas de la sesión, si las hay, van encima. Las proporciones del dibujo
+// coinciden con las de la caja impresa (≈198 x 80 mm), así el círculo sale
+// redondo.
 function CampoLibre({ notas }: { notas: string | null }) {
   const linea = { stroke: "#ffffff", strokeWidth: 0.6, fill: "none" } as const;
   return (
-    <div className="border-t border-neutral-300 print:shrink-0">
-      <BarraAzul>Alineación del fin de semana / Notas</BarraAzul>
+    <div className="border-t border-neutral-300 print:mt-auto print:shrink-0">
       {notas && (
         <p className="border-b border-neutral-300 p-2 text-sm whitespace-pre-wrap print:p-1 print:text-[8px] print:leading-tight">
           {notas}
