@@ -146,6 +146,12 @@ export function MapaGoles({
       </p>
       <div className="relative aspect-[4/3] w-full overflow-hidden rounded-md bg-pitch">
         <PitchHalfLines />
+        <p className="absolute top-2 right-2 z-10 rounded-md bg-black/60 px-2.5 py-1 text-white">
+          <span className="text-2xl leading-none font-bold">{golesFiltrados.length}</span>
+          <span className="ml-1.5 text-xs">
+            {golesFiltrados.length === 1 ? "gol" : "goles"}
+          </span>
+        </p>
         {golesFiltrados.length === 0 ? (
           <p className="absolute inset-0 flex items-center justify-center px-4 text-center text-sm text-white/80">
             Ningún gol de los seleccionados.
