@@ -268,6 +268,31 @@ export function EntrenamientoForm({
   );
   const [tablaImagen, setTablaImagen] = useState<File | null>(null);
   const [tablaImagenPreview, setTablaImagenPreview] = useState<string | null>(null);
+  const tablaInputRef = useRef<HTMLInputElement>(null);
+
+  function aplicarTablaImagen(archivo: File) {
+    setTablaImagen(archivo);
+    setTablaImagenPreview(URL.createObjectURL(archivo));
+  }
+
+  // Botón alternativo a Ctrl+V (útil en iPad): lee la última imagen copiada.
+  async function pegarTablaDesdePortapapeles() {
+    try {
+      const items = await navigator.clipboard.read();
+      for (const item of items) {
+        const tipo = item.types.find((t) => t.startsWith("image/"));
+        if (!tipo) continue;
+        const blob = await item.getType(tipo);
+        aplicarTablaImagen(
+          new File([blob], `tabla.${tipo.split("/")[1] ?? "png"}`, { type: tipo }),
+        );
+        return;
+      }
+      toast.error("No hay ninguna imagen en el portapapeles");
+    } catch {
+      toast.error("No se ha podido leer el portapapeles; prueba con Ctrl+V");
+    }
+  }
   const [diagramaEditando, setDiagramaEditando] = useState<number | null>(null);
   // Vista previa del PNG generado al dibujar un diagrama (el archivo aún no
   // está subido hasta guardar la sesión).
@@ -596,8 +621,8 @@ export function EntrenamientoForm({
               <div className="space-y-2 rounded-md border p-3">
                 <p className="text-xs font-semibold">Adjuntar la tabla como imagen</p>
                 <p className="text-xs text-muted-foreground">
-                  Si subes una captura de tu tabla, sale tal cual en la ficha en
-                  lugar de la de abajo.
+                  Si subes o pegas una captura de tu tabla, sale tal cual en la
+                  ficha en lugar de la de abajo.
                 </p>
                 {(tablaImagenPreview || ficha.tabla_imagen_url) && (
                   <div className="space-y-2">
@@ -625,13 +650,40 @@ export function EntrenamientoForm({
                     </Button>
                   </div>
                 )}
-                <Input
+                <button
+                  type="button"
+                  onClick={() => tablaInputRef.current?.click()}
+                  onPaste={(e) => {
+                    const item = Array.from(e.clipboardData.items).find((i) =>
+                      i.type.startsWith("image/"),
+                    );
+                    const archivo = item?.getAsFile();
+                    if (!archivo) return;
+                    e.preventDefault();
+                    aplicarTablaImagen(archivo);
+                  }}
+                  className="flex w-full items-center justify-center gap-2 rounded-md border border-dashed bg-muted/30 px-3 py-4 text-xs text-muted-foreground hover:bg-muted/50 focus:ring-2 focus:ring-ring focus:outline-none"
+                >
+                  <ImagePlus className="size-4" />
+                  Elige un archivo o pega una captura aquí (Ctrl+V)
+                </button>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  onClick={pegarTablaDesdePortapapeles}
+                >
+                  Pegar captura del portapapeles
+                </Button>
+                <input
+                  ref={tablaInputRef}
                   type="file"
                   accept="image/*"
+                  className="hidden"
                   onChange={(e) => {
-                    const archivo = e.target.files?.[0] ?? null;
-                    setTablaImagen(archivo);
-                    setTablaImagenPreview(archivo ? URL.createObjectURL(archivo) : null);
+                    const archivo = e.target.files?.[0];
+                    if (archivo) aplicarTablaImagen(archivo);
+                    e.target.value = "";
                   }}
                 />
               </div>
