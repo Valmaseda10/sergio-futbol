@@ -266,17 +266,32 @@ function TableroJugadores({
   ausentes: Set<string>;
   bajas: string | null;
 }) {
-  const tokens = normalizar(bajas ?? "")
-    .split(/[^a-z0-9]+/)
-    .filter((t) => t.length >= 3);
+  // "Bajas" es texto libre: cada entrada (separada por / , - o salto de línea)
+  // es un nombre, y si lleva más palabras (p. ej. "Diego Sanchez") tienen que
+  // encajar también con el jugador, para no marcar a otro Diego de la plantilla.
+  const entradas = (bajas ?? "")
+    .split(/[/,;\n-]+/)
+    .map((e) => normalizar(e).split(/[^a-z0-9]+/).filter(Boolean))
+    .filter((palabras) => palabras.length > 0 && palabras[0].length >= 3);
   const esBaja = (j: LocalJugador) => {
     if (ausentes.has(j.id)) return true;
     const nombres = [j.alias, j.nombre, j.apellidos.split(" ")[0]]
       .filter((n): n is string => !!n)
       .map(normalizar);
-    return tokens.some((t) =>
-      nombres.some((n) => n === t || (t.length >= 4 && n.startsWith(t))),
+    const completo = normalizar(`${j.nombre} ${j.alias ?? ""} ${j.apellidos}`).split(
+      /[^a-z0-9]+/,
     );
+    return entradas.some(([primera, ...resto]) => {
+      const coincide = nombres.some(
+        (n) => n === primera || (primera.length >= 4 && n.startsWith(primera)),
+      );
+      return (
+        coincide &&
+        resto
+          .filter((r) => r.length >= 3)
+          .every((r) => completo.some((c) => c.startsWith(r)))
+      );
+    });
   };
 
   const disponibles = jugadores.filter((j) => !esBaja(j));
