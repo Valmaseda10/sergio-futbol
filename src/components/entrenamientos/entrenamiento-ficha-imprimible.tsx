@@ -324,7 +324,7 @@ function TableroJugadores({
 // coinciden con las de la caja impresa (≈198 x 80 mm), así el círculo sale
 // redondo.
 function CampoLibre({ notas }: { notas: string | null }) {
-  const linea = { stroke: "#ffffff", strokeWidth: 0.6, fill: "none" } as const;
+  const linea = { stroke: "#374151", strokeWidth: 0.6, fill: "none" } as const;
   return (
     <div className="border-t border-neutral-300 print:mt-auto print:shrink-0">
       {notas && (
@@ -340,7 +340,7 @@ function CampoLibre({ notas }: { notas: string | null }) {
           role="img"
           aria-label="Campo de fútbol en blanco"
         >
-          <rect width="200" height="81" fill="#2f8f3a" />
+          <rect width="200" height="81" fill="#ffffff" />
           <g {...linea}>
             <rect x="2" y="2" width="196" height="77" />
             <line x1="100" y1="2" x2="100" y2="79" />
@@ -350,7 +350,7 @@ function CampoLibre({ notas }: { notas: string | null }) {
             <rect x="2" y="28.5" width="10.5" height="24" />
             <rect x="187.5" y="28.5" width="10.5" height="24" />
           </g>
-          <g fill="#ffffff">
+          <g fill="#374151">
             <circle cx="100" cy="40.5" r="0.9" />
             <circle cx="23" cy="40.5" r="0.9" />
             <circle cx="177" cy="40.5" r="0.9" />
