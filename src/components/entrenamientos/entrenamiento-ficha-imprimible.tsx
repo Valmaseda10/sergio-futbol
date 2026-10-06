@@ -175,17 +175,17 @@ function useAusentes(entrenamientoId: string): Set<string> {
 // Sistema 1-4-3-3 (el ataque va hacia arriba). Cada hueco lista, por orden de
 // preferencia, las posiciones de la ficha de plantilla que mejor lo cubren.
 const HUECOS_433: { x: number; y: number; prefs: string[] }[] = [
-  { x: 50, y: 92, prefs: ["portero"] },
-  { x: 13, y: 76, prefs: ["lateral izquierdo", "lateral derecho", "central"] },
-  { x: 38, y: 78, prefs: ["central", "mediocentro defensivo", "lateral izquierdo", "lateral derecho"] },
-  { x: 62, y: 78, prefs: ["central", "mediocentro defensivo", "lateral derecho", "lateral izquierdo"] },
-  { x: 87, y: 76, prefs: ["lateral derecho", "lateral izquierdo", "central"] },
-  { x: 50, y: 62, prefs: ["mediocentro defensivo", "mediocentro", "central", "mediapunta"] },
-  { x: 30, y: 46, prefs: ["mediocentro", "mediapunta", "mediocentro defensivo", "extremo izquierdo", "extremo derecho"] },
-  { x: 70, y: 46, prefs: ["mediocentro", "mediapunta", "mediocentro defensivo", "extremo derecho", "extremo izquierdo"] },
-  { x: 15, y: 24, prefs: ["extremo izquierdo", "extremo derecho", "delantero centro", "mediapunta"] },
-  { x: 50, y: 16, prefs: ["delantero centro", "extremo izquierdo", "extremo derecho", "mediapunta"] },
-  { x: 85, y: 24, prefs: ["extremo derecho", "extremo izquierdo", "delantero centro", "mediapunta"] },
+  { x: 50, y: 86, prefs: ["portero"] },
+  { x: 12, y: 72, prefs: ["lateral izquierdo", "lateral derecho", "central"] },
+  { x: 36, y: 72, prefs: ["central", "mediocentro defensivo", "lateral izquierdo", "lateral derecho"] },
+  { x: 64, y: 72, prefs: ["central", "mediocentro defensivo", "lateral derecho", "lateral izquierdo"] },
+  { x: 88, y: 72, prefs: ["lateral derecho", "lateral izquierdo", "central"] },
+  { x: 50, y: 56, prefs: ["mediocentro defensivo", "mediocentro", "central", "mediapunta"] },
+  { x: 28, y: 40, prefs: ["mediocentro", "mediapunta", "mediocentro defensivo", "extremo izquierdo", "extremo derecho"] },
+  { x: 72, y: 40, prefs: ["mediocentro", "mediapunta", "mediocentro defensivo", "extremo derecho", "extremo izquierdo"] },
+  { x: 14, y: 20, prefs: ["extremo izquierdo", "extremo derecho", "delantero centro", "mediapunta"] },
+  { x: 50, y: 12, prefs: ["delantero centro", "extremo izquierdo", "extremo derecho", "mediapunta"] },
+  { x: 86, y: 20, prefs: ["extremo derecho", "extremo izquierdo", "delantero centro", "mediapunta"] },
 ];
 
 // Lo bien que encaja un jugador en un hueco (menor = mejor). El portero solo
@@ -198,8 +198,11 @@ function costeHueco(j: LocalJugador, prefs: string[]): number {
   return i >= 0 ? i : 10;
 }
 
+// Separación vertical (en % del campo) entre jugadores que comparten hueco.
+const PASO_SUPLENTE = 7;
+
 // Reparte a los disponibles en los 11 huecos, primero las mejores parejas;
-// los que no caben se quedan como "resto".
+// los que sobran se ponen debajo del titular del hueco donde mejor encajan.
 function colocar433(disponibles: LocalJugador[]) {
   const parejas = HUECOS_433.flatMap((h, hi) =>
     disponibles.map((j, ji) => ({ hi, ji, coste: costeHueco(j, h.prefs) })),
@@ -207,19 +210,39 @@ function colocar433(disponibles: LocalJugador[]) {
   const huecoUsado = new Set<number>();
   const jugadorUsado = new Set<number>();
   const colocados: { jugador: LocalJugador; x: number; y: number }[] = [];
+  const apilados = new Map<number, number>();
   for (const { hi, ji, coste } of parejas) {
     if (coste >= 100 || huecoUsado.has(hi) || jugadorUsado.has(ji)) continue;
     huecoUsado.add(hi);
     jugadorUsado.add(ji);
+    apilados.set(hi, 0);
     colocados.push({ jugador: disponibles[ji], x: HUECOS_433[hi].x, y: HUECOS_433[hi].y });
   }
-  const resto = disponibles.filter((_, ji) => !jugadorUsado.has(ji));
-  return { colocados, resto };
+  disponibles.forEach((jugador, ji) => {
+    if (jugadorUsado.has(ji)) return;
+    const mejor = HUECOS_433.map((h, hi) => ({
+      hi,
+      coste: costeHueco(jugador, h.prefs),
+      ocupantes: apilados.get(hi) ?? 0,
+    }))
+      .filter((c) => c.coste < 100)
+      .sort((a, b) => a.coste - b.coste || a.ocupantes - b.ocupantes || a.hi - b.hi)[0];
+    if (!mejor) return;
+    const n = (apilados.get(mejor.hi) ?? 0) + 1;
+    apilados.set(mejor.hi, n);
+    colocados.push({
+      jugador,
+      x: HUECOS_433[mejor.hi].x,
+      y: HUECOS_433[mejor.hi].y + n * PASO_SUPLENTE,
+    });
+  });
+  return colocados;
 }
 
 // Campo con los disponibles colocados en un 1-4-3-3 según su posición de la
-// plantilla. Los que no están disponibles (según "Pasar lista" o el campo
-// "Bajas") salen en rojo debajo, y los que sobran, como resto.
+// plantilla; si comparten posición, el segundo va debajo del primero. Los que
+// no están disponibles (según "Pasar lista" o el campo "Bajas") salen en rojo
+// debajo del campo.
 function TableroJugadores({
   jugadores,
   ausentes,
@@ -244,7 +267,7 @@ function TableroJugadores({
     );
   };
 
-  const { colocados, resto } = colocar433(jugadores.filter((j) => !esBaja(j)));
+  const colocados = colocar433(jugadores.filter((j) => !esBaja(j)));
   const bajasLista = jugadores.filter(esBaja);
   const nombre = (j: LocalJugador) => j.alias || j.nombre;
   const chip =
@@ -274,13 +297,8 @@ function TableroJugadores({
           </span>
         ))}
       </div>
-      {(resto.length > 0 || bajasLista.length > 0) && (
+      {bajasLista.length > 0 && (
         <div className="flex flex-wrap items-center gap-1 border-t border-neutral-300 bg-neutral-100 px-1 py-0.5">
-          {resto.map((j) => (
-            <span key={j.id} className={`bg-white text-neutral-900 ${chip}`}>
-              {nombre(j)}
-            </span>
-          ))}
           {bajasLista.map((j) => (
             <span
               key={j.id}
