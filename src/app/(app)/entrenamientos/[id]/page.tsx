@@ -14,6 +14,7 @@ import {
 } from "lucide-react";
 import { localDb, type LocalEntrenamiento } from "@/lib/db/local-db";
 import { capitalizarPrimera } from "@/lib/date";
+import { leerFicha } from "@/lib/ficha-entrenamiento";
 import { createClient } from "@/lib/supabase/client";
 import { esPdf } from "@/lib/storage";
 import { CATEGORIA_TAREA_LABEL } from "@/lib/validations/categoria-tarea";
@@ -73,6 +74,10 @@ function FichaEntrenamientoDetalle({
   const [tareaImagenSignedUrls, setTareaImagenSignedUrls] = useState<
     (string | null)[]
   >([null, null, null, null]);
+  const [tablaImagenSignedUrl, setTablaImagenSignedUrl] = useState<
+    string | null
+  >(null);
+  const tablaImagenPath = leerFicha(entrenamiento.ficha).tabla_imagen_url ?? null;
   const jugadoresActivos = useLiveQuery(
     () =>
       localDb.jugadores
@@ -91,6 +96,15 @@ function FichaEntrenamientoDetalle({
       .createSignedUrl(entrenamiento.documento_url, 3600)
       .then(({ data }) => setDocumentoSignedUrl(data?.signedUrl ?? null));
   }, [entrenamiento.documento_url]);
+
+  useEffect(() => {
+    if (!tablaImagenPath || !navigator.onLine) return;
+    const supabase = createClient();
+    supabase.storage
+      .from("adjuntos")
+      .createSignedUrl(tablaImagenPath, 3600)
+      .then(({ data }) => setTablaImagenSignedUrl(data?.signedUrl ?? null));
+  }, [tablaImagenPath]);
 
   useEffect(() => {
     if (!navigator.onLine) return;
@@ -176,6 +190,7 @@ function FichaEntrenamientoDetalle({
       <EntrenamientoFichaImprimible
         entrenamiento={entrenamiento}
         tareaImagenSignedUrls={tareaImagenSignedUrls}
+        tablaImagenSignedUrl={tablaImagenPath ? tablaImagenSignedUrl : null}
         jugadores={jugadoresActivos}
       />
 

@@ -14,10 +14,11 @@ export const CATEGORIA_NORMA_LABEL: Record<CategoriaNorma, string> =
 
 // Régimen interno del equipo: mismo catálogo de faltas que otros equipos del
 // club llevan con multas en euros, pero convertido a puntos (sin dinero de
-// por medio). Al llegar al umbral (ver PUNTOS_CASTIGO) toca castigo.
+// por medio). Todas las faltas valen 1 punto. Al llegar al umbral (ver
+// PUNTOS_CASTIGO) toca castigo.
 export const NORMAS: { categoria: CategoriaNorma; texto: string; puntos: number }[] = [
   { categoria: "entrenamiento", texto: "Llegar tarde a la convocatoria", puntos: 1 },
-  { categoria: "entrenamiento", texto: "Llegar tarde al entrenamiento ya iniciado", puntos: 2 },
+  { categoria: "entrenamiento", texto: "Llegar tarde al entrenamiento ya iniciado", puntos: 1 },
   {
     categoria: "entrenamiento",
     texto: "Olvidar material (botas, espinilleras, medias, camiseta, sudadera, agua...)",
@@ -28,27 +29,27 @@ export const NORMAS: { categoria: CategoriaNorma; texto: string; puntos: number 
   {
     categoria: "entrenamiento",
     texto: "Insultos, palabras malsonantes o protestas a un compañero o al cuerpo técnico",
-    puntos: 2,
+    puntos: 1,
   },
-  { categoria: "entrenamiento", texto: "Falta no justificada", puntos: 3 },
+  { categoria: "entrenamiento", texto: "Falta no justificada", puntos: 1 },
 
-  { categoria: "partido", texto: "Llegar tarde a la convocatoria", puntos: 2 },
-  { categoria: "partido", texto: "Olvidar material", puntos: 2 },
+  { categoria: "partido", texto: "Llegar tarde a la convocatoria", puntos: 1 },
+  { categoria: "partido", texto: "Olvidar material", puntos: 1 },
   { categoria: "partido", texto: "Olvidar el foam", puntos: 1 },
   { categoria: "partido", texto: "No pasar el RPE-TQR", puntos: 1 },
   {
     categoria: "partido",
     texto: "Insultos, palabras malsonantes o protestas a un compañero o al cuerpo técnico",
-    puntos: 3,
+    puntos: 1,
   },
   { categoria: "partido", texto: "Tarjeta amarilla por desplazar el balón", puntos: 1 },
-  { categoria: "partido", texto: "Tarjeta amarilla por protestar", puntos: 2 },
-  { categoria: "partido", texto: "Tarjeta roja", puntos: 3 },
+  { categoria: "partido", texto: "Tarjeta amarilla por protestar", puntos: 1 },
+  { categoria: "partido", texto: "Tarjeta roja", puntos: 1 },
 
   { categoria: "generales", texto: "Entrenar con pendientes, cadenas o anillos", puntos: 1 },
   { categoria: "generales", texto: "Móvil en el vestuario (salvo para poner música)", puntos: 1 },
   { categoria: "generales", texto: "Excederse en el tiempo post-entreno", puntos: 1 },
-  { categoria: "generales", texto: "Uniformidad no correspondiente", puntos: 2 },
+  { categoria: "generales", texto: "Uniformidad no correspondiente", puntos: 1 },
 ];
 
 // A partir de este total de puntos sin resolver, toca castigo (recoger

@@ -266,6 +266,20 @@ export function EntrenamientoForm({
   const [ficha, setFicha] = useState<FichaEntrenamiento>(
     entrenamiento?.ficha ?? {},
   );
+  const [tablaImagen, setTablaImagen] = useState<File | null>(null);
+  const [tablaImagenPreview, setTablaImagenPreview] = useState<string | null>(null);
+  const jugadoresActivos = useLiveQuery(
+    () =>
+      localDb.jugadores
+        .filter((j) => j.activo)
+        .toArray()
+        .then((rows) => rows.sort((a, b) => a.nombre.localeCompare(b.nombre))),
+    [],
+    [],
+  );
+  const jugadoresCampo = new Set(
+    ficha.jugadores_campo ?? jugadoresActivos.map((j) => j.id),
+  );
   const [diagramaEditando, setDiagramaEditando] = useState<number | null>(null);
   // Vista previa del PNG generado al dibujar un diagrama (el archivo aún no
   // está subido hasta guardar la sesión).
@@ -405,8 +419,15 @@ export function EntrenamientoForm({
           documento,
           imagenesTareas,
           ficha,
+          tablaImagen,
         )
-      : await crearEntrenamientoLocal(values, documento, imagenesTareas, ficha);
+      : await crearEntrenamientoLocal(
+          values,
+          documento,
+          imagenesTareas,
+          ficha,
+          tablaImagen,
+        );
 
     if ("error" in result) {
       toast.error(result.error);
@@ -581,9 +602,111 @@ export function EntrenamientoForm({
         <CardContent className="space-y-3 pt-6">
           <details>
             <summary className="cursor-pointer text-xs font-medium text-muted-foreground">
+              Campograma: jugadores que aparecen ({jugadoresCampo.size} de{" "}
+              {jugadoresActivos.length})
+            </summary>
+            <div className="space-y-3 pt-3">
+              <p className="text-xs text-muted-foreground">
+                Se colocan solos según la posición de su ficha de plantilla.
+                Los que estén en &quot;Bajas&quot; salen en rojo.
+              </p>
+              <div className="flex gap-2">
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  onClick={() =>
+                    setFicha((f) => ({
+                      ...f,
+                      jugadores_campo: jugadoresActivos.map((j) => j.id),
+                    }))
+                  }
+                >
+                  Todos
+                </Button>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  onClick={() => setFicha((f) => ({ ...f, jugadores_campo: [] }))}
+                >
+                  Ninguno
+                </Button>
+              </div>
+              <div className="flex flex-wrap gap-1.5">
+                {jugadoresActivos.map((j) => {
+                  const activo = jugadoresCampo.has(j.id);
+                  return (
+                    <button
+                      key={j.id}
+                      type="button"
+                      aria-pressed={activo}
+                      onClick={() => {
+                        const nuevo = new Set(jugadoresCampo);
+                        if (activo) nuevo.delete(j.id);
+                        else nuevo.add(j.id);
+                        setFicha((f) => ({ ...f, jugadores_campo: [...nuevo] }));
+                      }}
+                      className={`rounded-full border px-3 py-1 text-xs font-medium ${
+                        activo
+                          ? "border-green-600 bg-green-600 text-white"
+                          : "border-input bg-background text-muted-foreground"
+                      }`}
+                    >
+                      {j.alias || j.nombre}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          </details>
+          <details>
+            <summary className="cursor-pointer text-xs font-medium text-muted-foreground">
               Tabla de objetivos (Psicológico / Táctico / Técnico / Físico)
             </summary>
-            <div className="pt-3">
+            <div className="space-y-4 pt-3">
+              <div className="space-y-2 rounded-md border p-3">
+                <p className="text-xs font-semibold">Adjuntar la tabla como imagen</p>
+                <p className="text-xs text-muted-foreground">
+                  Si subes una captura de tu tabla, sale tal cual en la ficha en
+                  lugar de la de abajo.
+                </p>
+                {(tablaImagenPreview || ficha.tabla_imagen_url) && (
+                  <div className="space-y-2">
+                    {tablaImagenPreview ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img
+                        src={tablaImagenPreview}
+                        alt="Tabla de objetivos adjunta"
+                        className="max-h-48 rounded border"
+                      />
+                    ) : (
+                      <p className="text-xs">Ya hay una imagen adjunta.</p>
+                    )}
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="outline"
+                      onClick={() => {
+                        setTablaImagen(null);
+                        setTablaImagenPreview(null);
+                        setFicha((f) => ({ ...f, tabla_imagen_url: undefined }));
+                      }}
+                    >
+                      Quitar imagen
+                    </Button>
+                  </div>
+                )}
+                <Input
+                  type="file"
+                  accept="image/*"
+                  onChange={(e) => {
+                    const archivo = e.target.files?.[0] ?? null;
+                    setTablaImagen(archivo);
+                    setTablaImagenPreview(archivo ? URL.createObjectURL(archivo) : null);
+                  }}
+                />
+              </div>
               <ObjetivosTablaEditor
                 valor={normalizarObjetivosTabla(ficha.tabla_objetivos)}
                 onChange={(t) => setFicha((f) => ({ ...f, tabla_objetivos: t }))}

@@ -64,6 +64,12 @@ async function subirImagenTarea(
   await localDb.entrenamientos.update(entrenamientoId, patch);
 }
 
+// La imagen de la tabla de objetivos vive solo en `ficha.tabla_imagen_url`; la
+// ruta se decide antes de subir para que quede guardada junto al resto.
+function rutaImagenTabla(entrenamientoId: string, archivo: File): string {
+  return `entrenamientos/${entrenamientoId}-tabla.${extensionDeArchivo(archivo)}`;
+}
+
 // Una imagen (o `null`) por tarea, en orden — `undefined`/hueco significa
 // "no tocar la imagen que ya hubiera".
 type ImagenesTareas = (File | null | undefined)[];
@@ -85,6 +91,7 @@ export async function crearEntrenamientoLocal(
   documento?: File | null,
   imagenesTareas?: ImagenesTareas,
   ficha?: FichaEntrenamiento,
+  tablaImagen?: File | null,
 ): Promise<ActionResult> {
   const parsed = entrenamientoSchema.safeParse(values);
   if (!parsed.success) {
@@ -92,6 +99,9 @@ export async function crearEntrenamientoLocal(
   }
 
   const id = crypto.randomUUID();
+  if (tablaImagen && tablaImagen.size > 0) {
+    ficha = { ...ficha, tabla_imagen_url: rutaImagenTabla(id, tablaImagen) };
+  }
   const row: LocalEntrenamiento = {
     id,
     ...toEntrenamientoInsert(parsed.data),
@@ -120,6 +130,19 @@ export async function crearEntrenamientoLocal(
     }
   }
 
+  if (tablaImagen && tablaImagen.size > 0 && ficha?.tabla_imagen_url) {
+    try {
+      await subirArchivoPrivado(ficha.tabla_imagen_url, tablaImagen);
+    } catch (e) {
+      return {
+        error:
+          e instanceof Error
+            ? e.message
+            : "Entrenamiento creado, pero la imagen de la tabla no se pudo subir",
+      };
+    }
+  }
+
   if (imagenesTareas) {
     try {
       await subirImagenesTareas(id, imagenesTareas);
@@ -142,12 +165,16 @@ export async function actualizarEntrenamientoLocal(
   documento?: File | null,
   imagenesTareas?: ImagenesTareas,
   ficha?: FichaEntrenamiento,
+  tablaImagen?: File | null,
 ): Promise<ActionResult> {
   const parsed = entrenamientoSchema.safeParse(values);
   if (!parsed.success) {
     return { error: parsed.error.issues[0]?.message ?? "Datos no válidos" };
   }
 
+  if (tablaImagen && tablaImagen.size > 0) {
+    ficha = { ...ficha, tabla_imagen_url: rutaImagenTabla(id, tablaImagen) };
+  }
   const patch = {
     ...toEntrenamientoInsert(parsed.data),
     ...(ficha ? { ficha: fichaAJson(ficha) } : {}),
@@ -164,6 +191,19 @@ export async function actualizarEntrenamientoLocal(
           e instanceof Error
             ? e.message
             : "Entrenamiento actualizado, pero el archivo no se pudo subir",
+      };
+    }
+  }
+
+  if (tablaImagen && tablaImagen.size > 0 && ficha?.tabla_imagen_url) {
+    try {
+      await subirArchivoPrivado(ficha.tabla_imagen_url, tablaImagen);
+    } catch (e) {
+      return {
+        error:
+          e instanceof Error
+            ? e.message
+            : "Entrenamiento actualizado, pero la imagen de la tabla no se pudo subir",
       };
     }
   }

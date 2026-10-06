@@ -144,13 +144,39 @@ function Rotacion({ texto }: { texto: string }) {
   );
 }
 
-const ORDEN_FILAS: { dem: Demarcacion; y: number }[] = [
-  { dem: "delantero", y: 14 },
-  { dem: "extremo", y: 36 },
-  { dem: "mediocentro", y: 58 },
-  { dem: "defensa", y: 78 },
-  { dem: "portero", y: 92 },
-];
+// Altura (en % del campo, el ataque va hacia arriba) de cada posición de la
+// ficha de plantilla; las que comparten altura forman una fila.
+const Y_POSICION: Record<string, number> = {
+  "delantero centro": 14,
+  "extremo izquierdo": 30,
+  "extremo derecho": 30,
+  mediapunta: 44,
+  mediocentro: 58,
+  "mediocentro defensivo": 68,
+  "lateral izquierdo": 80,
+  "lateral derecho": 80,
+  central: 80,
+  portero: 92,
+};
+const Y_DEMARCACION: Record<Demarcacion, number> = {
+  delantero: 14,
+  extremo: 30,
+  mediocentro: 58,
+  defensa: 80,
+  portero: 92,
+};
+
+function yDeJugador(j: LocalJugador): number {
+  if (j.posicion && Y_POSICION[j.posicion] !== undefined) return Y_POSICION[j.posicion];
+  return Y_DEMARCACION[demarcacionDePosicion(j.posicion) ?? "mediocentro"];
+}
+
+// De izquierda a derecha dentro de la fila: izquierdos, centrales, derechos.
+function ladoDeJugador(j: LocalJugador): number {
+  if (j.posicion?.includes("izquierdo")) return 0;
+  if (j.posicion?.includes("derecho")) return 2;
+  return 1;
+}
 
 // Campo con los nombres de la plantilla colocados por demarcación. Los que
 // aparecen en el campo "Bajas" salen en rojo, como en la plantilla.
@@ -175,11 +201,12 @@ function TableroJugadores({
     );
   };
 
-  const porFila = ORDEN_FILAS.map(({ dem, y }) => ({
+  const alturas = [...new Set(jugadores.map(yDeJugador))].sort((a, b) => a - b);
+  const porFila = alturas.map((y) => ({
     y,
-    lista: jugadores.filter(
-      (j) => (demarcacionDePosicion(j.posicion) ?? "mediocentro") === dem,
-    ),
+    lista: jugadores
+      .filter((j) => yDeJugador(j) === y)
+      .sort((a, b) => ladoDeJugador(a) - ladoDeJugador(b)),
   }));
 
   return (
@@ -211,6 +238,48 @@ function TableroJugadores({
           </span>
         )),
       )}
+    </div>
+  );
+}
+
+// Campo en blanco al pie de la hoja 2 para dibujar a mano la alineación del
+// fin de semana o apuntar lo que haga falta; a la derecha, las notas de la
+// sesión si las hay.
+function CampoLibre({ notas }: { notas: string | null }) {
+  const linea = { stroke: "#ffffff", strokeWidth: 0.35, fill: "none" } as const;
+  return (
+    <div className="border-t border-neutral-300 print:shrink-0">
+      <BarraAzul>Alineación del fin de semana / Notas</BarraAzul>
+      <div className="flex print:h-[72mm]">
+        <div className="aspect-[105/68] w-[62%] print:aspect-[105/68] print:h-full print:w-auto print:shrink-0">
+          <svg
+            viewBox="0 0 105 68"
+            preserveAspectRatio="none"
+            className="size-full"
+            role="img"
+            aria-label="Campo de fútbol en blanco"
+          >
+            <rect width="105" height="68" fill="#2f8f3a" />
+            <g {...linea}>
+              <rect x="1" y="1" width="103" height="66" />
+              <line x1="52.5" y1="1" x2="52.5" y2="67" />
+              <circle cx="52.5" cy="34" r="9.15" />
+              <rect x="1" y="13.85" width="16.5" height="40.3" />
+              <rect x="87.5" y="13.85" width="16.5" height="40.3" />
+              <rect x="1" y="24.85" width="5.5" height="18.3" />
+              <rect x="98.5" y="24.85" width="5.5" height="18.3" />
+            </g>
+            <g fill="#ffffff">
+              <circle cx="52.5" cy="34" r="0.5" />
+              <circle cx="12" cy="34" r="0.5" />
+              <circle cx="93" cy="34" r="0.5" />
+            </g>
+          </svg>
+        </div>
+        <p className="min-w-0 flex-1 border-l border-neutral-300 p-2 text-sm whitespace-pre-wrap print:p-1 print:text-[8px] print:leading-tight">
+          {notas}
+        </p>
+      </div>
     </div>
   );
 }
@@ -326,13 +395,18 @@ function BloqueTarea({
 export function EntrenamientoFichaImprimible({
   entrenamiento,
   tareaImagenSignedUrls,
+  tablaImagenSignedUrl,
   jugadores,
 }: {
   entrenamiento: LocalEntrenamiento;
   tareaImagenSignedUrls?: (string | null)[];
+  tablaImagenSignedUrl?: string | null;
   jugadores?: LocalJugador[];
 }) {
   const ficha = leerFicha(entrenamiento.ficha);
+  const jugadoresCampo = ficha.jugadores_campo
+    ? jugadores?.filter((j) => ficha.jugadores_campo?.includes(j.id))
+    : jugadores;
   const e = entrenamiento;
 
   const tareas = [1, 2, 3, 4].map((n) => {
@@ -416,16 +490,28 @@ export function EntrenamientoFichaImprimible({
                 <div className="min-h-10 p-2 text-sm whitespace-pre-wrap print:min-h-0 print:p-1 print:text-[8px] print:leading-tight">
                   {e.charla}
                 </div>
-                {tabla && objetivosTablaTieneContenido(tabla) && (
+                {tablaImagenSignedUrl ? (
                   <div className="p-1 print:p-0.5">
-                    <ObjetivosTablaVista tabla={tabla} />
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={tablaImagenSignedUrl}
+                      alt="Tabla de objetivos"
+                      className="w-full"
+                    />
                   </div>
+                ) : (
+                  tabla &&
+                  objetivosTablaTieneContenido(tabla) && (
+                    <div className="p-1 print:p-0.5">
+                      <ObjetivosTablaVista tabla={tabla} />
+                    </div>
+                  )
                 )}
               </div>
               <div className="flex flex-col">
-                {jugadores && jugadores.length > 0 ? (
+                {jugadoresCampo && jugadoresCampo.length > 0 ? (
                   <TableroJugadores
-                    jugadores={jugadores}
+                    jugadores={jugadoresCampo}
                     bajas={e.bajas}
                     convocados={ficha.convocados ?? null}
                   />
@@ -471,14 +557,7 @@ export function EntrenamientoFichaImprimible({
           {tareas.slice(2).map((t) => (
             <BloqueTarea key={t.numero} {...t} />
           ))}
-          {e.notas && (
-            <div className="border-t border-neutral-300">
-              <BarraAzul>Notas</BarraAzul>
-              <p className="p-2 text-sm whitespace-pre-wrap print:p-1 print:text-[8px] print:leading-tight">
-                {e.notas}
-              </p>
-            </div>
-          )}
+          <CampoLibre notas={e.notas} />
         </div>
       </div>
     </div>
