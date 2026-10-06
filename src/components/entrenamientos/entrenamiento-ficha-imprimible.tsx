@@ -75,7 +75,7 @@ function BarraAzul({
 }) {
   return (
     <p
-      className={`px-2 py-0.5 text-center text-[11px] font-bold tracking-wide uppercase print:py-0 print:text-[8px] ${className}`}
+      className={`px-2 py-0.5 text-center text-[11px] font-bold tracking-wide uppercase print:py-0 print:text-[10px] ${className}`}
       style={{ backgroundColor: AZUL }}
     >
       {children}
@@ -86,7 +86,7 @@ function BarraAzul({
 function CeldaEtiqueta({ children }: { children: React.ReactNode }) {
   return (
     <div
-      className="flex items-center justify-center px-1 py-1 text-center text-[10px] font-bold uppercase print:py-0.5 print:text-[7px]"
+      className="flex items-center justify-center px-1 py-1 text-center text-[10px] font-bold uppercase print:py-0.5 print:text-[9px]"
       style={{ backgroundColor: AZUL }}
     >
       {children}
@@ -103,7 +103,7 @@ function CeldaValor({
 }) {
   return (
     <div
-      className={`flex items-center px-2 py-1 text-xs whitespace-pre-wrap print:px-1 print:py-0.5 print:text-[8px] ${className}`}
+      className={`flex items-center px-2 py-1 text-xs whitespace-pre-wrap print:px-1 print:py-0.5 print:text-[10px] ${className}`}
     >
       {children}
     </div>
@@ -118,7 +118,7 @@ function BandaRoja({ children }: { children: React.ReactNode }) {
       style={{ backgroundColor: ROJO }}
     >
       <p
-        className="max-h-full text-[11px] font-semibold tracking-wide uppercase print:text-[8px]"
+        className="max-h-full text-[11px] font-semibold tracking-wide uppercase print:text-[10px]"
         style={{ writingMode: "vertical-rl", transform: "rotate(180deg)" }}
       >
         {children}
@@ -134,7 +134,7 @@ function Rotacion({ texto }: { texto: string }) {
     .map((s) => s.trim())
     .filter(Boolean);
   return (
-    <div className="grid grid-cols-2 gap-x-3 gap-y-0.5 p-2 text-[11px] font-bold print:p-1 print:text-[7.5px]">
+    <div className="grid grid-cols-2 gap-x-3 gap-y-0.5 p-2 text-[11px] font-bold print:p-1 print:text-[9.5px]">
       {segmentos.map((s, i) => (
         <p
           key={i}
@@ -199,7 +199,7 @@ function costeHueco(j: LocalJugador, prefs: string[]): number {
 }
 
 // Separación vertical (en % del campo) entre jugadores que comparten hueco.
-const PASO_SUPLENTE = 7;
+const PASO_SUPLENTE = 8.5;
 
 // Reparte a los disponibles en los 11 huecos, primero las mejores parejas;
 // los que sobran se ponen debajo del titular del hueco donde mejor encajan.
@@ -277,7 +277,7 @@ function TableroJugadores({
   const resumen = `${disponibles.length - porteros}+${porteros}P`;
   const nombre = (j: LocalJugador) => j.alias || j.nombre;
   const chip =
-    "border border-neutral-400 px-1 text-[8px] leading-tight font-bold whitespace-nowrap uppercase print:text-[6px]";
+    "border border-neutral-400 px-1 text-[8px] leading-tight font-bold whitespace-nowrap uppercase print:text-[9px]";
 
   return (
     <div>
@@ -323,7 +323,7 @@ function CampoLibre({ notas }: { notas: string | null }) {
   return (
     <div className="border-t border-neutral-300 print:mt-auto print:shrink-0">
       {notas && (
-        <p className="border-b border-neutral-300 p-2 text-sm whitespace-pre-wrap print:p-1 print:text-[8px] print:leading-tight">
+        <p className="border-b border-neutral-300 p-2 text-sm whitespace-pre-wrap print:p-1 print:text-[10px] print:leading-tight">
           {notas}
         </p>
       )}
@@ -410,7 +410,7 @@ function BloqueTarea({
         <div className="grid grid-cols-1 sm:grid-cols-2 print:min-h-0 print:flex-1 print:grid-cols-2">
           <div className="border-neutral-300 sm:border-r print:min-h-0 print:overflow-hidden print:border-r">
             <BarraAzul>Objetivos</BarraAzul>
-            <div className="space-y-2 p-2 text-sm print:space-y-1 print:p-1 print:text-[9px]">
+            <div className="space-y-2 p-2 text-sm print:space-y-1 print:p-1 print:text-[11px]">
               {objetivosDef && (
                 <div>
                   <p className="text-center font-bold underline underline-offset-2">
@@ -448,13 +448,13 @@ function BloqueTarea({
         <div className="grid grid-cols-1 sm:grid-cols-2 print:grid-cols-2">
           <div>
             <BarraAzul>Reglas de provocación</BarraAzul>
-            <div className="min-h-6 p-2 text-sm print:p-1 print:text-[9px]">
+            <div className="min-h-6 p-2 text-sm print:p-1 print:text-[11px]">
               <TextoRico texto={reglasProvocacion} />
             </div>
           </div>
           <div>
             <BarraAzul>Observaciones</BarraAzul>
-            <div className="min-h-6 p-2 text-sm print:p-1 print:text-[9px]">
+            <div className="min-h-6 p-2 text-sm print:p-1 print:text-[11px]">
               <TextoRico texto={observaciones} />
             </div>
           </div>
@@ -557,7 +557,7 @@ export function EntrenamientoFichaImprimible({
                   <CeldaValor className="col-span-3">{e.objetivos}</CeldaValor>
                 </div>
                 <BarraAzul>Charla</BarraAzul>
-                <div className="min-h-10 p-2 text-sm whitespace-pre-wrap print:min-h-0 print:p-1 print:text-[8px] print:leading-tight">
+                <div className="min-h-10 p-2 text-sm whitespace-pre-wrap print:min-h-0 print:p-1 print:text-[10px] print:leading-tight">
                   {e.charla}
                 </div>
                 {tablaImagenSignedUrl ? (
@@ -589,7 +589,7 @@ export function EntrenamientoFichaImprimible({
                   <div className="aspect-[16/8] w-full" style={{ backgroundColor: "#2f8f3a" }} />
                 )}
                 <BarraAzul>Material</BarraAzul>
-                <div className="flex-1 p-2 text-sm whitespace-pre-wrap print:p-1 print:text-[8px] print:leading-tight">
+                <div className="flex-1 p-2 text-sm whitespace-pre-wrap print:p-1 print:text-[10px] print:leading-tight">
                   {materialTexto}
                 </div>
               </div>
@@ -603,12 +603,12 @@ export function EntrenamientoFichaImprimible({
                 {tareas.map((t) => (
                   <div key={t.numero} className="border-r border-neutral-200 last:border-r-0">
                     <p
-                      className="py-0.5 text-center text-[10px] font-bold uppercase print:py-0 print:text-[7px]"
+                      className="py-0.5 text-center text-[10px] font-bold uppercase print:py-0 print:text-[9px]"
                       style={{ backgroundColor: AZUL }}
                     >
                       Tarea {t.numero}
                     </p>
-                    <div className="p-1.5 text-xs print:p-0.5 print:text-[7.5px] print:leading-tight">
+                    <div className="p-1.5 text-xs print:p-0.5 print:text-[9.5px] print:leading-tight">
                       <p>Campos: {t.campos}</p>
                       <p>Paco: {t.paco}</p>
                     </div>
