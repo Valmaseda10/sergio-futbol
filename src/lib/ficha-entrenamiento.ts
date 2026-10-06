@@ -62,6 +62,7 @@ export interface ObjetivosTabla {
 
 export interface FichaEntrenamiento {
   numero_sesion?: string;
+  // Obsoleto: ahora el recuento (p. ej. 14+1P) se calcula con la lista.
   convocados?: string;
   tabla_objetivos?: ObjetivosTabla;
   // Ruta en el bucket "adjuntos" de una imagen de la tabla de objetivos

@@ -549,17 +549,6 @@ export function EntrenamientoForm({
                 }
               />
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="convocados">Jugadores</Label>
-              <Input
-                id="convocados"
-                placeholder="Ej: 14+1P"
-                value={ficha.convocados ?? ""}
-                onChange={(e) =>
-                  setFicha((f) => ({ ...f, convocados: e.target.value }))
-                }
-              />
-            </div>
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
