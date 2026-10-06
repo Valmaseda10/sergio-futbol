@@ -296,43 +296,44 @@ function TableroJugadores({
   );
 }
 
-// Campo en blanco al pie de la hoja 2 para dibujar a mano la alineación del
-// fin de semana o apuntar lo que haga falta; a la derecha, las notas de la
-// sesión si las hay.
+// Campo en blanco al pie de la hoja 2, a todo el ancho, para dibujar a mano
+// la alineación del fin de semana o apuntar lo que haga falta; las notas de
+// la sesión, si las hay, van encima. Las proporciones del dibujo coinciden
+// con las de la caja impresa (≈198 x 80 mm), así el círculo sale redondo.
 function CampoLibre({ notas }: { notas: string | null }) {
-  const linea = { stroke: "#ffffff", strokeWidth: 0.35, fill: "none" } as const;
+  const linea = { stroke: "#ffffff", strokeWidth: 0.6, fill: "none" } as const;
   return (
     <div className="border-t border-neutral-300 print:shrink-0">
       <BarraAzul>Alineación del fin de semana / Notas</BarraAzul>
-      <div className="flex print:h-[72mm]">
-        <div className="aspect-[105/68] w-[62%] print:aspect-[105/68] print:h-full print:w-auto print:shrink-0">
-          <svg
-            viewBox="0 0 105 68"
-            preserveAspectRatio="none"
-            className="size-full"
-            role="img"
-            aria-label="Campo de fútbol en blanco"
-          >
-            <rect width="105" height="68" fill="#2f8f3a" />
-            <g {...linea}>
-              <rect x="1" y="1" width="103" height="66" />
-              <line x1="52.5" y1="1" x2="52.5" y2="67" />
-              <circle cx="52.5" cy="34" r="9.15" />
-              <rect x="1" y="13.85" width="16.5" height="40.3" />
-              <rect x="87.5" y="13.85" width="16.5" height="40.3" />
-              <rect x="1" y="24.85" width="5.5" height="18.3" />
-              <rect x="98.5" y="24.85" width="5.5" height="18.3" />
-            </g>
-            <g fill="#ffffff">
-              <circle cx="52.5" cy="34" r="0.5" />
-              <circle cx="12" cy="34" r="0.5" />
-              <circle cx="93" cy="34" r="0.5" />
-            </g>
-          </svg>
-        </div>
-        <p className="min-w-0 flex-1 border-l border-neutral-300 p-2 text-sm whitespace-pre-wrap print:p-1 print:text-[8px] print:leading-tight">
+      {notas && (
+        <p className="border-b border-neutral-300 p-2 text-sm whitespace-pre-wrap print:p-1 print:text-[8px] print:leading-tight">
           {notas}
         </p>
+      )}
+      <div className="aspect-[200/81] w-full print:aspect-auto print:h-[80mm]">
+        <svg
+          viewBox="0 0 200 81"
+          preserveAspectRatio="none"
+          className="size-full"
+          role="img"
+          aria-label="Campo de fútbol en blanco"
+        >
+          <rect width="200" height="81" fill="#2f8f3a" />
+          <g {...linea}>
+            <rect x="2" y="2" width="196" height="77" />
+            <line x1="100" y1="2" x2="100" y2="79" />
+            <circle cx="100" cy="40.5" r="12" />
+            <rect x="2" y="16" width="31" height="49" />
+            <rect x="167" y="16" width="31" height="49" />
+            <rect x="2" y="28.5" width="10.5" height="24" />
+            <rect x="187.5" y="28.5" width="10.5" height="24" />
+          </g>
+          <g fill="#ffffff">
+            <circle cx="100" cy="40.5" r="0.9" />
+            <circle cx="23" cy="40.5" r="0.9" />
+            <circle cx="177" cy="40.5" r="0.9" />
+          </g>
+        </svg>
       </div>
     </div>
   );
