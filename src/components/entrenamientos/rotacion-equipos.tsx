@@ -202,7 +202,7 @@ export function RotacionEquiposVista({
 }) {
   const porId = new Map(jugadores.map((j) => [j.id, j]));
   return (
-    <div className="grid grid-cols-2 gap-x-3 gap-y-1 p-2 text-[11px] font-bold print:p-1 print:text-[9.5px]">
+    <div className="grid grid-cols-2 gap-x-3 gap-y-1 p-2 text-[11px] font-bold print:p-1 print:text-[10.5px]">
       {equipos.map((equipo, i) => {
         const miembros = equipo.jugadores
           .map((id) => porId.get(id))

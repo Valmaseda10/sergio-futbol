@@ -193,11 +193,11 @@ export function ObjetivosTablaEditor({
 const ROJO = "#c00000";
 
 const celdaCabecera =
-  "border border-neutral-400 bg-neutral-300 px-1 py-0.5 text-center text-[9px] font-bold leading-tight text-neutral-800";
+  "border border-neutral-400 bg-neutral-300 px-1 py-0.5 text-center text-[10px] font-bold leading-tight text-neutral-800";
 const celdaTexto =
-  "border border-neutral-400 bg-neutral-100 px-1 py-0.5 text-center text-[9px] font-semibold leading-tight text-neutral-900";
+  "border border-neutral-400 bg-neutral-100 px-1 py-0.5 text-center text-[10px] font-semibold leading-tight text-neutral-900";
 const celdaRoja =
-  "border border-neutral-400 px-0.5 py-0.5 text-center text-[8px] font-bold leading-tight text-white";
+  "border border-neutral-400 px-0.5 py-0.5 text-center text-[9px] font-bold leading-tight text-white";
 
 function EtiquetaRoja({
   children,
