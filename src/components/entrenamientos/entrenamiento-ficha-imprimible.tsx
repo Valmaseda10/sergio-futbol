@@ -280,14 +280,21 @@ function TableroJugadores({
     "border border-neutral-400 px-1 text-[8px] leading-tight font-bold whitespace-nowrap uppercase print:text-[6px]";
 
   return (
-    <div className="flex items-start">
+    <div>
       <div
-        className="relative aspect-[16/8] min-w-0 flex-1 overflow-hidden"
+        className="relative aspect-[16/8] w-full overflow-hidden"
         style={{ backgroundColor: "#2f8f3a" }}
       >
         <div className="absolute inset-x-[6%] top-[4%] bottom-[4%] border border-white/60" />
         <div className="absolute inset-x-[30%] bottom-[4%] h-[26%] border border-white/60" />
         <div className="absolute top-[4%] left-1/2 size-12 -translate-x-1/2 -translate-y-1/2 rounded-full border border-white/60" />
+        <span
+          className={`absolute -translate-x-1/2 -translate-y-1/2 bg-white text-neutral-900 ${chip}`}
+          style={{ left: "93%", top: "7%" }}
+          title="Jugadores + porteros disponibles"
+        >
+          {resumen}
+        </span>
         {colocados.map(({ jugador, x, y, rojo }) => (
           <span
             key={jugador.id}
@@ -301,14 +308,6 @@ function TableroJugadores({
             {nombre(jugador)}
           </span>
         ))}
-      </div>
-      <div className="m-1 flex aspect-square w-14 shrink-0 flex-col items-center justify-center border-2 border-neutral-800 bg-white text-neutral-900 print:m-0.5 print:w-[12mm] print:border">
-        <span className="text-[9px] leading-none font-medium print:text-[5px]">
-          Jugadores
-        </span>
-        <span className="text-base leading-tight font-bold print:text-[9px]">
-          {resumen}
-        </span>
       </div>
     </div>
   );
