@@ -17,7 +17,6 @@ import {
   normalizarObjetivosTabla,
   objetivosTablaTieneContenido,
 } from "@/lib/ficha-entrenamiento";
-import { demarcacionDePosicion, type Demarcacion } from "@/lib/posiciones";
 import {
   localDb,
   type LocalEntrenamiento,
@@ -173,42 +172,54 @@ function useAusentes(entrenamientoId: string): Set<string> {
   );
 }
 
-// Altura (en % del campo, el ataque va hacia arriba) de cada posición de la
-// ficha de plantilla; las que comparten altura forman una fila.
-const Y_POSICION: Record<string, number> = {
-  "delantero centro": 14,
-  "extremo izquierdo": 30,
-  "extremo derecho": 30,
-  mediapunta: 44,
-  mediocentro: 58,
-  "mediocentro defensivo": 68,
-  "lateral izquierdo": 80,
-  "lateral derecho": 80,
-  central: 80,
-  portero: 92,
-};
-const Y_DEMARCACION: Record<Demarcacion, number> = {
-  delantero: 14,
-  extremo: 30,
-  mediocentro: 58,
-  defensa: 80,
-  portero: 92,
-};
+// Sistema 1-4-3-3 (el ataque va hacia arriba). Cada hueco lista, por orden de
+// preferencia, las posiciones de la ficha de plantilla que mejor lo cubren.
+const HUECOS_433: { x: number; y: number; prefs: string[] }[] = [
+  { x: 50, y: 92, prefs: ["portero"] },
+  { x: 13, y: 76, prefs: ["lateral izquierdo", "lateral derecho", "central"] },
+  { x: 38, y: 78, prefs: ["central", "mediocentro defensivo", "lateral izquierdo", "lateral derecho"] },
+  { x: 62, y: 78, prefs: ["central", "mediocentro defensivo", "lateral derecho", "lateral izquierdo"] },
+  { x: 87, y: 76, prefs: ["lateral derecho", "lateral izquierdo", "central"] },
+  { x: 50, y: 62, prefs: ["mediocentro defensivo", "mediocentro", "central", "mediapunta"] },
+  { x: 30, y: 46, prefs: ["mediocentro", "mediapunta", "mediocentro defensivo", "extremo izquierdo", "extremo derecho"] },
+  { x: 70, y: 46, prefs: ["mediocentro", "mediapunta", "mediocentro defensivo", "extremo derecho", "extremo izquierdo"] },
+  { x: 15, y: 24, prefs: ["extremo izquierdo", "extremo derecho", "delantero centro", "mediapunta"] },
+  { x: 50, y: 16, prefs: ["delantero centro", "extremo izquierdo", "extremo derecho", "mediapunta"] },
+  { x: 85, y: 24, prefs: ["extremo derecho", "extremo izquierdo", "delantero centro", "mediapunta"] },
+];
 
-function yDeJugador(j: LocalJugador): number {
-  if (j.posicion && Y_POSICION[j.posicion] !== undefined) return Y_POSICION[j.posicion];
-  return Y_DEMARCACION[demarcacionDePosicion(j.posicion) ?? "mediocentro"];
+// Lo bien que encaja un jugador en un hueco (menor = mejor). El portero solo
+// encaja de portero y nadie más juega de portero.
+function costeHueco(j: LocalJugador, prefs: string[]): number {
+  const esPortero = j.posicion === "portero";
+  const huecoPortero = prefs[0] === "portero";
+  if (esPortero !== huecoPortero) return 100;
+  const i = j.posicion ? prefs.indexOf(j.posicion) : -1;
+  return i >= 0 ? i : 10;
 }
 
-// De izquierda a derecha dentro de la fila: izquierdos, centrales, derechos.
-function ladoDeJugador(j: LocalJugador): number {
-  if (j.posicion?.includes("izquierdo")) return 0;
-  if (j.posicion?.includes("derecho")) return 2;
-  return 1;
+// Reparte a los disponibles en los 11 huecos, primero las mejores parejas;
+// los que no caben se quedan como "resto".
+function colocar433(disponibles: LocalJugador[]) {
+  const parejas = HUECOS_433.flatMap((h, hi) =>
+    disponibles.map((j, ji) => ({ hi, ji, coste: costeHueco(j, h.prefs) })),
+  ).sort((a, b) => a.coste - b.coste || a.hi - b.hi || a.ji - b.ji);
+  const huecoUsado = new Set<number>();
+  const jugadorUsado = new Set<number>();
+  const colocados: { jugador: LocalJugador; x: number; y: number }[] = [];
+  for (const { hi, ji, coste } of parejas) {
+    if (coste >= 100 || huecoUsado.has(hi) || jugadorUsado.has(ji)) continue;
+    huecoUsado.add(hi);
+    jugadorUsado.add(ji);
+    colocados.push({ jugador: disponibles[ji], x: HUECOS_433[hi].x, y: HUECOS_433[hi].y });
+  }
+  const resto = disponibles.filter((_, ji) => !jugadorUsado.has(ji));
+  return { colocados, resto };
 }
 
-// Campo con los nombres de la plantilla colocados por demarcación. Los que
-// aparecen en el campo "Bajas" salen en rojo, como en la plantilla.
+// Campo con los disponibles colocados en un 1-4-3-3 según su posición de la
+// plantilla. Los que no están disponibles (según "Pasar lista" o el campo
+// "Bajas") salen en rojo debajo, y los que sobran, como resto.
 function TableroJugadores({
   jugadores,
   ausentes,
@@ -233,42 +244,53 @@ function TableroJugadores({
     );
   };
 
-  const alturas = [...new Set(jugadores.map(yDeJugador))].sort((a, b) => a - b);
-  const porFila = alturas.map((y) => ({
-    y,
-    lista: jugadores
-      .filter((j) => yDeJugador(j) === y)
-      .sort((a, b) => ladoDeJugador(a) - ladoDeJugador(b)),
-  }));
+  const { colocados, resto } = colocar433(jugadores.filter((j) => !esBaja(j)));
+  const bajasLista = jugadores.filter(esBaja);
+  const nombre = (j: LocalJugador) => j.alias || j.nombre;
+  const chip =
+    "border border-neutral-400 px-1 text-[8px] leading-tight font-bold whitespace-nowrap uppercase print:text-[6px]";
 
   return (
-    <div
-      className="relative aspect-[16/8] w-full overflow-hidden"
-      style={{ backgroundColor: "#2f8f3a" }}
-    >
-      <div className="absolute inset-x-[6%] top-[4%] bottom-[4%] border border-white/60" />
-      <div className="absolute inset-x-[30%] bottom-[4%] h-[26%] border border-white/60" />
-      <div className="absolute top-[4%] left-1/2 size-12 -translate-x-1/2 -translate-y-1/2 rounded-full border border-white/60" />
-      {convocados && (
-        <p className="absolute top-1 right-2 rounded bg-white px-1.5 text-xs font-bold text-black print:text-[9px]">
-          {convocados}
-        </p>
-      )}
-      {porFila.map(({ y, lista }) =>
-        lista.map((j, i) => (
+    <div>
+      <div
+        className="relative aspect-[16/8] w-full overflow-hidden"
+        style={{ backgroundColor: "#2f8f3a" }}
+      >
+        <div className="absolute inset-x-[6%] top-[4%] bottom-[4%] border border-white/60" />
+        <div className="absolute inset-x-[30%] bottom-[4%] h-[26%] border border-white/60" />
+        <div className="absolute top-[4%] left-1/2 size-12 -translate-x-1/2 -translate-y-1/2 rounded-full border border-white/60" />
+        {convocados && (
+          <p className="absolute top-1 right-2 rounded bg-white px-1.5 text-xs font-bold text-black print:text-[9px]">
+            {convocados}
+          </p>
+        )}
+        {colocados.map(({ jugador, x, y }) => (
           <span
-            key={j.id}
-            className="absolute -translate-x-1/2 -translate-y-1/2 border border-neutral-400 px-1 text-[8px] leading-tight font-bold whitespace-nowrap uppercase print:text-[6px]"
-            style={{
-              left: `${((i + 1) / (lista.length + 1)) * 88 + 6}%`,
-              top: `${y}%`,
-              backgroundColor: esBaja(j) ? "#c00000" : "#ffffff",
-              color: esBaja(j) ? "#ffffff" : "#111111",
-            }}
+            key={jugador.id}
+            className={`absolute -translate-x-1/2 -translate-y-1/2 bg-white text-neutral-900 ${chip}`}
+            style={{ left: `${x}%`, top: `${y}%` }}
           >
-            {j.alias || j.nombre}
+            {nombre(jugador)}
           </span>
-        )),
+        ))}
+      </div>
+      {(resto.length > 0 || bajasLista.length > 0) && (
+        <div className="flex flex-wrap items-center gap-1 border-t border-neutral-300 bg-neutral-100 px-1 py-0.5">
+          {resto.map((j) => (
+            <span key={j.id} className={`bg-white text-neutral-900 ${chip}`}>
+              {nombre(j)}
+            </span>
+          ))}
+          {bajasLista.map((j) => (
+            <span
+              key={j.id}
+              className={`text-white ${chip}`}
+              style={{ backgroundColor: "#c00000" }}
+            >
+              {nombre(j)}
+            </span>
+          ))}
+        </div>
       )}
     </div>
   );
