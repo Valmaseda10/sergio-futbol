@@ -548,7 +548,10 @@ export function EntrenamientoFichaImprimible({
     if (hojas.length === 0) return null;
     setGenerandoPdf(true);
     try {
-      const nombre = `Sesión ${ficha.numero_sesion || entrenamiento.fecha}.pdf`;
+      // Ej.: "Sesión 22 08-10-2026.pdf" (nº de sesión sin el día de la semana).
+      const numero = ficha.numero_sesion?.match(/^\s*(\d+)/)?.[1];
+      const [anio, mes, dia] = entrenamiento.fecha.split("-");
+      const nombre = `Sesión ${numero ? `${numero} ` : ""}${dia}-${mes}-${anio}.pdf`;
       pdfRef.current = await generarPdfFicha(hojas, nombre);
       return pdfRef.current;
     } catch (e) {
