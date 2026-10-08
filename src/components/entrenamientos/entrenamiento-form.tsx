@@ -16,6 +16,9 @@ import {
   Loader2,
   ImagePlus,
   PenTool,
+  BookmarkPlus,
+  Library,
+  Trash2,
 } from "lucide-react";
 import {
   ENTRENAMIENTO_FORM_DEFAULTS,
@@ -39,8 +42,17 @@ import { RotacionEquiposEditor } from "@/components/entrenamientos/rotacion-equi
 import {
   crearEntrenamientoLocal,
   actualizarEntrenamientoLocal,
+  guardarTareaGuardadaLocal,
+  eliminarTareaGuardadaLocal,
 } from "@/app/(app)/entrenamientos/local-actions";
-import { localDb } from "@/lib/db/local-db";
+import { localDb, type LocalTareaGuardada } from "@/lib/db/local-db";
+import { createClient } from "@/lib/supabase/client";
+import {
+  SUFIJOS_TAREA,
+  leerDatosTarea,
+  nombreSugerido,
+  type DatosTareaGuardada,
+} from "@/lib/tareas-guardadas";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -326,6 +338,16 @@ export function EntrenamientoForm({
     tarea_4: !!entrenamiento?.tarea_4_categoria,
   });
 
+  const [guardadasPara, setGuardadasPara] = useState<number | null>(null);
+  const tareasGuardadas = useLiveQuery(
+    () =>
+      localDb.tareas_guardadas
+        .toArray()
+        .then((rows) => rows.sort((a, b) => a.nombre.localeCompare(b.nombre))),
+    [],
+    [],
+  );
+
   const ejercicios = useLiveQuery(
     () =>
       localDb.ejercicios
@@ -339,12 +361,114 @@ export function EntrenamientoForm({
     register,
     handleSubmit,
     setValue,
+    getValues,
     control,
     formState: { errors, isSubmitting },
   } = useForm<EntrenamientoFormValues>({
     resolver: zodResolver(entrenamientoSchema),
     defaultValues: entrenamiento ?? ENTRENAMIENTO_FORM_DEFAULTS,
   });
+
+  // Nombre de campo del formulario para una tarea (índice 0-3) y sufijo.
+  function campoDe(i: number, sufijo: string) {
+    return `tarea_${i + 1}${sufijo}` as keyof EntrenamientoFormValues;
+  }
+
+  // Guarda la tarea tal como está ahora (texto, diagrama, rotación e imagen)
+  // para poder reutilizarla en otra sesión sin volver a escribirla ni dibujarla.
+  async function guardarTarea(i: number) {
+    const valores = getValues();
+    const campos: DatosTareaGuardada["campos"] = {};
+    for (const sufijo of SUFIJOS_TAREA) {
+      const valor = String(valores[campoDe(i, sufijo)] ?? "");
+      if (valor) campos[sufijo] = valor;
+    }
+    if (!campos[""]) {
+      toast.error("La tarea está vacía: escribe algo antes de guardarla");
+      return;
+    }
+    const nombre = window.prompt(
+      "Nombre con el que guardar la tarea",
+      nombreSugerido(campos[""]),
+    );
+    if (nombre === null) return;
+
+    // La imagen: la recién dibujada o subida, o la que ya tiene la sesión.
+    let imagen: Blob | null = imagenesTareas[i];
+    const urlActual = entrenamiento?.tareaImagenSignedUrls?.[i];
+    if (!imagen && urlActual) {
+      try {
+        imagen = await (await fetch(urlActual)).blob();
+      } catch {
+        toast.warning("No se ha podido leer la imagen: se guarda solo el texto");
+      }
+    }
+
+    const resultado = await guardarTareaGuardadaLocal(
+      nombre,
+      {
+        campos,
+        diagrama: ficha.diagramas?.[i] ?? null,
+        equipos: ficha.rotaciones?.[i] ?? null,
+      },
+      imagen,
+    );
+    if ("error" in resultado) {
+      toast.error(resultado.error);
+      return;
+    }
+    toast.success("Tarea guardada: la tienes en Tareas guardadas");
+  }
+
+  // Rellena la tarea i con una tarea guardada (sustituye lo que hubiera).
+  async function usarTareaGuardada(i: number, guardada: LocalTareaGuardada) {
+    const datos = leerDatosTarea(guardada.datos);
+    for (const sufijo of SUFIJOS_TAREA) {
+      setValue(campoDe(i, sufijo), datos.campos[sufijo] ?? "", {
+        shouldDirty: true,
+        shouldValidate: true,
+      });
+    }
+    setValue(campoDe(i, "_ejercicio_id"), "", { shouldDirty: true });
+    if (datos.campos._categoria) {
+      categoriaManualRef.current[CAMPOS_TAREA[i]] = true;
+    }
+    setFicha((f) => {
+      const diagramas = [...(f.diagramas ?? [null, null, null, null])];
+      diagramas[i] = datos.diagrama ? structuredClone(datos.diagrama) : null;
+      const rotaciones = [...(f.rotaciones ?? [null, null, null, null])];
+      rotaciones[i] = datos.equipos ? structuredClone(datos.equipos) : null;
+      return { ...f, diagramas, rotaciones };
+    });
+
+    if (guardada.imagen_url) {
+      try {
+        const { data, error } = await createClient()
+          .storage.from("adjuntos")
+          .download(guardada.imagen_url);
+        if (error || !data) throw error ?? new Error("sin datos");
+        const archivo = new File([data], `tarea-${i + 1}.png`, {
+          type: data.type || "image/png",
+        });
+        setImagenesTareas((prev) => {
+          const siguiente = [...prev];
+          siguiente[i] = archivo;
+          return siguiente;
+        });
+        setPreviewsDiagrama((prev) => {
+          const siguiente = [...prev];
+          siguiente[i] = URL.createObjectURL(archivo);
+          return siguiente;
+        });
+      } catch {
+        toast.warning(
+          "Se ha copiado el texto, pero no se ha podido descargar el dibujo (¿sin conexión?)",
+        );
+      }
+    }
+    setGuardadasPara(null);
+    toast.success(`Tarea ${i + 1} rellenada con "${guardada.nombre}"`);
+  }
 
   function handleElegirEjercicio(ejercicio: {
     id: string;
@@ -748,15 +872,35 @@ export function EntrenamientoForm({
             <div key={campo} className="space-y-2 rounded-md border p-3">
               <div className="flex items-center justify-between">
                 <Label htmlFor={campo}>Tarea {i + 1}</Label>
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => setPickerPara(campo)}
-                >
-                  <BookOpen className="size-3.5" />
-                  Elegir de la biblioteca
-                </Button>
+                <div className="flex flex-wrap justify-end gap-1">
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => guardarTarea(i)}
+                  >
+                    <BookmarkPlus className="size-3.5" />
+                    Guardar tarea
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setGuardadasPara(i)}
+                  >
+                    <Library className="size-3.5" />
+                    Tareas guardadas
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setPickerPara(campo)}
+                  >
+                    <BookOpen className="size-3.5" />
+                    Biblioteca
+                  </Button>
+                </div>
               </div>
               <div className="flex gap-3">
                 <div className="flex flex-col gap-1">
@@ -1065,6 +1209,68 @@ export function EntrenamientoForm({
           Cancelar
         </Button>
       </div>
+
+      <Dialog
+        open={guardadasPara !== null}
+        onOpenChange={(open) => !open && setGuardadasPara(null)}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Tareas guardadas</DialogTitle>
+          </DialogHeader>
+          <p className="text-xs text-muted-foreground">
+            Al elegir una, sustituye lo que haya ahora en la Tarea{" "}
+            {(guardadasPara ?? 0) + 1} (texto, objetivos, rotación y dibujo).
+          </p>
+          <div className="max-h-80 space-y-1 overflow-y-auto">
+            {tareasGuardadas.length === 0 ? (
+              <p className="p-2 text-sm text-muted-foreground">
+                Todavía no has guardado ninguna. Rellena una tarea y pulsa
+                &quot;Guardar tarea&quot;.
+              </p>
+            ) : (
+              tareasGuardadas.map((t) => {
+                const d = leerDatosTarea(t.datos);
+                const resumen = [d.campos._dimension, d.campos._tiempo]
+                  .filter(Boolean)
+                  .join(" · ");
+                return (
+                  <div key={t.id} className="flex items-center gap-1 rounded-md hover:bg-muted">
+                    <button
+                      type="button"
+                      onClick={() =>
+                        guardadasPara !== null && usarTareaGuardada(guardadasPara, t)
+                      }
+                      className="min-w-0 flex-1 p-2 text-left text-sm"
+                    >
+                      <p className="truncate font-medium">{t.nombre}</p>
+                      <p className="truncate text-xs text-muted-foreground">
+                        {[resumen, t.imagen_url || d.diagrama ? "con dibujo" : ""]
+                          .filter(Boolean)
+                          .join(" · ")}
+                      </p>
+                    </button>
+                    <Button
+                      type="button"
+                      size="icon"
+                      variant="ghost"
+                      className="size-8 shrink-0 text-destructive"
+                      aria-label={`Eliminar ${t.nombre}`}
+                      onClick={() => {
+                        if (window.confirm(`¿Eliminar la tarea guardada "${t.nombre}"?`)) {
+                          void eliminarTareaGuardadaLocal(t.id);
+                        }
+                      }}
+                    >
+                      <Trash2 className="size-4" />
+                    </Button>
+                  </div>
+                );
+              })
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
 
       <Dialog
         open={pickerPara !== null}

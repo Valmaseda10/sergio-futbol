@@ -7,11 +7,14 @@ import {
   type LocalAsistencia,
   type LocalEntrenamiento,
   type LocalEjercicio,
+  type LocalTareaGuardada,
 } from "@/lib/db/local-db";
 import { queueMutation } from "@/lib/db/sync";
 import { createClient } from "@/lib/supabase/client";
 import { subirArchivoPrivado, extensionDeArchivo } from "@/lib/storage";
 import { fichaAJson, type FichaEntrenamiento } from "@/lib/ficha-entrenamiento";
+import type { DatosTareaGuardada } from "@/lib/tareas-guardadas";
+import type { Json } from "@/lib/types/database.types";
 import {
   entrenamientoSchema,
   generarSchema,
@@ -488,5 +491,53 @@ export async function actualizarEjercicioLocal(
 export async function eliminarEjercicioLocal(id: string): Promise<SimpleResult> {
   await localDb.ejercicios.delete(id);
   await queueMutation("ejercicios", "delete", id);
+  return { success: true };
+}
+
+// ---- Tareas guardadas (reutilizar una tarea ya escrita/dibujada) ----------
+
+export async function guardarTareaGuardadaLocal(
+  nombre: string,
+  datos: DatosTareaGuardada,
+  imagen: Blob | null,
+): Promise<ActionResult> {
+  const limpio = nombre.trim();
+  if (!limpio) return { error: "Pon un nombre a la tarea" };
+
+  const id = crypto.randomUUID();
+  const imagenUrl = imagen ? `tareas-guardadas/${id}.png` : null;
+  const row: LocalTareaGuardada = {
+    id,
+    nombre: limpio,
+    datos: JSON.parse(JSON.stringify(datos)) as Json,
+    imagen_url: imagenUrl,
+    created_at: new Date().toISOString(),
+  };
+
+  await localDb.tareas_guardadas.put(row);
+  await queueMutation("tareas_guardadas", "insert", id, row);
+
+  if (imagen && imagenUrl) {
+    try {
+      await subirArchivoPrivado(
+        imagenUrl,
+        new File([imagen], `${id}.png`, { type: imagen.type || "image/png" }),
+      );
+    } catch (e) {
+      return {
+        error:
+          e instanceof Error
+            ? e.message
+            : "Tarea guardada, pero la imagen no se pudo subir",
+      };
+    }
+  }
+
+  return { success: true, id };
+}
+
+export async function eliminarTareaGuardadaLocal(id: string): Promise<SimpleResult> {
+  await localDb.tareas_guardadas.delete(id);
+  await queueMutation("tareas_guardadas", "delete", id);
   return { success: true };
 }

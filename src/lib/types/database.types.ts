@@ -1089,6 +1089,24 @@ export interface Database {
         Update: Partial<Database["public"]["Tables"]["multas"]["Insert"]>;
         Relationships: [];
       };
+      tareas_guardadas: {
+        Row: {
+          id: string;
+          nombre: string;
+          datos: Json;
+          imagen_url: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          nombre: string;
+          datos?: Json;
+          imagen_url?: string | null;
+          created_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["tareas_guardadas"]["Insert"]>;
+        Relationships: [];
+      };
       normas: {
         Row: {
           id: string;
