@@ -11,7 +11,12 @@ import {
 } from "@/app/(app)/inicio/local-actions";
 import { localDb } from "@/lib/db/local-db";
 import { cn } from "@/lib/utils";
-import { CATEGORIAS_NORMA, PUNTOS_CASTIGO } from "@/lib/validations/norma";
+import {
+  CATEGORIAS_NORMA,
+  PUNTOS_CASTIGO,
+  castigoDePuntos,
+  mesActual,
+} from "@/lib/validations/norma";
 import { useNormas } from "@/lib/use-normas";
 import type { CategoriaNorma } from "@/lib/types/database.types";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -50,7 +55,7 @@ export function MultasPanel() {
   const multas = useLiveQuery(
     () =>
       localDb.multas
-        .filter((m) => !m.resuelta)
+        .filter((m) => !m.resuelta && m.fecha.startsWith(mesActual()))
         .toArray()
         .then((rows) => rows.sort((a, b) => b.created_at.localeCompare(a.created_at))),
     [],
@@ -228,7 +233,10 @@ export function MultasPanel() {
                 )}
               >
                 <span className="font-medium">{nombreJugador(jugadorId)}</span>
-                <span>· {puntos} pts</span>
+                <span>
+                  · {puntos} pts
+                  {castigoDePuntos(puntos) && ` · ${castigoDePuntos(puntos)}`}
+                </span>
                 {puntos >= PUNTOS_CASTIGO && (
                   <button
                     type="button"

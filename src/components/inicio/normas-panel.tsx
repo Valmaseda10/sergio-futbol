@@ -3,10 +3,7 @@
 import { useState } from "react";
 import { Check, Pencil, Plus, ScrollText, Trash2, X } from "lucide-react";
 import { toast } from "sonner";
-import {
-  CATEGORIAS_NORMA,
-  PUNTOS_CASTIGO,
-} from "@/lib/validations/norma";
+import { CASTIGOS, CATEGORIAS_NORMA } from "@/lib/validations/norma";
 import { useNormas } from "@/lib/use-normas";
 import {
   actualizarNormaLocal,
@@ -179,11 +176,21 @@ export function NormasPanel() {
             </Button>
           </div>
         ))}
-        <p className="border-t pt-3 text-xs text-muted-foreground">
-          Al llegar a {PUNTOS_CASTIGO} puntos sin resolver: recoger material o
-          traer algo para compartir en la siguiente sesión. Los puntos se
-          resuelven en ese momento, no se arrastran. Sin dinero de por medio.
-        </p>
+        <div className="space-y-1 border-t pt-3 text-sm">
+          <p className="text-xs font-semibold uppercase text-muted-foreground">
+            Castigos
+          </p>
+          <ul className="space-y-0.5">
+            {CASTIGOS.map((c) => (
+              <li key={c.puntos}>
+                <span className="font-semibold">{c.puntos} puntos:</span> {c.texto}
+              </li>
+            ))}
+          </ul>
+          <p className="pt-1 text-xs text-muted-foreground">
+            Los puntos se ponen a 0 al empezar cada mes.
+          </p>
+        </div>
       </CardContent>
     </Card>
   );

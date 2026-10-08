@@ -14,7 +14,12 @@ import {
 } from "@/app/(app)/inicio/local-actions";
 import { localDb } from "@/lib/db/local-db";
 import { capitalizarPrimera } from "@/lib/date";
-import { CATEGORIA_NORMA_LABEL, PUNTOS_CASTIGO } from "@/lib/validations/norma";
+import {
+  CATEGORIA_NORMA_LABEL,
+  PUNTOS_CASTIGO,
+  castigoDePuntos,
+  mesActual,
+} from "@/lib/validations/norma";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -127,7 +132,7 @@ export function MultasPorJugador() {
         ) : (
           grupos.map(({ jugador, multas }) => {
             const pendientes = multas
-              .filter((m) => !m.resuelta)
+              .filter((m) => !m.resuelta && m.fecha.startsWith(mesActual()))
               .reduce((acc, m) => acc + m.puntos, 0);
 
             const porMes = new Map<string, typeof multas>();
@@ -157,7 +162,8 @@ export function MultasPorJugador() {
                           : "text-muted-foreground"
                       }
                     >
-                      {pendientes} pts pendientes
+                      {pendientes} pts este mes
+                      {castigoDePuntos(pendientes) && ` · ${castigoDePuntos(pendientes)}`}
                     </Badge>
                   )}
                 </div>

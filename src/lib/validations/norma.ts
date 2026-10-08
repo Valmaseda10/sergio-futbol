@@ -13,11 +13,31 @@ export const CATEGORIA_NORMA_LABEL: Record<CategoriaNorma, string> =
   ) as Record<CategoriaNorma, string>;
 
 // El catálogo de faltas del régimen interno (todas valen 1 punto por defecto)
-// vive en la tabla `normas` y se edita desde la página Normas. Al llegar al
-// umbral (ver PUNTOS_CASTIGO) toca castigo.
-// A partir de este total de puntos sin resolver, toca castigo (recoger
-// material o traer algo para compartir).
-export const PUNTOS_CASTIGO = 5;
+// vive en la tabla `normas` y se edita desde la página Normas.
+
+// Castigos por puntos acumulados en el mes: al llegar a cada umbral toca el
+// castigo correspondiente (el mayor alcanzado). Los puntos vuelven a 0 al
+// empezar cada mes.
+export const CASTIGOS: { puntos: number; texto: string }[] = [
+  { puntos: 2, texto: "2 diagonales" },
+  { puntos: 5, texto: "Pasillo de collejas" },
+  { puntos: 8, texto: "Caja de rosquillas" },
+];
+
+// Primer umbral: a partir de aquí ya hay castigo.
+export const PUNTOS_CASTIGO = CASTIGOS[0].puntos;
+
+/** Castigo que toca con esos puntos (el del umbral más alto alcanzado). */
+export function castigoDePuntos(puntos: number): string | null {
+  const alcanzados = CASTIGOS.filter((c) => puntos >= c.puntos);
+  return alcanzados.length > 0 ? alcanzados[alcanzados.length - 1].texto : null;
+}
+
+/** Mes en curso como "AAAA-MM", para contar solo los puntos de este mes. */
+export function mesActual(): string {
+  const hoy = new Date();
+  return `${hoy.getFullYear()}-${String(hoy.getMonth() + 1).padStart(2, "0")}`;
+}
 
 export const multaSchema = z.object({
   jugador_id: z.string().min(1, "Selecciona un jugador"),
