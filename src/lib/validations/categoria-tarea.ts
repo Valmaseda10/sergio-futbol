@@ -48,6 +48,8 @@ const PALABRAS_CLAVE_CATEGORIA: Record<CategoriaTarea, string[]> = {
   posesion: [
     "posesion",
     "juego de posicion",
+    // Sin el "de": "JUEGO POSICIÓN: 6vs6 + 3C".
+    "juego posicion",
     // "JdPosición" es como abrevia el entrenador "Juego de Posición" en sus
     // plantillas de sesión.
     "jdposicion",
@@ -101,6 +103,11 @@ const PALABRAS_CLAVE_CATEGORIA: Record<CategoriaTarea, string[]> = {
 export function detectarCategoriaPorTexto(texto: string): CategoriaTarea | null {
   const normalizado = quitarAcentos(texto);
   if (!normalizado.trim()) return null;
+  // "Plan de partido" contiene "partido": tiene que mirarse antes que
+  // "Partidos", que si no se lo quedaría.
+  if (PALABRAS_CLAVE_CATEGORIA.plan_partido.some((p) => normalizado.includes(p))) {
+    return "plan_partido";
+  }
   for (const categoria of CATEGORIAS_TAREA) {
     const palabras = PALABRAS_CLAVE_CATEGORIA[categoria.value];
     if (palabras.some((palabra) => normalizado.includes(palabra))) {
