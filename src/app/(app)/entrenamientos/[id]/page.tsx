@@ -15,6 +15,11 @@ import {
 import { localDb, type LocalEntrenamiento } from "@/lib/db/local-db";
 import { capitalizarPrimera } from "@/lib/date";
 import { leerFicha } from "@/lib/ficha-entrenamiento";
+import {
+  fichaTieneTabla,
+  lunesDeLaSemana,
+  tablaHeredadaDe,
+} from "@/lib/tabla-semana";
 import { createClient } from "@/lib/supabase/client";
 import { esPdf } from "@/lib/storage";
 import { CATEGORIA_TAREA_LABEL } from "@/lib/validations/categoria-tarea";
@@ -77,7 +82,24 @@ function FichaEntrenamientoDetalle({
   const [tablaImagenSignedUrl, setTablaImagenSignedUrl] = useState<
     string | null
   >(null);
-  const tablaImagenPath = leerFicha(entrenamiento.ficha).tabla_imagen_url ?? null;
+  // La tabla de objetivos es la misma toda la semana: si esta sesión no tiene
+  // la suya, se usa la de la sesión anterior de la misma semana.
+  const fichaPropia = leerFicha(entrenamiento.ficha);
+  const sesionesSemana = useLiveQuery(
+    () =>
+      localDb.entrenamientos
+        .where("fecha")
+        .between(lunesDeLaSemana(entrenamiento.fecha), entrenamiento.fecha, true, false)
+        .toArray(),
+    [entrenamiento.fecha],
+    [],
+  );
+  const heredada = fichaTieneTabla(fichaPropia)
+    ? null
+    : tablaHeredadaDe(entrenamiento, sesionesSemana);
+  const tablaImagenPath = heredada
+    ? heredada.imagenPath
+    : (fichaPropia.tabla_imagen_url ?? null);
   const jugadoresActivos = useLiveQuery(
     () =>
       localDb.jugadores
@@ -191,6 +213,8 @@ function FichaEntrenamientoDetalle({
         entrenamiento={entrenamiento}
         tareaImagenSignedUrls={tareaImagenSignedUrls}
         tablaImagenSignedUrl={tablaImagenPath ? tablaImagenSignedUrl : null}
+        tablaHeredada={heredada?.tabla ?? null}
+        tablaHeredadaDe={heredada?.origen.fecha ?? null}
         jugadores={jugadoresActivos}
       />
 

@@ -615,6 +615,11 @@ export function EntrenamientoForm({
           <p className="text-xs font-medium text-muted-foreground">
             Tabla de objetivos (Psicológico / Táctico / Técnico / Físico)
           </p>
+          <p className="text-[11px] text-muted-foreground">
+            Es la misma toda la semana: ponla en la primera sesión y las
+            siguientes de esa semana (lunes a domingo) la usan solas mientras
+            no pongas otra distinta.
+          </p>
           <div className="space-y-4">
               <div className="space-y-2 rounded-md border p-3">
                 <p className="text-xs font-semibold">Adjuntar la tabla como imagen</p>

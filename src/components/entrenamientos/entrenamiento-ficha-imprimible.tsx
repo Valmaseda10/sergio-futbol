@@ -20,6 +20,7 @@ import {
   normalizarObjetivosTabla,
   objetivosTablaTieneContenido,
   type EquipoRotacion,
+  type ObjetivosTabla,
 } from "@/lib/ficha-entrenamiento";
 import {
   localDb,
@@ -514,11 +515,17 @@ export function EntrenamientoFichaImprimible({
   entrenamiento,
   tareaImagenSignedUrls,
   tablaImagenSignedUrl,
+  tablaHeredada,
+  tablaHeredadaDe,
   jugadores,
 }: {
   entrenamiento: LocalEntrenamiento;
   tareaImagenSignedUrls?: (string | null)[];
   tablaImagenSignedUrl?: string | null;
+  /** Tabla de la sesión anterior de la semana, si esta no tiene la suya. */
+  tablaHeredada?: ObjetivosTabla | null;
+  /** Fecha de la sesión de la que se hereda (solo para avisarlo en pantalla). */
+  tablaHeredadaDe?: string | null;
   jugadores?: LocalJugador[];
 }) {
   const ficha = leerFicha(entrenamiento.ficha);
@@ -604,9 +611,13 @@ export function EntrenamientoFichaImprimible({
   });
   const hayRoles = tareas.some((t) => t.campos || t.paco);
 
-  const tabla = ficha.tabla_objetivos
+  const tablaPropia = ficha.tabla_objetivos
     ? normalizarObjetivosTabla(ficha.tabla_objetivos)
     : null;
+  const tabla =
+    tablaPropia && objetivosTablaTieneContenido(tablaPropia)
+      ? tablaPropia
+      : (tablaHeredada ?? null);
   const grupoMaterialHoy = grupoMaterialDeFecha(e.fecha);
   const materialTexto = [
     grupoMaterialHoy ? `Recoge y lleva: ${grupoMaterialHoy.join(", ")}` : null,
@@ -622,6 +633,8 @@ export function EntrenamientoFichaImprimible({
       <div className="flex items-center justify-between print:hidden">
         <p className="text-xs text-muted-foreground">
           Ficha de la sesión: descárgala en PDF, compártela o imprímela.
+          {tablaHeredadaDe &&
+            ` La tabla de objetivos es la del ${formatearFechaCorta(tablaHeredadaDe)} (misma semana).`}
         </p>
         <div className="flex flex-wrap justify-end gap-2">
           <Button
