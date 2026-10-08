@@ -109,7 +109,15 @@ export function MultasPanel() {
     setPuntosLibre("1");
   }
 
-  async function handleResolver(id: string) {
+  async function handleResolver(id: string, puntos: number) {
+    const castigo = castigoDePuntos(puntos);
+    if (
+      !window.confirm(
+        `¿${nombreJugador(id)} ha cumplido el castigo${castigo ? ` (${castigo})` : ""}? Sus ${puntos} puntos pasarán a 0.`,
+      )
+    ) {
+      return;
+    }
     setPendiente(id);
     await resolverMultasJugadorLocal(id);
     setPendiente(null);
@@ -241,7 +249,7 @@ export function MultasPanel() {
                   <button
                     type="button"
                     disabled={pendiente === jugadorId}
-                    onClick={() => handleResolver(jugadorId)}
+                    onClick={() => handleResolver(jugadorId, puntos)}
                     className="ml-1 font-semibold underline underline-offset-2"
                   >
                     Castigo cumplido
