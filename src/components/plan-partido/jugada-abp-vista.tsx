@@ -7,9 +7,7 @@
 import type { ReactNode } from "react";
 import { diagramaASvg, type Diagrama } from "@/lib/ficha-entrenamiento";
 import {
-  COLOR_CLASE,
   FASES_ABP,
-  clasePieza,
   leerDiagramaAbp,
   leerJugadoresAbp,
   type JugadorAbp,
@@ -52,18 +50,6 @@ export function CampoAbp({
   jugadores: Map<string, LocalJugador>;
 }) {
   const visibles = filas.filter((f) => f.etiqueta || f.jugador_id || f.texto);
-  // Leyenda de los papeles: qué hace cada color (solo los que tienen texto y piezas).
-  const hay = (clase: string) =>
-    diagrama
-      ? clase === "lanzador"
-        ? diagrama.elementos.some((e) => e.tipo === "icono" && e.icono === "lanzador")
-        : diagrama.elementos.some((e) => e.tipo === "jugador" && clasePieza(e.color) === clase)
-      : false;
-  const leyenda = (["rojo", "azul", "portero", "lanzador"] as const)
-    .filter((c) => diagrama?.roles?.[c]?.trim() && hay(c))
-    .map((c) => ({ clase: c, color: COLOR_CLASE[c], texto: diagrama!.roles![c]!.trim() }));
-  // Debajo de la lista numerada (cada fila mide ~5 cqw sobre un campo de 66 cqw de alto).
-  const leyendaTop = 11 + visibles.length * 7.6 + (visibles.length ? 3 : 0);
   // Nombre de cada jugador de la plantilla junto a su camiseta del dibujo.
   const nombres = new Map(
     [...jugadores.values()].map((j) => [j.id, (j.alias || j.nombre).toUpperCase()]),
@@ -83,19 +69,6 @@ export function CampoAbp({
         className="overflow-hidden rounded-sm [&>svg]:block [&>svg]:h-auto [&>svg]:w-full"
         dangerouslySetInnerHTML={{ __html: diagramaASvg(diagrama, { camisetas: true, nombres }) }}
       />
-      {leyenda.length > 0 && (
-        <ul
-          className="absolute left-[78%] max-w-[21%] space-y-[0.8cqw] text-[2.5cqw] leading-[1.15] font-bold"
-          style={{ top: `${leyendaTop}%` }}
-        >
-          {leyenda.map((l) => (
-            <li key={l.clase} className="flex gap-[1cqw]" style={{ color: l.color }}>
-              <span aria-hidden="true">●</span>
-              <span>{l.texto}</span>
-            </li>
-          ))}
-        </ul>
-      )}
       {visibles.length > 0 && (
         <ul className="absolute top-[11%] left-[78%] space-y-[1.4cqw] text-[3.2cqw] leading-[1.1] font-extrabold">
           {visibles.map((f, i) => {
