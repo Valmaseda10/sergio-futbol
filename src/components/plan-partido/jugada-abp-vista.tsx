@@ -49,7 +49,8 @@ export function CampoAbp({
   filas: JugadorAbp[];
   jugadores: Map<string, LocalJugador>;
 }) {
-  const visibles = filas.filter((f) => f.etiqueta || f.jugador_id || f.texto);
+  // En la lista de la derecha solo salen las filas que ya tienen jugador.
+  const visibles = filas.filter((f) => f.jugador_id || f.texto);
   // Nombre de cada jugador de la plantilla junto a su camiseta del dibujo.
   const nombres = new Map(
     [...jugadores.values()].map((j) => [j.id, (j.alias || j.nombre).toUpperCase()]),

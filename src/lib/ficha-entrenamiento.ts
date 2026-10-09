@@ -383,7 +383,8 @@ function camisetaSvg(
   const alto = base.alto * escala;
   const clara = !portero && (c === "#ffffff" || colorClaro(c));
   const relleno = portero ? "#ffffff" : clara ? "#111111" : c;
-  const fuente = ancho * 0.5;
+  // El número va a ~la mitad del ancho de la camiseta, sin pasar de un tamaño razonable en las grandes.
+  const fuente = Math.min(ancho * 0.5, 17 * k);
   const txt = e.etiqueta
     ? `<text x="${e.x}" y="${e.y + fuente * 0.3 + alto * 0.04}" text-anchor="middle" font-family="Arial, sans-serif" font-size="${fuente}" font-weight="800" fill="${relleno}" stroke="${
         portero ? "#7f1d1d" : "#ffffff"
@@ -404,8 +405,9 @@ function nombreSvg(
   if (!nombre) return "";
   const dx = e.nombreDx ?? 0;
   const dy = e.nombreDy ?? altoPieza / 2 + 15 * k;
+  const colorPorDefecto = e.tipo === "icono" ? "#0070c0" : (e.color ?? "#111111");
   return `<text x="${e.x + dx}" y="${e.y + dy}" text-anchor="middle" font-family="Arial, sans-serif" font-size="${14 * k}" font-weight="700" fill="${
-    e.colorNombre ?? "#111111"
+    e.colorNombre ?? colorPorDefecto
   }" stroke="#ffffff" stroke-width="${2.2 * k}" stroke-linejoin="round" paint-order="stroke">${esc(nombre)}</text>`;
 }
 

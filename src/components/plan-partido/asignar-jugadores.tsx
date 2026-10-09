@@ -89,8 +89,8 @@ export function AsignarJugadores({
   if (grupos.length === 0) return null;
 
   function elegirPieza(pieza: ElementoDiagrama, id: string | null) {
-    if (pieza.etiqueta) {
-      // Pieza numerada: se rellena su fila de la lista numerada (la que sale en el campo).
+    if (pieza.etiqueta && clasePieza(pieza.color) === "rojo") {
+      // Pieza roja numerada: se rellena su fila de la lista numerada (la que sale a la derecha del campo).
       setFilas((prev) => {
         const i = prev.findIndex((f) => f.etiqueta === pieza.etiqueta);
         if (i >= 0) return prev.map((f, k) => (k === i ? { ...f, jugador_id: id, texto: id ? "" : f.texto } : f));
@@ -111,7 +111,9 @@ export function AsignarJugadores({
   }
 
   function valorDe(pieza: ElementoDiagrama): string | null {
-    if (pieza.etiqueta) return filas.find((f) => f.etiqueta === pieza.etiqueta)?.jugador_id ?? null;
+    if (pieza.etiqueta && clasePieza(pieza.color) === "rojo") {
+      return filas.find((f) => f.etiqueta === pieza.etiqueta)?.jugador_id ?? null;
+    }
     return pieza.jugador_id ?? null;
   }
 
