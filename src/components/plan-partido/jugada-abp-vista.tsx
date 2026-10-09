@@ -50,6 +50,10 @@ export function CampoAbp({
   jugadores: Map<string, LocalJugador>;
 }) {
   const visibles = filas.filter((f) => f.etiqueta || f.jugador_id || f.texto);
+  // Nombre de cada jugador de la plantilla junto a su camiseta del dibujo.
+  const nombres = new Map(
+    [...jugadores.values()].map((j) => [j.id, (j.alias || j.nombre).toUpperCase()]),
+  );
   if (!diagrama) {
     return (
       <div className="flex aspect-[520/340] w-full items-center justify-center rounded-sm border border-dashed text-xs text-muted-foreground">
@@ -63,10 +67,10 @@ export function CampoAbp({
     <div className="relative w-full [container-type:inline-size]">
       <div
         className="overflow-hidden rounded-sm [&>svg]:block [&>svg]:h-auto [&>svg]:w-full"
-        dangerouslySetInnerHTML={{ __html: diagramaASvg(diagrama, { camisetas: true }) }}
+        dangerouslySetInnerHTML={{ __html: diagramaASvg(diagrama, { camisetas: true, nombres }) }}
       />
       {visibles.length > 0 && (
-        <ul className="absolute top-[3%] right-[2%] max-w-[26%] space-y-[0.4cqw] text-[2.9cqw] leading-[1.15] font-extrabold">
+        <ul className="absolute top-[11%] left-[78%] space-y-[1.4cqw] text-[3.2cqw] leading-[1.1] font-extrabold">
           {visibles.map((f, i) => {
             const color = colorDeFila(f, diagrama);
             // Halo del color contrario para que se lea sobre el césped.
@@ -74,13 +78,13 @@ export function CampoAbp({
             return (
               <li
                 key={i}
-                className="flex gap-[1.2cqw]"
+                className="flex gap-[1.6cqw]"
                 style={{
                   color,
                   textShadow: `0 0 2px ${halo}, 0 0 2px ${halo}, 0 0 3px ${halo}, 1px 1px 2px ${halo}`,
                 }}
               >
-                <span className="min-w-[2cqw] text-right">{f.etiqueta}</span>
+                <span className="min-w-[2.4cqw] text-right">{f.etiqueta}</span>
                 <span className="min-w-0 break-words">{nombreJugadorAbp(f, jugadores)}</span>
               </li>
             );

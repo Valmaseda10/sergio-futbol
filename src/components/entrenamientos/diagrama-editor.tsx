@@ -17,6 +17,7 @@ import {
   MoveDiagonal,
   Trash2,
   Type,
+  Shirt,
   Undo2,
   User,
 } from "lucide-react";
@@ -31,12 +32,11 @@ import {
 } from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
 import {
-  CAMPO_ALTO,
-  CAMPO_ANCHO,
   COLORES_DIAGRAMA,
   diagramaASvg,
   diagramaAPng,
   diagramaVacio,
+  dimensionesCampo,
   elementoEn,
   puntoMedioFlecha,
   type Diagrama,
@@ -57,7 +57,28 @@ const HERRAMIENTAS: { id: Herramienta; label: string; icono: React.ReactNode }[]
   { id: "texto", label: "Texto", icono: <Type className="size-4" /> },
   { id: "flecha", label: "Flecha", icono: <ArrowRight className="size-4" /> },
   { id: "zona", label: "Zona", icono: <MoveDiagonal className="size-4" /> },
+  { id: "icono", label: "Lanzador", icono: <Shirt className="size-4" /> },
 ];
+
+// Dónde queda el nombre respecto al centro de la camiseta (en unidades del lienzo).
+function posicionNombre(
+  e: ElementoDiagrama,
+  pos: "debajo" | "arriba" | "izquierda" | "derecha",
+  k: number,
+): Partial<ElementoDiagrama> {
+  const ancho = 30 * k * (e.escala ?? 1);
+  const alto = ancho * 1.24;
+  switch (pos) {
+    case "debajo":
+      return { nombreDx: undefined, nombreDy: undefined };
+    case "arriba":
+      return { nombreDx: 0, nombreDy: -(alto / 2 + 8 * k) };
+    case "izquierda":
+      return { nombreDx: -(ancho / 2 + 38 * k), nombreDy: 5 * k };
+    case "derecha":
+      return { nombreDx: ancho / 2 + 38 * k, nombreDy: 5 * k };
+  }
+}
 
 const COLOR_POR_DEFECTO: Partial<Record<TipoElemento, string>> = {
   cono: "#f97316",
@@ -83,7 +104,9 @@ function curvaPorPunto(e: ElementoDiagrama, px: number, py: number): number | un
 function descripcion(e: ElementoDiagrama): string {
   switch (e.tipo) {
     case "jugador":
-      return `Jugador ${e.etiqueta ?? ""}`.trim();
+      return `Camiseta ${e.etiqueta ?? ""}`.trim();
+    case "icono":
+      return e.icono === "lanzador" ? "Lanzador" : "Icono";
     case "texto":
       return `Texto: ${e.etiqueta ?? ""}`;
     case "flecha":
@@ -110,6 +133,7 @@ export function DiagramaEditor({
   numeroTarea,
   titulo,
   camisetas,
+  jugadores = [],
   inicial,
   onCerrar,
   onGuardar,
@@ -120,11 +144,15 @@ export function DiagramaEditor({
   titulo?: string;
   /** Jugadores como camisetas de la Cultural (las jugadas de ABP). */
   camisetas?: boolean;
+  /** Plantilla para el desplegable de cada camiseta (nombre ya en el formato que se quiera ver). */
+  jugadores?: { id: string; nombre: string }[];
   inicial: Diagrama | null;
   onCerrar: () => void;
   onGuardar: (diagrama: Diagrama, png: File) => void;
 }) {
-  const [diagrama, setDiagrama] = useState<Diagrama>(inicial ?? diagramaVacio());
+  const [diagrama, setDiagrama] = useState<Diagrama>(
+    inicial ?? diagramaVacio(camisetas ? "abp" : "medio"),
+  );
   const [historial, setHistorial] = useState<string[]>([]);
   const [herramienta, setHerramienta] = useState<Herramienta>("jugador");
   const [color, setColor] = useState("#dc2626");
@@ -144,16 +172,22 @@ export function DiagramaEditor({
     punta?: "ini" | "fin" | "medio";
   } | null>(null);
 
+  const nombres = useMemo(
+    () => new Map(jugadores.map((j) => [j.id, j.nombre])),
+    [jugadores],
+  );
+  const { ancho: ANCHO, alto: ALTO, k: K } = dimensionesCampo(diagrama.campo);
+
   const svg = useMemo(
-    () => diagramaASvg(diagrama, { seleccionId, borrador, camisetas }),
-    [diagrama, seleccionId, borrador, camisetas],
+    () => diagramaASvg(diagrama, { seleccionId, borrador, camisetas, nombres }),
+    [diagrama, seleccionId, borrador, camisetas, nombres],
   );
 
   function punto(e: React.PointerEvent) {
     const rect = campoRef.current!.getBoundingClientRect();
     return {
-      x: Math.round(((e.clientX - rect.left) / rect.width) * CAMPO_ANCHO),
-      y: Math.round(((e.clientY - rect.top) / rect.height) * CAMPO_ALTO),
+      x: Math.round(((e.clientX - rect.left) / rect.width) * ANCHO),
+      y: Math.round(((e.clientY - rect.top) / rect.height) * ALTO),
     };
   }
 
@@ -187,7 +221,7 @@ export function DiagramaEditor({
       const sel = diagrama.elementos.find((x) => x.id === seleccionId);
       if (sel && sel.tipo === "flecha") {
         const m = puntoMedioFlecha(sel);
-        if (Math.hypot(p.x - m.x, p.y - m.y) < 14) {
+        if (Math.hypot(p.x - m.x, p.y - m.y) < 14 * K) {
           guardarHistorial();
           arrastre.current = { id: sel.id, ox: p.x, oy: p.y, original: sel, punta: "medio" };
           return;
@@ -196,7 +230,7 @@ export function DiagramaEditor({
       if (sel && (sel.tipo === "flecha" || sel.tipo === "zona")) {
         const dIni = Math.hypot(p.x - sel.x, p.y - sel.y);
         const dFin = Math.hypot(p.x - (sel.x2 ?? sel.x), p.y - (sel.y2 ?? sel.y));
-        if (Math.min(dIni, dFin) < 16) {
+        if (Math.min(dIni, dFin) < 16 * K) {
           guardarHistorial();
           arrastre.current = {
             id: sel.id,
@@ -241,6 +275,7 @@ export function DiagramaEditor({
       y: p.y,
       color: herramienta === "balon" || herramienta === "porteria" ? undefined : colorElemento,
       etiqueta: herramienta === "jugador" || herramienta === "texto" ? etiqueta : undefined,
+      icono: herramienta === "icono" ? "lanzador" : undefined,
     };
     if (herramienta === "texto" && !etiqueta.trim()) {
       setHistorial((h) => h.slice(0, -1));
@@ -330,7 +365,7 @@ export function DiagramaEditor({
   async function handleGuardar() {
     setGuardando(true);
     try {
-      const png = await diagramaAPng(diagrama, `tarea-${numeroTarea}.png`);
+      const png = await diagramaAPng(diagrama, `tarea-${numeroTarea}.png`, nombres);
       onGuardar(diagrama, png);
     } finally {
       setGuardando(false);
@@ -348,7 +383,7 @@ export function DiagramaEditor({
         </DialogHeader>
 
         <div className="flex flex-wrap gap-1.5">
-          {HERRAMIENTAS.map((h) => (
+          {HERRAMIENTAS.filter((h) => camisetas || h.id !== "icono").map((h) => (
             <Button
               key={h.id}
               type="button"
@@ -424,7 +459,7 @@ export function DiagramaEditor({
               ))}
             </div>
           )}
-          <div className="ml-auto flex gap-1.5">
+          <div className={cn("ml-auto flex gap-1.5", camisetas && "hidden")}>
             <Button
               type="button"
               size="sm"
@@ -493,6 +528,95 @@ export function DiagramaEditor({
         {seleccionado && (
           <div className="space-y-2 rounded-md border bg-muted/30 p-2">
             <p className="text-xs font-semibold">Elemento seleccionado</p>
+            {camisetas && seleccionado.tipo === "jugador" && (
+              <div className="flex flex-wrap items-end gap-3 border-b pb-2">
+                <div className="space-y-1">
+                  <Label htmlFor="jugador-seleccion" className="text-xs">
+                    Jugador (su nombre sale junto a la camiseta)
+                  </Label>
+                  <select
+                    id="jugador-seleccion"
+                    value={seleccionado.jugador_id ?? ""}
+                    onChange={(e) =>
+                      actualizarSeleccion({
+                        jugador_id: e.target.value || null,
+                        nombre: e.target.value ? undefined : seleccionado.nombre,
+                      })
+                    }
+                    className="h-8 rounded-md border border-input bg-background px-2 text-sm"
+                  >
+                    <option value="">— Sin elegir / escribir a mano —</option>
+                    {jugadores.map((j) => (
+                      <option key={j.id} value={j.id}>
+                        {j.nombre}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                {!seleccionado.jugador_id && (
+                  <div className="space-y-1">
+                    <Label htmlFor="nombre-seleccion" className="text-xs">
+                      Nombre a mano
+                    </Label>
+                    <Input
+                      id="nombre-seleccion"
+                      value={seleccionado.nombre ?? ""}
+                      onChange={(e) => actualizarSeleccion({ nombre: e.target.value })}
+                      className="h-8 w-40"
+                      maxLength={30}
+                    />
+                  </div>
+                )}
+                <div className="flex items-center gap-1.5" role="group" aria-label="Color del nombre">
+                  {COLORES_DIAGRAMA.map((c) => (
+                    <button
+                      key={c.valor}
+                      type="button"
+                      aria-label={`Nombre en ${c.nombre}`}
+                      title={`Nombre en ${c.nombre}`}
+                      onClick={() => actualizarSeleccion({ colorNombre: c.valor })}
+                      className={cn(
+                        "size-5 rounded-full border-2",
+                        (seleccionado.colorNombre ?? "#111111") === c.valor
+                          ? "border-primary ring-2 ring-primary/40"
+                          : "border-border",
+                      )}
+                      style={{ backgroundColor: c.valor }}
+                    />
+                  ))}
+                </div>
+                <div className="flex items-center gap-1" role="group" aria-label="Posición del nombre">
+                  {(["debajo", "arriba", "izquierda", "derecha"] as const).map((pos) => (
+                    <Button
+                      key={pos}
+                      type="button"
+                      size="sm"
+                      variant="outline"
+                      onClick={() => actualizarSeleccion(posicionNombre(seleccionado, pos, dimensionesCampo(diagrama.campo).k))}
+                    >
+                      {pos}
+                    </Button>
+                  ))}
+                </div>
+                <div className="flex items-center gap-1" role="group" aria-label="Tamaño">
+                  {[
+                    { v: 0.8, t: "Pequeña" },
+                    { v: 1, t: "Normal" },
+                    { v: 1.6, t: "Grande" },
+                  ].map((o) => (
+                    <Button
+                      key={o.t}
+                      type="button"
+                      size="sm"
+                      variant={(seleccionado.escala ?? 1) === o.v ? "default" : "outline"}
+                      onClick={() => actualizarSeleccion({ escala: o.v === 1 ? undefined : o.v })}
+                    >
+                      {o.t}
+                    </Button>
+                  ))}
+                </div>
+              </div>
+            )}
             <div className="flex flex-wrap items-end gap-3">
               {(seleccionado.tipo === "jugador" || seleccionado.tipo === "texto") && (
                 <div className="space-y-1">

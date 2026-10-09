@@ -158,6 +158,10 @@ export default function JugadaAbpPage() {
           numeroTarea={0}
           titulo={`Dibujo: ${jugada.nombre}`}
           camisetas
+          jugadores={jugadores.map((j) => ({
+            id: j.id,
+            nombre: (j.alias || j.nombre).toUpperCase(),
+          }))}
           inicial={leerDiagramaAbp(jugada.diagrama)}
           onCerrar={() => setDibujando(false)}
           onGuardar={async (diagrama) => {

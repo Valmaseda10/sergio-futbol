@@ -273,6 +273,10 @@ export function JugadaAbpForm({
           numeroTarea={0}
           titulo="Dibujo de la jugada"
           camisetas
+          jugadores={jugadores.map((j) => ({
+            id: j.id,
+            nombre: (j.alias || j.nombre).toUpperCase(),
+          }))}
           inicial={diagrama}
           onCerrar={() => setDibujando(false)}
           onGuardar={(d) => {
