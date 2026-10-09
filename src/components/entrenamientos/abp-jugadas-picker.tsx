@@ -37,7 +37,7 @@ export function AbpJugadasPicker({
     <div className="space-y-2 pt-2">
       <p className="text-xs text-muted-foreground">
         Elige hasta {MAX_JUGADAS_ABP_TAREA} jugadas ({seleccion.length}/{MAX_JUGADAS_ABP_TAREA}).
-        Salen dibujadas en esta tarea de la ficha, sin añadir hojas, y en lugar de su imagen.
+        Salen dibujadas en esta tarea de la ficha (la primera a la izquierda y la segunda a la derecha), sin añadir hojas y en lugar de su imagen.
       </p>
       {jugadas.length === 0 ? (
         <p className="text-xs text-muted-foreground">

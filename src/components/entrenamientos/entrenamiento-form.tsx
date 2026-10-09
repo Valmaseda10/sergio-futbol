@@ -1,7 +1,7 @@
 "use client";
 
 import { useRef, useState } from "react";
-import { Controller, useForm } from "react-hook-form";
+import { Controller, useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useRouter } from "next/navigation";
 import { useLiveQuery } from "dexie-react-hooks";
@@ -369,6 +369,9 @@ export function EntrenamientoForm({
     resolver: zodResolver(entrenamientoSchema),
     defaultValues: entrenamiento ?? ENTRENAMIENTO_FORM_DEFAULTS,
   });
+
+  // Con la tarea 4 en "ABP" se pueden elegir las jugadas que se trabajan.
+  const categoriaTarea4 = useWatch({ control, name: "tarea_4_categoria" });
 
   // Nombre de campo del formulario para una tarea (índice 0-3) y sufijo.
   function campoDe(i: number, sufijo: string) {
@@ -1105,8 +1108,8 @@ export function EntrenamientoForm({
                     />
                   </div>
                 </details>
-                {i === 3 && (
-                  <details open={(ficha.abp_jugadas?.[3]?.length ?? 0) > 0}>
+                {i === 3 && categoriaTarea4 === "abp" && (
+                  <details open>
                     <summary className="cursor-pointer pt-1 text-xs font-medium text-muted-foreground">
                       ABP: jugadas a trabajar
                     </summary>

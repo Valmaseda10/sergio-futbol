@@ -199,13 +199,18 @@ const HUECOS_433: { x: number; y: number; prefs: string[] }[] = [
 ];
 
 // Lo bien que encaja un jugador en un hueco (menor = mejor). El portero solo
-// encaja de portero y nadie más juega de portero.
-function costeHueco(j: LocalJugador, prefs: string[]): number {
+// encaja de portero y nadie más juega de portero. Entre huecos igual de buenos
+// desempata la pierna: los zurdos a la izquierda y los diestros a la derecha
+// (p. ej. el central zurdo en el hueco izquierdo y el diestro en el derecho).
+function costeHueco(j: LocalJugador, h: { x: number; prefs: string[] }): number {
   const esPortero = j.posicion === "portero";
-  const huecoPortero = prefs[0] === "portero";
+  const huecoPortero = h.prefs[0] === "portero";
   if (esPortero !== huecoPortero) return 100;
-  const i = j.posicion ? prefs.indexOf(j.posicion) : -1;
-  return i >= 0 ? i : 10;
+  const i = j.posicion ? h.prefs.indexOf(j.posicion) : -1;
+  const base = i >= 0 ? i : 10;
+  const pierna = j.pierna_dominante;
+  if (h.x === 50 || (pierna !== "izquierda" && pierna !== "derecha")) return base;
+  return base + ((h.x < 50) === (pierna === "izquierda") ? -0.4 : 0.4);
 }
 
 // Separación vertical (en % del campo) entre jugadores que comparten hueco.
@@ -215,7 +220,7 @@ const PASO_SUPLENTE = 8.5;
 // los que sobran se ponen debajo del titular del hueco donde mejor encajan.
 function colocar433(disponibles: LocalJugador[], ausentes: LocalJugador[]) {
   const parejas = HUECOS_433.flatMap((h, hi) =>
-    disponibles.map((j, ji) => ({ hi, ji, coste: costeHueco(j, h.prefs) })),
+    disponibles.map((j, ji) => ({ hi, ji, coste: costeHueco(j, h) })),
   ).sort((a, b) => a.coste - b.coste || a.hi - b.hi || a.ji - b.ji);
   const huecoUsado = new Set<number>();
   const jugadorUsado = new Set<number>();
@@ -237,7 +242,7 @@ function colocar433(disponibles: LocalJugador[], ausentes: LocalJugador[]) {
   for (const { jugador, rojo } of pendientes) {
     const mejor = HUECOS_433.map((h, hi) => ({
       hi,
-      coste: costeHueco(jugador, h.prefs),
+      coste: costeHueco(jugador, h),
       ocupantes: apilados.has(hi) ? (apilados.get(hi) as number) : -1,
     }))
       .filter((c) => c.coste < 100)
@@ -412,7 +417,7 @@ function BloqueTarea({
   ausentes: Set<string>;
   reglasProvocacion: string | null;
   observaciones: string | null;
-  /** Jugadas de ABP que se trabajan en la tarea (solo la 4 del viernes). */
+  /** Jugadas de ABP que se trabajan en la tarea (solo la 4, con la categoría ABP). */
   abpIds: string[];
 }) {
   const sinContenido =
@@ -601,7 +606,8 @@ export function EntrenamientoFichaImprimible({
     const k = (campo: string) =>
       (e as unknown as Record<string, string | null>)[`tarea_${n}${campo}`] ?? null;
     // Con jugadas de ABP elegidas, su dibujo ocupa el hueco de la imagen de la tarea 4.
-    const abpIds = n === 4 ? (ficha.abp_jugadas?.[3] ?? []) : [];
+    const abpIds =
+      n === 4 && e.tarea_4_categoria === "abp" ? (ficha.abp_jugadas?.[3] ?? []) : [];
     return {
       numero: n,
       abpIds,

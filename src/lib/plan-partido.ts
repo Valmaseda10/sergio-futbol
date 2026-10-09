@@ -30,6 +30,15 @@ export function tipoDeJugada(tipo: string | null | undefined): TipoAbp {
   return TIPOS_ABP.some((t) => t.value === tipo) ? (tipo as TipoAbp) : "corner";
 }
 
+// Estado de un jugador en el partido con el que se sincroniza la jugada: titular
+// (verde) o suplente/convocado (rojo).
+export type EstadoPartido = "titular" | "suplente";
+
+export const COLOR_ESTADO_PARTIDO: Record<EstadoPartido, string> = {
+  titular: "#16a34a",
+  suplente: "#dc2626",
+};
+
 // Grupos de piezas de una jugada por color de camiseta.
 export type ClasePieza = "rojo" | "azul" | "portero";
 

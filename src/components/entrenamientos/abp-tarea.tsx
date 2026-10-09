@@ -1,7 +1,8 @@
 "use client";
 
 // Las jugadas de ABP que se trabajan en una tarea, dibujadas en su hueco de la
-// ficha (hasta 3, en fila). No añade hojas: ocupa el sitio de la imagen de la tarea.
+// ficha (hasta 2: uno a la izquierda y otro a la derecha). No añade hojas: ocupa
+// el sitio de la imagen de la tarea.
 
 import { useMemo } from "react";
 import { useLiveQuery } from "dexie-react-hooks";
@@ -9,7 +10,7 @@ import { localDb } from "@/lib/db/local-db";
 import { CampoAbp } from "@/components/plan-partido/jugada-abp-vista";
 import { FASES_ABP, leerDiagramaAbp, leerJugadoresAbp } from "@/lib/plan-partido";
 
-export const MAX_JUGADAS_ABP_TAREA = 3;
+export const MAX_JUGADAS_ABP_TAREA = 2;
 
 export function AbpDeLaTarea({
   ids,
@@ -32,18 +33,14 @@ export function AbpDeLaTarea({
     <div className="border-t border-neutral-300 print:shrink-0">
       {barra}
       <div
-        className={`grid grid-cols-1 gap-x-1 gap-y-1 p-1 print:p-0.5 ${
-          elegidas.length >= 3
-            ? "sm:grid-cols-3 print:grid-cols-3"
-            : "sm:grid-cols-2 print:grid-cols-2"
-        }`}
+        className="grid grid-cols-1 gap-x-1.5 gap-y-1 p-1 sm:grid-cols-2 print:grid-cols-2 print:p-0.5"
       >
         {elegidas.map((j) => {
           const color = FASES_ABP.find((f) => f.value === j.fase)?.color ?? "#111111";
           return (
             <div key={j.id} className="min-w-0 space-y-0.5">
               <p
-                className="truncate text-xs leading-tight font-extrabold uppercase print:text-[9px]"
+                className="truncate text-xs leading-tight font-extrabold uppercase print:text-[10px]"
                 style={{ color }}
               >
                 {j.nombre}

@@ -13,6 +13,12 @@ import { Textarea } from "@/components/ui/textarea";
 import { DiagramaEditor } from "@/components/entrenamientos/diagrama-editor";
 import type { Diagrama } from "@/lib/ficha-entrenamiento";
 import { AsignarJugadores } from "@/components/plan-partido/asignar-jugadores";
+import {
+  estiloEstado,
+  OpcionesJugador,
+  SincronizarPartido,
+} from "@/components/plan-partido/sincronizar-partido";
+import { usePartidoAbp } from "@/lib/use-partido-abp";
 import { CampoAbp } from "@/components/plan-partido/jugada-abp-vista";
 import { localDb, type LocalJugadaAbp } from "@/lib/db/local-db";
 import {
@@ -73,6 +79,13 @@ export function JugadaAbpForm({
     [],
     [],
   );
+
+  // Partido con el que se sincroniza: titulares en verde y suplentes en rojo.
+  const sync = usePartidoAbp();
+  const opcionesJugadores = jugadores.map((j) => ({
+    id: j.id,
+    nombre: `${j.alias || j.nombre} ${j.apellidos}`,
+  }));
 
   // Con piezas en el dibujo, quién hace qué se elige por piezas (ver AsignarJugadores).
   const hayPiezas = !!diagrama?.elementos.some(
@@ -171,6 +184,8 @@ export function JugadaAbpForm({
         </CardContent>
       </Card>
 
+      <SincronizarPartido sync={sync} jugadores={opcionesJugadores} />
+
       <Card>
         <CardContent className="space-y-3 pt-6">
           <div className="flex items-center justify-between">
@@ -183,6 +198,7 @@ export function JugadaAbpForm({
           {diagrama ? (
             <CampoAbp
               numeros
+              estados={sync.estados}
               tipo={tipo}
               fase={fase}
               diagrama={diagrama}
@@ -210,7 +226,8 @@ export function JugadaAbpForm({
           setFilas={setFilas}
           roles={roles}
           setRoles={setRoles}
-          jugadores={jugadores.map((j) => ({ id: j.id, nombre: `${j.alias || j.nombre} ${j.apellidos}` }))}
+          jugadores={opcionesJugadores}
+          estados={sync.estados}
         />
       )}
 
@@ -238,15 +255,12 @@ export function JugadaAbpForm({
                   onChange={(e) =>
                     editarFila(i, { jugador_id: e.target.value || null })
                   }
-                  className="h-9 min-w-0 flex-1 rounded-md border border-input bg-background px-2 text-sm"
+                  className="h-9 min-w-0 flex-1 rounded-md border border-input bg-background px-2 text-sm font-medium"
+                  style={f.jugador_id ? estiloEstado(sync.estados.get(f.jugador_id)) : undefined}
                   aria-label="Jugador"
                 >
                   <option value={sinJugador}>— Escribir a mano —</option>
-                  {jugadores.map((j) => (
-                    <option key={j.id} value={j.id}>
-                      {j.alias || j.nombre} {j.apellidos}
-                    </option>
-                  ))}
+                  <OpcionesJugador jugadores={opcionesJugadores} estados={sync.estados} />
                 </select>
                 {!f.jugador_id && (
                   <Input
@@ -316,6 +330,7 @@ export function JugadaAbpForm({
             id: j.id,
             nombre: (j.alias || j.nombre).toUpperCase(),
           }))}
+          estados={sync.estados}
           inicial={diagrama}
           onCerrar={() => setDibujando(false)}
           onGuardar={(d) => {

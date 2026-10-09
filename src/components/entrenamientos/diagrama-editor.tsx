@@ -44,6 +44,8 @@ import {
   type TipoCampo,
   type TipoElemento,
 } from "@/lib/ficha-entrenamiento";
+import { COLOR_ESTADO_PARTIDO, type EstadoPartido } from "@/lib/plan-partido";
+import { OpcionesJugador } from "@/components/plan-partido/sincronizar-partido";
 
 type Herramienta = "mover" | TipoElemento;
 
@@ -134,6 +136,7 @@ export function DiagramaEditor({
   titulo,
   camisetas,
   jugadores = [],
+  estados,
   inicial,
   onCerrar,
   onGuardar,
@@ -146,6 +149,8 @@ export function DiagramaEditor({
   camisetas?: boolean;
   /** Plantilla para el desplegable de cada camiseta (nombre ya en el formato que se quiera ver). */
   jugadores?: { id: string; nombre: string }[];
+  /** Titulares (verde) y suplentes (rojo) de un partido: raya bajo sus nombres y desplegable agrupado. */
+  estados?: Map<string, EstadoPartido>;
   inicial: Diagrama | null;
   onCerrar: () => void;
   onGuardar: (diagrama: Diagrama, png: File) => void;
@@ -178,9 +183,16 @@ export function DiagramaEditor({
   );
   const { ancho: ANCHO, alto: ALTO, k: K } = dimensionesCampo(diagrama.campo);
 
+  const subrayados = useMemo(
+    () =>
+      estados
+        ? new Map([...estados].map(([id, e]) => [id, COLOR_ESTADO_PARTIDO[e]] as const))
+        : undefined,
+    [estados],
+  );
   const svg = useMemo(
-    () => diagramaASvg(diagrama, { seleccionId, borrador, camisetas, nombres }),
-    [diagrama, seleccionId, borrador, camisetas, nombres],
+    () => diagramaASvg(diagrama, { seleccionId, borrador, camisetas, nombres, subrayados }),
+    [diagrama, seleccionId, borrador, camisetas, nombres, subrayados],
   );
 
   function punto(e: React.PointerEvent) {
@@ -550,11 +562,7 @@ export function DiagramaEditor({
                     className="h-8 rounded-md border border-input bg-background px-2 text-sm"
                   >
                     <option value="">— Sin elegir / escribir a mano —</option>
-                    {jugadores.map((j) => (
-                      <option key={j.id} value={j.id}>
-                        {j.nombre}
-                      </option>
-                    ))}
+                    <OpcionesJugador jugadores={jugadores} estados={estados} />
                   </select>
                 </div>
                 {!seleccionado.jugador_id && (

@@ -380,6 +380,7 @@ function camisetaSvg(
   numeros: boolean | "rojas" = true,
   nombreAlLado = false,
   textoK = 1,
+  subrayados?: Map<string, string>,
 ): string {
   const c = e.color ?? "#dc2626";
   const portero = c === COLOR_PORTERO;
@@ -410,7 +411,7 @@ function camisetaSvg(
       }" stroke-width="${fuente * 0.16}" stroke-linejoin="round" paint-order="stroke">${esc(e.etiqueta)}</text>`
     : "";
   return `<use href="#${portero ? ids.granate : ids.blanca}" transform="translate(${e.x - ancho / 2} ${
-    e.y - alto / 2}) scale(${escala})"/>${txt}${nombreSvg(e, nombres, k, alto, colocacion, textoK)}`;
+    e.y - alto / 2}) scale(${escala})"/>${txt}${nombreSvg(e, nombres, k, alto, colocacion, textoK, subrayadoDe(e, subrayados))}`;
 }
 
 // Dónde queda el nombre de una pieza:
@@ -434,6 +435,8 @@ function nombreSvg(
   colocacion: ColocacionNombre = "libre",
   // Factor de tamaño de la letra (1 = normal; mayor en los dibujos pequeños).
   textoK = 1,
+  // Color de la raya bajo el nombre (verde titular, rojo suplente) si se da.
+  subraya?: string,
 ): string {
   const nombre = nombreDePieza(e, nombres);
   if (!nombre) return "";
@@ -478,7 +481,18 @@ function nombreSvg(
   }
   const colorPorDefecto = e.tipo === "icono" ? "#0070c0" : (e.color ?? "#111111");
   const relleno = numerico ? "#111111" : (e.colorNombre ?? colorPorDefecto);
-  return `<text x="${x}" y="${y}" text-anchor="${anclaje}" font-family="Arial, sans-serif" font-size="${fs}" font-weight="700" fill="${relleno}" stroke="#ffffff" stroke-width="${(numerico ? 3 : 2.2) * k}" stroke-linejoin="round" paint-order="stroke">${esc(nombre)}</text>`;
+  let raya = "";
+  if (subraya) {
+    const w = medida(fs);
+    const x1 = anclaje === "middle" ? x - w / 2 : anclaje === "start" ? x : x - w;
+    raya = `<line x1="${x1}" y1="${y + 4 * k}" x2="${x1 + w}" y2="${y + 4 * k}" stroke="${subraya}" stroke-width="${3 * k}" stroke-linecap="round"/>`;
+  }
+  return `<text x="${x}" y="${y}" text-anchor="${anclaje}" font-family="Arial, sans-serif" font-size="${fs}" font-weight="700" fill="${relleno}" stroke="#ffffff" stroke-width="${(numerico ? 3 : 2.2) * k}" stroke-linejoin="round" paint-order="stroke">${esc(nombre)}</text>${raya}`;
+}
+
+// Raya bajo el nombre de una pieza según el estado de su jugador en el partido.
+function subrayadoDe(e: ElementoDiagrama, subrayados?: Map<string, string>): string | undefined {
+  return e.jugador_id ? subrayados?.get(e.jugador_id) : undefined;
 }
 
 function iconoSvg(
@@ -487,13 +501,14 @@ function iconoSvg(
   k: number,
   nombres?: NombresJugadores,
   textoK = 1,
+  subrayados?: Map<string, string>,
 ): string {
   const esc1 = e.escala ?? 1;
   if (e.icono === "lanzador" && ids) {
     const ancho = 36 * k * esc1;
     const escala = ancho / CAMISETA_LANZADOR.ancho;
     const alto = CAMISETA_LANZADOR.alto * escala;
-    return `<use href="#${ids.lanzador}" transform="translate(${e.x - ancho / 2} ${e.y - alto / 2}) scale(${escala})"/>${nombreSvg(e, nombres, k, alto, undefined, textoK)}`;
+    return `<use href="#${ids.lanzador}" transform="translate(${e.x - ancho / 2} ${e.y - alto / 2}) scale(${escala})"/>${nombreSvg(e, nombres, k, alto, undefined, textoK, subrayadoDe(e, subrayados))}`;
   }
   if (e.icono === "ojo-portero") {
     const r = 14 * k * esc1;
@@ -547,11 +562,12 @@ function elementoSvg(
   numeros: boolean | "rojas" = true,
   nombreAlLado = false,
   textoK = 1,
+  subrayados?: Map<string, string>,
 ): string {
   const c = e.color ?? "#dc2626";
   switch (e.tipo) {
     case "jugador": {
-      if (camisetas) return camisetaSvg(e, camisetas, k, nombres, numeros, nombreAlLado, textoK);
+      if (camisetas) return camisetaSvg(e, camisetas, k, nombres, numeros, nombreAlLado, textoK, subrayados);
       const txt = e.etiqueta
         ? `<text x="${e.x}" y="${e.y + 4}" text-anchor="middle" font-family="Arial, sans-serif" font-size="11" font-weight="700" fill="${
             c === "#ffffff" || c === "#facc15" || c === "#4ade80" ? "#111111" : "#ffffff"
@@ -564,7 +580,7 @@ function elementoSvg(
       );
     }
     case "icono":
-      return iconoSvg(e, camisetas, k, nombres, textoK);
+      return iconoSvg(e, camisetas, k, nombres, textoK, subrayados);
     case "porteria":
       return escalado(
         e,
@@ -644,6 +660,8 @@ export function diagramaASvg(
     nombreAlLado?: boolean;
     /** Factor de tamaño de los nombres (para dibujos que se imprimen pequeños). */
     textoK?: number;
+    /** Raya de color bajo el nombre de cada jugador (id -> color): titular o suplente del partido. */
+    subrayados?: Map<string, string>;
   },
 ): string {
   const { ancho, alto, k } = dimensionesCampo(d.campo);
@@ -710,8 +728,8 @@ export function diagramaASvg(
   return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${ancho} ${alto}" width="${ancho}" height="${alto}">
     ${fondo}
     ${ids ? defsCamisetas(ids) : ""}
-    ${elementos.map((e) => elementoSvg(e, ids, k, opciones?.nombres, opciones?.numeros ?? true, opciones?.nombreAlLado, opciones?.textoK)).join("\n")}
-    ${opciones?.borrador ? elementoSvg(opciones.borrador, ids, k, opciones?.nombres, opciones?.numeros ?? true, opciones?.nombreAlLado, opciones?.textoK) : ""}
+    ${elementos.map((e) => elementoSvg(e, ids, k, opciones?.nombres, opciones?.numeros ?? true, opciones?.nombreAlLado, opciones?.textoK, opciones?.subrayados)).join("\n")}
+    ${opciones?.borrador ? elementoSvg(opciones.borrador, ids, k, opciones?.nombres, opciones?.numeros ?? true, opciones?.nombreAlLado, opciones?.textoK, opciones?.subrayados) : ""}
     ${resalte}
   </svg>`;
 }

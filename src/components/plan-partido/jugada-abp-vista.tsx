@@ -7,10 +7,12 @@
 import type { ReactNode } from "react";
 import { diagramaASvg, type Diagrama } from "@/lib/ficha-entrenamiento";
 import {
+  COLOR_ESTADO_PARTIDO,
   FASES_ABP,
   leerDiagramaAbp,
   nombreAlLadoAbp,
   leerJugadoresAbp,
+  type EstadoPartido,
   type JugadorAbp,
 } from "@/lib/plan-partido";
 import type { LocalJugadaAbp, LocalJugador } from "@/lib/db/local-db";
@@ -49,6 +51,7 @@ export function CampoAbp({
   tipo,
   fase,
   grande = false,
+  estados,
 }: {
   diagrama: Diagrama | null;
   filas: JugadorAbp[];
@@ -60,7 +63,12 @@ export function CampoAbp({
   fase?: string | null;
   /** Lista de la derecha con letra mayor (para dibujos pequeños, como en la ficha de sesión). */
   grande?: boolean;
+  /** Titulares (verde) y suplentes (rojo) del partido sincronizado: raya bajo su nombre. */
+  estados?: Map<string, EstadoPartido>;
 }) {
+  const subrayados = estados
+    ? new Map([...estados].map(([id, e]) => [id, COLOR_ESTADO_PARTIDO[e]] as const))
+    : undefined;
   // En la lista de la derecha solo salen las filas que ya tienen jugador.
   const visibles = filas.filter((f) => f.jugador_id || f.texto);
   // Nombre de cada jugador de la plantilla junto a su camiseta del dibujo.
@@ -87,7 +95,8 @@ export function CampoAbp({
           // (las de la lista de la derecha) para saber qué movimiento hace cada una.
           numeros: numeros ? true : "rojas",
           nombreAlLado: nombreAlLadoAbp(tipo, fase),
-          textoK: grande ? 1.3 : 1,
+          textoK: grande ? 1.15 : 1,
+          subrayados,
         }) }}
       />
       {visibles.length > 0 && (
@@ -110,7 +119,21 @@ export function CampoAbp({
                 }}
               >
                 <span className="min-w-[2.4cqw] text-right">{f.etiqueta}</span>
-                <span className="min-w-0 break-words">{nombreJugadorAbp(f, jugadores)}</span>
+                <span
+                  className="min-w-0 break-words"
+                  style={
+                    f.jugador_id && estados?.get(f.jugador_id)
+                      ? {
+                          textDecoration: "underline",
+                          textDecorationColor: COLOR_ESTADO_PARTIDO[estados.get(f.jugador_id)!],
+                          textDecorationThickness: "0.5cqw",
+                          textUnderlineOffset: "0.5cqw",
+                        }
+                      : undefined
+                  }
+                >
+                  {nombreJugadorAbp(f, jugadores)}
+                </span>
               </li>
             );
           })}

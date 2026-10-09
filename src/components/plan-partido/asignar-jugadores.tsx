@@ -15,9 +15,11 @@ import {
   clasePieza,
   COLOR_CLASE,
   type ClasePieza,
+  type EstadoPartido,
   type JugadorAbp,
   type RolesAbp,
 } from "@/lib/plan-partido";
+import { estiloEstado, OpcionesJugador } from "@/components/plan-partido/sincronizar-partido";
 
 interface Opcion {
   id: string;
@@ -36,25 +38,24 @@ function Selector({
   opciones,
   onChange,
   etiqueta,
+  estados,
 }: {
   valor: string | null | undefined;
   opciones: Opcion[];
   onChange: (id: string | null) => void;
   etiqueta: string;
+  estados?: Map<string, EstadoPartido>;
 }) {
   return (
     <select
       value={valor ?? ""}
       onChange={(e) => onChange(e.target.value || null)}
       aria-label={etiqueta}
-      className="h-9 min-w-0 flex-1 rounded-md border border-input bg-background px-2 text-sm"
+      className="h-9 min-w-0 flex-1 rounded-md border border-input bg-background px-2 text-sm font-medium"
+      style={valor ? estiloEstado(estados?.get(valor)) : undefined}
     >
       <option value="">— Sin elegir —</option>
-      {opciones.map((o) => (
-        <option key={o.id} value={o.id}>
-          {o.nombre}
-        </option>
-      ))}
+      <OpcionesJugador jugadores={opciones} estados={estados} />
     </select>
   );
 }
@@ -67,6 +68,7 @@ export function AsignarJugadores({
   roles,
   setRoles,
   jugadores,
+  estados,
 }: {
   diagrama: Diagrama;
   setDiagrama: Dispatch<SetStateAction<Diagrama | null>>;
@@ -75,6 +77,8 @@ export function AsignarJugadores({
   roles: RolesAbp;
   setRoles: (r: RolesAbp) => void;
   jugadores: Opcion[];
+  /** Titulares y suplentes del partido sincronizado. */
+  estados?: Map<string, EstadoPartido>;
 }) {
   const camisetas = diagrama.elementos.filter((e) => e.tipo === "jugador");
   const lanzador = diagrama.elementos.find((e) => e.tipo === "icono" && e.icono === "lanzador");
@@ -173,6 +177,7 @@ export function AsignarJugadores({
                       opciones={jugadores}
                       onChange={(id) => elegirPieza(pieza, id)}
                       etiqueta={`Jugador de la pieza ${pieza.etiqueta ?? i + 1}`}
+                      estados={estados}
                     />
                   </div>
                 ))}
