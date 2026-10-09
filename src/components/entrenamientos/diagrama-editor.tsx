@@ -528,11 +528,15 @@ export function DiagramaEditor({
         {seleccionado && (
           <div className="space-y-2 rounded-md border bg-muted/30 p-2">
             <p className="text-xs font-semibold">Elemento seleccionado</p>
-            {camisetas && seleccionado.tipo === "jugador" && (
+            {camisetas &&
+              (seleccionado.tipo === "jugador" ||
+                (seleccionado.tipo === "icono" && seleccionado.icono === "lanzador")) && (
               <div className="flex flex-wrap items-end gap-3 border-b pb-2">
                 <div className="space-y-1">
                   <Label htmlFor="jugador-seleccion" className="text-xs">
-                    Jugador (su nombre sale junto a la camiseta)
+                    {seleccionado.tipo === "icono"
+                      ? "Lanzador (su nombre sale junto al icono)"
+                      : "Jugador (su nombre sale junto a la camiseta)"}
                   </Label>
                   <select
                     id="jugador-seleccion"

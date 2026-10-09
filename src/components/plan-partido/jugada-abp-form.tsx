@@ -64,6 +64,11 @@ export function JugadaAbpForm({
     [],
   );
 
+  // El icono del lanzador del dibujo (si lo hay), para elegirlo aquí sin abrir el editor.
+  const lanzador = diagrama?.elementos.find(
+    (e) => e.tipo === "icono" && e.icono === "lanzador",
+  );
+
   function editarFila(i: number, parche: Partial<JugadorAbp>) {
     setFilas((prev) => prev.map((f, k) => (k === i ? { ...f, ...parche } : f)));
   }
@@ -176,6 +181,43 @@ export function JugadaAbpForm({
           </p>
         </CardContent>
       </Card>
+
+      {lanzador && (
+        <Card>
+          <CardContent className="space-y-2 pt-6">
+            <Label htmlFor="lanzador-abp">Lanzador</Label>
+            <select
+              id="lanzador-abp"
+              value={lanzador.jugador_id ?? ""}
+              onChange={(e) =>
+                setDiagrama((d) =>
+                  d
+                    ? {
+                        ...d,
+                        elementos: d.elementos.map((el) =>
+                          el.id === lanzador.id
+                            ? { ...el, jugador_id: e.target.value || null, nombre: undefined }
+                            : el,
+                        ),
+                      }
+                    : d,
+                )
+              }
+              className="h-9 w-full rounded-md border border-input bg-background px-2 text-sm"
+            >
+              <option value="">— Sin elegir —</option>
+              {jugadores.map((j) => (
+                <option key={j.id} value={j.id}>
+                  {j.alias || j.nombre} {j.apellidos}
+                </option>
+              ))}
+            </select>
+            <p className="text-xs text-muted-foreground">
+              Quien saca el córner o la falta: su nombre sale junto al icono del lanzador.
+            </p>
+          </CardContent>
+        </Card>
+      )}
 
       <Card>
         <CardContent className="space-y-3 pt-6">
