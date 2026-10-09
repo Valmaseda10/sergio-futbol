@@ -38,6 +38,7 @@ import {
   diagramaAPng,
   diagramaVacio,
   elementoEn,
+  puntoMedioFlecha,
   type Diagrama,
   type ElementoDiagrama,
   type TipoCampo,
@@ -62,6 +63,43 @@ const COLOR_POR_DEFECTO: Partial<Record<TipoElemento, string>> = {
   cono: "#f97316",
   pica: "#facc15",
 };
+
+// Curvatura para que la flecha pase por el punto (px, py) a mitad de camino.
+function curvaPorPunto(e: ElementoDiagrama, px: number, py: number): number | undefined {
+  const x2 = e.x2 ?? e.x;
+  const y2 = e.y2 ?? e.y;
+  const dx = x2 - e.x;
+  const dy = y2 - e.y;
+  const len2 = dx * dx + dy * dy;
+  if (len2 < 1) return undefined;
+  // Punto de control que hace pasar la curva cuadrática por (px, py) en t=0,5.
+  const cx = 2 * px - 0.5 * (e.x + x2);
+  const cy = 2 * py - 0.5 * (e.y + y2);
+  const k = ((cx - (e.x + x2) / 2) * -dy + (cy - (e.y + y2) / 2) * dx) / len2;
+  const acotada = Math.max(-1, Math.min(1, k));
+  return Math.abs(acotada) < 0.05 ? undefined : Math.round(acotada * 100) / 100;
+}
+
+function descripcion(e: ElementoDiagrama): string {
+  switch (e.tipo) {
+    case "jugador":
+      return `Jugador ${e.etiqueta ?? ""}`.trim();
+    case "texto":
+      return `Texto: ${e.etiqueta ?? ""}`;
+    case "flecha":
+      return e.curva ? "Flecha curva" : "Flecha";
+    case "zona":
+      return "Zona";
+    case "balon":
+      return "Balón";
+    case "cono":
+      return "Cono";
+    case "pica":
+      return "Pica";
+    case "porteria":
+      return "Portería";
+  }
+}
 
 function nuevoId() {
   return crypto.randomUUID();
@@ -100,7 +138,7 @@ export function DiagramaEditor({
     oy: number;
     original: ElementoDiagrama;
     // Si se arrastra solo un extremo de una flecha o zona.
-    punta?: "ini" | "fin";
+    punta?: "ini" | "fin" | "medio";
   } | null>(null);
 
   const svg = useMemo(
@@ -144,6 +182,14 @@ export function DiagramaEditor({
       // Con una flecha o zona seleccionada, tocar uno de sus extremos lo mueve
       // solo a él (para cambiar hacia dónde va el movimiento).
       const sel = diagrama.elementos.find((x) => x.id === seleccionId);
+      if (sel && sel.tipo === "flecha") {
+        const m = puntoMedioFlecha(sel);
+        if (Math.hypot(p.x - m.x, p.y - m.y) < 14) {
+          guardarHistorial();
+          arrastre.current = { id: sel.id, ox: p.x, oy: p.y, original: sel, punta: "medio" };
+          return;
+        }
+      }
       if (sel && (sel.tipo === "flecha" || sel.tipo === "zona")) {
         const dIni = Math.hypot(p.x - sel.x, p.y - sel.y);
         const dFin = Math.hypot(p.x - (sel.x2 ?? sel.x), p.y - (sel.y2 ?? sel.y));
@@ -221,11 +267,13 @@ export function DiagramaEditor({
       elementos: d.elementos.map((el) =>
         el.id !== a.id
           ? el
-          : a.punta === "ini"
-            ? { ...el, x: p.x, y: p.y }
-            : a.punta === "fin"
-              ? { ...el, x2: p.x, y2: p.y }
-              : {
+          : a.punta === "medio"
+            ? { ...el, curva: curvaPorPunto(el, p.x, p.y) }
+            : a.punta === "ini"
+              ? { ...el, x: p.x, y: p.y }
+              : a.punta === "fin"
+                ? { ...el, x2: p.x, y2: p.y }
+                : {
               ...el,
               x: a.original.x + dx,
               y: a.original.y + dy,
@@ -405,9 +453,39 @@ export function DiagramaEditor({
         <p className="text-xs text-muted-foreground">
           Elige una herramienta y toca el campo para colocar. Flecha y zona:
           arrastra. Con &quot;Mover&quot; puedes arrastrar un elemento o, si es una
-          flecha o zona, sus extremos; al seleccionarlo puedes cambiarle el texto,
-          el color o la curva, o borrarlo.
+          flecha o zona, sus extremos (y el cuadradito del medio de una flecha
+          para curvarla); al seleccionarlo puedes cambiarle el texto, el color, el
+          grosor o la curva, o borrarlo. Si algo queda tapado, tócalo en la lista
+          de arriba.
         </p>
+
+        {diagrama.elementos.length > 0 && (
+          <div className="space-y-1">
+            <p className="text-xs font-semibold">
+              Todo lo que hay en el dibujo (toca uno para seleccionarlo y editarlo)
+            </p>
+            <div className="flex max-h-24 flex-wrap gap-1 overflow-y-auto">
+              {diagrama.elementos.map((e) => (
+                <button
+                  key={e.id}
+                  type="button"
+                  onClick={() => {
+                    setHerramienta("mover");
+                    setSeleccionId(e.id);
+                  }}
+                  className={cn(
+                    "rounded-full border px-2 py-0.5 text-[11px]",
+                    e.id === seleccionId
+                      ? "border-primary bg-primary text-primary-foreground"
+                      : "border-input bg-background hover:bg-muted",
+                  )}
+                >
+                  {descripcion(e)}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
 
         {seleccionado && (
           <div className="space-y-2 rounded-md border bg-muted/30 p-2">
@@ -447,8 +525,45 @@ export function DiagramaEditor({
                   ))}
                 </div>
               )}
+              {(seleccionado.tipo === "flecha" || seleccionado.tipo === "zona") && (
+                <div className="flex items-center gap-1" role="group" aria-label="Grosor">
+                  {[
+                    { v: 2, t: "Fina" },
+                    { v: seleccionado.tipo === "flecha" ? 3 : 2.5, t: "Normal" },
+                    { v: 5, t: "Gruesa" },
+                  ].map((o) => (
+                    <Button
+                      key={o.t}
+                      type="button"
+                      size="sm"
+                      variant={(seleccionado.grosor ?? (seleccionado.tipo === "flecha" ? 3 : 2.5)) === o.v ? "default" : "outline"}
+                      onClick={() => actualizarSeleccion({ grosor: o.v })}
+                    >
+                      {o.t}
+                    </Button>
+                  ))}
+                </div>
+              )}
+              {seleccionado.tipo === "zona" && (
+                <label className="flex items-center gap-1.5 text-xs">
+                  <input
+                    type="checkbox"
+                    checked={!seleccionado.solida}
+                    onChange={(e) => actualizarSeleccion({ solida: !e.target.checked })}
+                  />
+                  Borde discontinuo
+                </label>
+              )}
               {seleccionado.tipo === "flecha" && (
                 <>
+                  <label className="flex items-center gap-1.5 text-xs">
+                    <input
+                      type="checkbox"
+                      checked={!seleccionado.sinPunta}
+                      onChange={(e) => actualizarSeleccion({ sinPunta: !e.target.checked })}
+                    />
+                    Con punta
+                  </label>
                   <label className="flex items-center gap-1.5 text-xs">
                     <input
                       type="checkbox"

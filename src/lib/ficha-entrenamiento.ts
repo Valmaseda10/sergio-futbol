@@ -30,6 +30,12 @@ export interface ElementoDiagrama {
   // Solo flecha: curvatura del trazo (fracción de su largo; 0 o sin definir =
   // recta; positivo y negativo, hacia lados opuestos). Para centros y pases.
   curva?: number;
+  // Flecha y zona: grosor del trazo en px (por defecto 3 y 2,5).
+  grosor?: number;
+  // Flecha sin punta (una simple línea).
+  sinPunta?: boolean;
+  // Zona con el borde continuo en vez de discontinuo.
+  solida?: boolean;
 }
 
 export interface Diagrama {
@@ -219,14 +225,24 @@ function controlCurva(e: ElementoDiagrama): { cx: number; cy: number } {
   };
 }
 
-function flechaSvg(e: ElementoDiagrama, grosor = 3): string {
+/** Punto por el que pasa una flecha a mitad de camino (donde va su asa de edición). */
+export function puntoMedioFlecha(e: ElementoDiagrama): { x: number; y: number } {
+  const x2 = e.x2 ?? e.x;
+  const y2 = e.y2 ?? e.y;
+  if (!e.curva) return { x: (e.x + x2) / 2, y: (e.y + y2) / 2 };
+  const { cx, cy } = controlCurva(e);
+  return { x: 0.25 * e.x + 0.5 * cx + 0.25 * x2, y: 0.25 * e.y + 0.5 * cy + 0.25 * y2 };
+}
+
+function flechaSvg(e: ElementoDiagrama): string {
+  const grosor = e.grosor ?? 3;
   const x2 = e.x2 ?? e.x;
   const y2 = e.y2 ?? e.y;
   const color = e.color ?? "#dc2626";
   const curva = !!e.curva;
   const { cx, cy } = controlCurva(e);
   const ang = curva ? Math.atan2(y2 - cy, x2 - cx) : Math.atan2(y2 - e.y, x2 - e.x);
-  const punta = 11;
+  const punta = 11 + (grosor - 3) * 2;
   const a1 = ang + Math.PI - 0.45;
   const a2 = ang + Math.PI + 0.45;
   const p1 = `${x2 + punta * Math.cos(a1)},${y2 + punta * Math.sin(a1)}`;
@@ -235,6 +251,7 @@ function flechaSvg(e: ElementoDiagrama, grosor = 3): string {
   const trazo = curva
     ? `<path d="M${e.x} ${e.y} Q${cx} ${cy} ${x2} ${y2}" fill="none" stroke="${color}" stroke-width="${grosor}"${dash} stroke-linecap="round"/>`
     : `<line x1="${e.x}" y1="${e.y}" x2="${x2}" y2="${y2}" stroke="${color}" stroke-width="${grosor}"${dash} stroke-linecap="round"/>`;
+  if (e.sinPunta) return trazo;
   return `${trazo}
     <polygon points="${x2},${y2} ${p1} ${p2}" fill="${color}"/>`;
 }
@@ -277,7 +294,7 @@ function elementoSvg(e: ElementoDiagrama): string {
         x2 - e.x,
       )}" height="${Math.abs(y2 - e.y)}" fill="none" stroke="${
         e.color ?? "#111111"
-      }" stroke-width="2.5" stroke-dasharray="8 6"/>`;
+      }" stroke-width="${e.grosor ?? 2.5}"${e.solida ? "" : ' stroke-dasharray="8 6"'}/>`;
     }
   }
 }
@@ -304,8 +321,13 @@ export function diagramaASvg(
   let resalte = "";
   if (sel) {
     if (sel.tipo === "flecha" || sel.tipo === "zona") {
-      resalte = `<circle cx="${sel.x}" cy="${sel.y}" r="6" fill="none" stroke="#38bdf8" stroke-width="2"/>
-        <circle cx="${sel.x2 ?? sel.x}" cy="${sel.y2 ?? sel.y}" r="6" fill="none" stroke="#38bdf8" stroke-width="2"/>`;
+      resalte = `<circle cx="${sel.x}" cy="${sel.y}" r="7" fill="#ffffff" fill-opacity="0.6" stroke="#38bdf8" stroke-width="2"/>
+        <circle cx="${sel.x2 ?? sel.x}" cy="${sel.y2 ?? sel.y}" r="7" fill="#ffffff" fill-opacity="0.6" stroke="#38bdf8" stroke-width="2"/>`;
+      if (sel.tipo === "flecha") {
+        // Asa del medio: arrastrarla curva la flecha.
+        const m = puntoMedioFlecha(sel);
+        resalte += `<rect x="${m.x - 6}" y="${m.y - 6}" width="12" height="12" rx="2" fill="#38bdf8" stroke="#ffffff" stroke-width="1.5"/>`;
+      }
     } else {
       resalte = `<circle cx="${sel.x}" cy="${sel.y}" r="19" fill="none" stroke="#38bdf8" stroke-width="2" stroke-dasharray="4 3"/>`;
     }
