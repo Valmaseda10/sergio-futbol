@@ -225,6 +225,13 @@ function controlCurva(e: ElementoDiagrama): { cx: number; cy: number } {
   };
 }
 
+function colorOscuro(hex: string): boolean {
+  const m = /^#?([0-9a-f]{6})$/i.exec(hex);
+  if (!m) return false;
+  const n = parseInt(m[1], 16);
+  return 0.299 * ((n >> 16) & 255) + 0.587 * ((n >> 8) & 255) + 0.114 * (n & 255) < 150;
+}
+
 /** Punto por el que pasa una flecha a mitad de camino (donde va su asa de edición). */
 export function puntoMedioFlecha(e: ElementoDiagrama): { x: number; y: number } {
   const x2 = e.x2 ?? e.x;
@@ -281,10 +288,15 @@ function elementoSvg(e: ElementoDiagrama): string {
     case "balon":
       return `<circle cx="${e.x}" cy="${e.y}" r="7.5" fill="#ffffff" stroke="#111111" stroke-width="1.5"/>
         <circle cx="${e.x}" cy="${e.y}" r="2.6" fill="#111111"/>`;
-    case "texto":
-      return `<text x="${e.x}" y="${e.y}" text-anchor="middle" font-family="Arial, sans-serif" font-size="15" font-weight="700" fill="${
-        e.color ?? "#ffffff"
-      }" stroke="#111111" stroke-width="0.6" paint-order="stroke">${esc(e.etiqueta ?? "")}</text>`;
+    case "texto": {
+      // Contorno del color contrario al del texto para que se lea sobre el césped
+      // (blanco alrededor de los textos oscuros: rojo, azul, negro...).
+      const relleno = e.color ?? "#ffffff";
+      const oscuro = colorOscuro(relleno);
+      return `<text x="${e.x}" y="${e.y}" text-anchor="middle" font-family="Arial, sans-serif" font-size="15" font-weight="700" fill="${relleno}" stroke="${
+        oscuro ? "#ffffff" : "#111111"
+      }" stroke-width="${oscuro ? 3 : 0.6}" stroke-linejoin="round" paint-order="stroke">${esc(e.etiqueta ?? "")}</text>`;
+    }
     case "flecha":
       return flechaSvg(e);
     case "zona": {

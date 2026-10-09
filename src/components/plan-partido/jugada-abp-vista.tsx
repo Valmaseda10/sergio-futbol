@@ -22,6 +22,23 @@ export function nombreJugadorAbp(
   return (j ? j.alias || j.nombre : fila.texto).toUpperCase();
 }
 
+function esClaro(hex: string): boolean {
+  const m = /^#?([0-9a-f]{6})$/i.exec(hex);
+  if (!m) return false;
+  const n = parseInt(m[1], 16);
+  const luz = 0.299 * ((n >> 16) & 255) + 0.587 * ((n >> 8) & 255) + 0.114 * (n & 255);
+  return luz > 170;
+}
+
+// Cada fila de la lista va del color de la pieza con su mismo número (rojo las
+// rojas, azul las azules); si no hay pieza con ese número, rojo.
+function colorDeFila(fila: JugadorAbp, diagrama: Diagrama): string {
+  const pieza = fila.etiqueta
+    ? diagrama.elementos.find((e) => e.tipo === "jugador" && e.etiqueta === fila.etiqueta)
+    : null;
+  return pieza?.color ?? "#dc2626";
+}
+
 /** El dibujo con la lista numerada superpuesta en la esquina superior derecha. */
 export function CampoAbp({
   diagrama,
@@ -49,13 +66,25 @@ export function CampoAbp({
         dangerouslySetInnerHTML={{ __html: diagramaASvg(diagrama) }}
       />
       {visibles.length > 0 && (
-        <ul className="absolute top-[3%] right-[2%] max-w-[26%] space-y-[0.4cqw] rounded-md bg-black/55 px-[1.6cqw] py-[1.2cqw] text-[2.9cqw] leading-[1.15] font-extrabold text-white">
-          {visibles.map((f, i) => (
-            <li key={i} className="flex gap-[1.2cqw]">
-              <span className="min-w-[2cqw] text-right text-yellow-300">{f.etiqueta}</span>
-              <span className="min-w-0 break-words">{nombreJugadorAbp(f, jugadores)}</span>
-            </li>
-          ))}
+        <ul className="absolute top-[3%] right-[2%] max-w-[26%] space-y-[0.4cqw] text-[2.9cqw] leading-[1.15] font-extrabold">
+          {visibles.map((f, i) => {
+            const color = colorDeFila(f, diagrama);
+            // Halo del color contrario para que se lea sobre el césped.
+            const halo = esClaro(color) ? "#000000" : "#ffffff";
+            return (
+              <li
+                key={i}
+                className="flex gap-[1.2cqw]"
+                style={{
+                  color,
+                  textShadow: `0 0 2px ${halo}, 0 0 2px ${halo}, 0 0 3px ${halo}, 1px 1px 2px ${halo}`,
+                }}
+              >
+                <span className="min-w-[2cqw] text-right">{f.etiqueta}</span>
+                <span className="min-w-0 break-words">{nombreJugadorAbp(f, jugadores)}</span>
+              </li>
+            );
+          })}
         </ul>
       )}
     </div>
