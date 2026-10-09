@@ -3,7 +3,9 @@
 
 import type { Json } from "@/lib/types/database.types";
 import { clubConfig } from "@/lib/club-config";
-import type { Diagrama } from "@/lib/ficha-entrenamiento";
+import type { Diagrama, RolesAbp } from "@/lib/ficha-entrenamiento";
+
+export type { RolesAbp };
 
 // ---- ABP --------------------------------------------------------------------
 
@@ -26,6 +28,33 @@ export const TIPOS_ABP: { value: TipoAbp; label: string; plural: string }[] = [
 /** Las jugadas guardadas antes de existir el tipo no lo traen: son córners. */
 export function tipoDeJugada(tipo: string | null | undefined): TipoAbp {
   return TIPOS_ABP.some((t) => t.value === tipo) ? (tipo as TipoAbp) : "corner";
+}
+
+// Grupos de piezas de una jugada por color de camiseta.
+export type ClasePieza = "rojo" | "azul" | "portero";
+
+export const COLOR_CLASE: Record<ClasePieza | "lanzador", string> = {
+  rojo: "#ff0000",
+  azul: "#1e3a8a",
+  portero: "#7f1d1d",
+  lanzador: "#0070c0",
+};
+
+export function clasePieza(color: string | undefined): ClasePieza {
+  if (color === "#1e3a8a") return "azul";
+  if (color === "#7f1d1d") return "portero";
+  return "rojo";
+}
+
+/** Papel de cada grupo en un córner ofensivo: rematan los rojos, los azules recogen el rechace. */
+export const ROLES_CORNER_OFENSIVO: RolesAbp = {
+  rojo: "Rematar",
+  azul: "Rechace y cerrar 2ª jugada",
+  lanzador: "Lanzador",
+};
+
+export function rolesPorDefecto(tipo: TipoAbp, fase: FaseAbp): RolesAbp {
+  return tipo === "corner" && fase === "ofensivo" ? { ...ROLES_CORNER_OFENSIVO } : {};
 }
 
 /** Una fila numerada de la jugada: qué hace cada uno y quién lo hace. */

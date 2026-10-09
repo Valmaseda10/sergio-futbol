@@ -12,12 +12,15 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { DiagramaEditor } from "@/components/entrenamientos/diagrama-editor";
 import type { Diagrama } from "@/lib/ficha-entrenamiento";
+import { AsignarJugadores } from "@/components/plan-partido/asignar-jugadores";
 import { CampoAbp } from "@/components/plan-partido/jugada-abp-vista";
 import { localDb, type LocalJugadaAbp } from "@/lib/db/local-db";
 import {
   FASES_ABP,
   leerDiagramaAbp,
   leerJugadoresAbp,
+  rolesPorDefecto,
+  type RolesAbp,
   type FaseAbp,
   type TipoAbp,
   TIPOS_ABP,
@@ -50,6 +53,13 @@ export function JugadaAbpForm({
   const [filas, setFilas] = useState<JugadorAbp[]>(
     jugada ? leerJugadoresAbp(jugada.jugadores) : [],
   );
+  const [roles, setRoles] = useState<RolesAbp>(() => ({
+    ...rolesPorDefecto(
+      jugada ? tipoDeJugada(jugada.tipo) : tipoInicial,
+      jugada?.fase ?? "ofensivo",
+    ),
+    ...(jugada ? leerDiagramaAbp(jugada.diagrama)?.roles : undefined),
+  }));
   const [notas, setNotas] = useState(jugada?.notas ?? "");
   const [dibujando, setDibujando] = useState(false);
   const [guardando, setGuardando] = useState(false);
@@ -64,9 +74,9 @@ export function JugadaAbpForm({
     [],
   );
 
-  // El icono del lanzador del dibujo (si lo hay), para elegirlo aquí sin abrir el editor.
-  const lanzador = diagrama?.elementos.find(
-    (e) => e.tipo === "icono" && e.icono === "lanzador",
+  // Con piezas en el dibujo, quién hace qué se elige por piezas (ver AsignarJugadores).
+  const hayPiezas = !!diagrama?.elementos.some(
+    (e) => e.tipo === "jugador" || (e.tipo === "icono" && e.icono === "lanzador"),
   );
 
   function editarFila(i: number, parche: Partial<JugadorAbp>) {
@@ -83,7 +93,14 @@ export function JugadaAbpForm({
 
   async function guardar() {
     setGuardando(true);
-    const datos = { nombre, fase, tipo, diagrama, jugadores: filas, notas };
+    const datos = {
+      nombre,
+      fase,
+      tipo,
+      diagrama: diagrama ? { ...diagrama, roles } : null,
+      jugadores: filas,
+      notas,
+    };
     const resultado = jugada
       ? await actualizarJugadaAbpLocal(jugada.id, datos)
       : await crearJugadaAbpLocal(datos);
@@ -182,43 +199,19 @@ export function JugadaAbpForm({
         </CardContent>
       </Card>
 
-      {lanzador && (
-        <Card>
-          <CardContent className="space-y-2 pt-6">
-            <Label htmlFor="lanzador-abp">Lanzador</Label>
-            <select
-              id="lanzador-abp"
-              value={lanzador.jugador_id ?? ""}
-              onChange={(e) =>
-                setDiagrama((d) =>
-                  d
-                    ? {
-                        ...d,
-                        elementos: d.elementos.map((el) =>
-                          el.id === lanzador.id
-                            ? { ...el, jugador_id: e.target.value || null, nombre: undefined }
-                            : el,
-                        ),
-                      }
-                    : d,
-                )
-              }
-              className="h-9 w-full rounded-md border border-input bg-background px-2 text-sm"
-            >
-              <option value="">— Sin elegir —</option>
-              {jugadores.map((j) => (
-                <option key={j.id} value={j.id}>
-                  {j.alias || j.nombre} {j.apellidos}
-                </option>
-              ))}
-            </select>
-            <p className="text-xs text-muted-foreground">
-              Quien saca el córner o la falta: su nombre sale junto al icono del lanzador.
-            </p>
-          </CardContent>
-        </Card>
+      {diagrama && (
+        <AsignarJugadores
+          diagrama={diagrama}
+          setDiagrama={setDiagrama}
+          filas={filas}
+          setFilas={setFilas}
+          roles={roles}
+          setRoles={setRoles}
+          jugadores={jugadores.map((j) => ({ id: j.id, nombre: `${j.alias || j.nombre} ${j.apellidos}` }))}
+        />
       )}
 
+      {!hayPiezas && (
       <Card>
         <CardContent className="space-y-3 pt-6">
           <Label>Quién hace qué</Label>
@@ -280,6 +273,7 @@ export function JugadaAbpForm({
           </Button>
         </CardContent>
       </Card>
+      )}
 
       <Card>
         <CardContent className="space-y-2 pt-6">

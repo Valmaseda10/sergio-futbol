@@ -66,9 +66,18 @@ export interface ElementoDiagrama {
   icono?: Icono;
 }
 
+// Papel que cumple cada grupo de piezas de una jugada de ABP, por color de camiseta.
+export interface RolesAbp {
+  rojo?: string;
+  azul?: string;
+  portero?: string;
+  lanzador?: string;
+}
+
 export interface Diagrama {
   campo: TipoCampo;
   elementos: ElementoDiagrama[];
+  roles?: RolesAbp;
 }
 
 export interface ParPrincipio {
