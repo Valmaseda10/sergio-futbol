@@ -169,6 +169,8 @@ export async function actualizarEntrenamientoLocal(
   imagenesTareas?: ImagenesTareas,
   ficha?: FichaEntrenamiento,
   tablaImagen?: File | null,
+  // Tareas (índice 0 = tarea 1) a las que se les quita la imagen/dibujo que tenían.
+  quitarImagenes?: boolean[],
 ): Promise<ActionResult> {
   const parsed = entrenamientoSchema.safeParse(values);
   if (!parsed.success) {
@@ -178,9 +180,15 @@ export async function actualizarEntrenamientoLocal(
   if (tablaImagen && tablaImagen.size > 0) {
     ficha = { ...ficha, tabla_imagen_url: rutaImagenTabla(id, tablaImagen) };
   }
+  // Una imagen nueva de la misma tarea (se sube más abajo) manda sobre quitarla.
+  const sinImagen = (i: number) => !!quitarImagenes?.[i] && !imagenesTareas?.[i];
   const patch = {
     ...toEntrenamientoInsert(parsed.data),
     ...(ficha ? { ficha: fichaAJson(ficha) } : {}),
+    ...(sinImagen(0) ? { tarea_1_imagen_url: null } : {}),
+    ...(sinImagen(1) ? { tarea_2_imagen_url: null } : {}),
+    ...(sinImagen(2) ? { tarea_3_imagen_url: null } : {}),
+    ...(sinImagen(3) ? { tarea_4_imagen_url: null } : {}),
   };
   await localDb.entrenamientos.update(id, patch);
   await queueMutation("entrenamientos", "update", id, patch);

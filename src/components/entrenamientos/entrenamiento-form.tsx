@@ -188,10 +188,13 @@ function ImagenTarea({
   urlActual,
   vistaPrevia,
   onChange,
+  onQuitar,
 }: {
   urlActual?: string | null;
   vistaPrevia?: string | null;
   onChange: (archivo: File) => void;
+  /** Quita la imagen (y el dibujo) de la tarea para dejarla en blanco. */
+  onQuitar?: () => void;
 }) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [previewLocal, setPreviewLocal] = useState<string | null>(null);
@@ -246,9 +249,25 @@ function ImagenTarea({
           <ImagePlus className="size-5" />
         )}
       </button>
-      <p className="w-24 text-[10px] text-muted-foreground">
-        O pega una captura (Ctrl+V)
-      </p>
+      {preview && onQuitar ? (
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          className="w-24 px-1 text-xs text-destructive"
+          onClick={() => {
+            setPreviewLocal(null);
+            onQuitar();
+          }}
+        >
+          <Trash2 className="size-3.5" />
+          Quitar
+        </Button>
+      ) : (
+        <p className="w-24 text-[10px] text-muted-foreground">
+          O pega una captura (Ctrl+V)
+        </p>
+      )}
       <input
         ref={inputRef}
         type="file"
@@ -276,6 +295,8 @@ export function EntrenamientoForm({
   const [imagenesTareas, setImagenesTareas] = useState<
     (File | null)[]
   >([null, null, null, null]);
+  // Tareas a las que se les ha quitado la imagen/dibujo (se aplica al guardar).
+  const [imagenesQuitadas, setImagenesQuitadas] = useState<boolean[]>([false, false, false, false]);
   const [pickerPara, setPickerPara] = useState<CampoTarea | null>(null);
   const [ficha, setFicha] = useState<FichaEntrenamiento>(
     entrenamiento?.ficha ?? {},
@@ -571,6 +592,7 @@ export function EntrenamientoForm({
           imagenesTareas,
           ficha,
           tablaImagen,
+          imagenesQuitadas,
         )
       : await crearEntrenamientoLocal(
           values,
@@ -909,9 +931,23 @@ export function EntrenamientoForm({
               <div className="flex gap-3">
                 <div className="flex flex-col gap-1">
                   <ImagenTarea
-                    urlActual={entrenamiento?.tareaImagenSignedUrls?.[i]}
+                    urlActual={
+                      imagenesQuitadas[i] ? null : entrenamiento?.tareaImagenSignedUrls?.[i]
+                    }
                     vistaPrevia={previewsDiagrama[i]}
+                    onQuitar={() => {
+                      setPreviewsDiagrama((prev) => prev.map((x, k) => (k === i ? null : x)));
+                      setImagenesTareas((prev) => prev.map((x, k) => (k === i ? null : x)));
+                      setImagenesQuitadas((prev) => prev.map((x, k) => (k === i ? true : x)));
+                      setFicha((f) => {
+                        const diagramas = [...(f.diagramas ?? [null, null, null, null])];
+                        diagramas[i] = null;
+                        return { ...f, diagramas };
+                      });
+                      toast.success(`Dibujo de la tarea ${i + 1} quitado — guarda la sesión para conservarlo`);
+                    }}
                     onChange={(archivo) => {
+                      setImagenesQuitadas((prev) => prev.map((x, k) => (k === i ? false : x)));
                       setPreviewsDiagrama((prev) => {
                         const siguiente = [...prev];
                         siguiente[i] = null;
