@@ -49,7 +49,11 @@ export default function HojaPartidoPage() {
         <h1 className="text-2xl font-semibold">Hoja de partido</h1>
       </div>
       {hoja ? (
-        <HojaPartido key={hoja.id} hoja={hoja} />
+        <HojaPartido
+          key={hoja.id}
+          hoja={hoja}
+          ladoPropio={partido.local_visitante === "local" ? "izquierda" : "derecha"}
+        />
       ) : (
         <p className="text-sm text-muted-foreground">Preparando la hoja...</p>
       )}

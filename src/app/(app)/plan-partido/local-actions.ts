@@ -14,6 +14,7 @@ import {
   hojaAJson,
   hojaVacia,
   leerHoja,
+  ponerNuestroEquipoEn,
   NUM_SUPLENTES,
   NUM_TITULARES,
   type FaseAbp,
@@ -22,6 +23,7 @@ import {
 } from "@/lib/plan-partido";
 import { DEMARCACION_ORDEN, demarcacionDePosicion } from "@/lib/posiciones";
 import type { Json } from "@/lib/types/database.types";
+import { clubConfig } from "@/lib/club-config";
 
 type SimpleResult = { error: string } | { success: true };
 type ActionResult = { error: string } | { success: true; id: string };
@@ -153,7 +155,7 @@ async function hojaInicial(partidoId: string): Promise<HojaPartidoDatos> {
     .sort((a, b) => rango(a.id) - rango(b.id));
 
   if (titulares.length > 0 || suplentes.length > 0) {
-    const nuestra = alineacionVacia("Cultural");
+    const nuestra = alineacionVacia(clubConfig.nombreEquipo);
     titulares
       .slice(0, NUM_TITULARES)
       .forEach((a, i) => (nuestra.titulares[i] = nombreDe(a)));
@@ -162,7 +164,12 @@ async function hojaInicial(partidoId: string): Promise<HojaPartidoDatos> {
       .forEach((j, i) => (nuestra.suplentes[i] = nombreCorto(j)));
     hoja.derecha = nuestra;
   }
-  return hoja;
+  if (partido) hoja.izquierda.titulo = partido.rival;
+  // Locales a la izquierda, visitantes a la derecha.
+  return ponerNuestroEquipoEn(
+    hoja,
+    partido?.local_visitante === "local" ? "izquierda" : "derecha",
+  );
 }
 
 /** La hoja de un partido; si todavía no existe, se crea con lo que ya se sabe. */

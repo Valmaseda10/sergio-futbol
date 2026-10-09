@@ -2,6 +2,7 @@
 // formatos de las columnas jsonb de `jugadas_abp` y `hojas_partido`.
 
 import type { Json } from "@/lib/types/database.types";
+import { clubConfig } from "@/lib/club-config";
 import type { Diagrama } from "@/lib/ficha-entrenamiento";
 
 // ---- ABP --------------------------------------------------------------------
@@ -63,10 +64,15 @@ export interface AnalisisHoja {
   observaciones: string;
 }
 
+export type LadoHoja = "izquierda" | "derecha";
+
 export interface HojaPartidoDatos {
   cabecera: CabeceraHoja;
   izquierda: AlineacionHoja; // la lista de la izquierda de la hoja
   derecha: AlineacionHoja;
+  // En qué lado está nuestro equipo: a la izquierda si jugamos de local, a la
+  // derecha si somos visitantes.
+  nuestro_lado: LadoHoja;
   cambios: string[]; // 5 filas x 2 columnas, por filas
   analisis: AnalisisHoja;
 }
@@ -98,7 +104,8 @@ export function hojaVacia(): HojaPartidoDatos {
       convocatoria: "",
     },
     izquierda: alineacionVacia("Rival"),
-    derecha: alineacionVacia("Cultural"),
+    derecha: alineacionVacia(clubConfig.nombreEquipo),
+    nuestro_lado: "derecha",
     cambios: vacias(FILAS_CAMBIOS * 2),
     analisis: {
       fase_defensiva: "",
@@ -132,6 +139,7 @@ export function leerHoja(json: Json | null | undefined): HojaPartidoDatos {
     cabecera: { ...v.cabecera, ...d.cabecera },
     izquierda: lado(d.izquierda, v.izquierda),
     derecha: lado(d.derecha, v.derecha),
+    nuestro_lado: d.nuestro_lado === "izquierda" ? "izquierda" : "derecha",
     cambios: ajustar(d.cambios, FILAS_CAMBIOS * 2),
     analisis: { ...v.analisis, ...d.analisis },
   };
@@ -139,6 +147,20 @@ export function leerHoja(json: Json | null | undefined): HojaPartidoDatos {
 
 export function hojaAJson(h: HojaPartidoDatos): Json {
   return JSON.parse(JSON.stringify(h)) as Json;
+}
+
+/** Pasa nuestro equipo al otro lado de la hoja (con su observación y suplentes). */
+export function ponerNuestroEquipoEn(
+  datos: HojaPartidoDatos,
+  lado: LadoHoja,
+): HojaPartidoDatos {
+  if (datos.nuestro_lado === lado) return datos;
+  return {
+    ...datos,
+    izquierda: datos.derecha,
+    derecha: datos.izquierda,
+    nuestro_lado: lado,
+  };
 }
 
 /** "2026-10-03" -> "03/10/2026", como en la hoja de Word. */

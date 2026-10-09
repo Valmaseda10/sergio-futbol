@@ -13,8 +13,9 @@ import type { LocalHojaPartido } from "@/lib/db/local-db";
 import {
   FILAS_CAMBIOS,
   leerHoja,
-  NUM_SUPLENTES,
   NUM_TITULARES,
+  ponerNuestroEquipoEn,
+  type LadoHoja,
   type AlineacionHoja,
   type AnalisisHoja,
   type CabeceraHoja,
@@ -208,10 +209,24 @@ const BLOQUES_ANALISIS: {
   { izq: "abp_defensivo", der: "abp_ofensivo", tIzq: "ABP defensivo", tDer: "ABP ofensivo" },
 ];
 
-export function HojaPartido({ hoja }: { hoja: LocalHojaPartido }) {
+export function HojaPartido({
+  hoja,
+  ladoPropio,
+}: {
+  hoja: LocalHojaPartido;
+  /** Lado donde va nuestro equipo según el partido (local = izquierda). */
+  ladoPropio: LadoHoja;
+}) {
+  useEffect(() => {
+    setDatos((d) => ponerNuestroEquipoEn(d, ladoPropio));
+  }, [ladoPropio]);
   const contenedorRef = useRef<HTMLDivElement>(null);
-  const [datos, setDatos] = useState<HojaPartidoDatos>(() => leerHoja(hoja.datos));
-  const guardado = useRef(JSON.stringify(datos));
+  // Si el partido es de local nuestro equipo va a la izquierda y si es de
+  // visitante, a la derecha: se recoloca solo si cambia el partido.
+  const [datos, setDatos] = useState<HojaPartidoDatos>(() =>
+    ponerNuestroEquipoEn(leerHoja(hoja.datos), ladoPropio),
+  );
+  const guardado = useRef(JSON.stringify(leerHoja(hoja.datos)));
   const pendiente = useRef<HojaPartidoDatos | null>(null);
 
   function cambiar(mut: (d: HojaPartidoDatos) => HojaPartidoDatos) {
