@@ -452,6 +452,29 @@ function iconoSvg(
   return "";
 }
 
+// Balón amarillo con el pentágono central, sus costuras y los gajos del borde.
+function balonAmarillo(x: number, y: number): string {
+  const r = 10;
+  const punto = (rad: number, grados: number) =>
+    `${(x + rad * Math.cos((grados * Math.PI) / 180)).toFixed(2)},${(y + rad * Math.sin((grados * Math.PI) / 180)).toFixed(2)}`;
+  const angulos = [0, 1, 2, 3, 4].map((i) => -90 + 72 * i);
+  const pentagono = angulos.map((a) => punto(3.8, a)).join(" ");
+  const costuras = angulos
+    .map((a) => {
+      const [x1, y1] = punto(3.8, a).split(",");
+      const [x2, y2] = punto(7.4, a).split(",");
+      return `<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}"/>`;
+    })
+    .join("");
+  // Gajos del borde, al final de cada costura.
+  const gajos = angulos
+    .map((a) => `<polygon points="${punto(10, a - 14)} ${punto(7.4, a)} ${punto(10, a + 14)}"/>`)
+    .join("");
+  return `<circle cx="${x}" cy="${y}" r="${r}" fill="#facc15" stroke="#111111" stroke-width="1.5"/>
+    <g stroke="#111111" stroke-width="1.1" stroke-linecap="round">${costuras}</g>
+    <g fill="#111111">${gajos}<polygon points="${pentagono}"/></g>`;
+}
+
 // Elementos "puntuales" (jugador, texto, material): se dibujan con el tamaño
 // de 520 px de ancho y se agrandan alrededor de su punto cuando el campo es
 // mayor (el de ABP).
@@ -510,6 +533,8 @@ function elementoSvg(
         }" stroke="#111111" stroke-width="1"/>`,
       );
     case "balon":
+      // En las jugadas de ABP (k > 1) es un balón de verdad: amarillo con sus gajos negros.
+      if (k !== 1) return escalado(e, k, balonAmarillo(e.x, e.y));
       return escalado(
         e,
         k,
