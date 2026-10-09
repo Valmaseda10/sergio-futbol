@@ -5,7 +5,7 @@
 // observaciones finales. La propia hoja es el formulario: se escribe sobre
 // ella y se guarda sola; al imprimir o descargar solo queda el texto.
 
-import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { PdfWatermark } from "@/components/branding/pdf-watermark";
 import { AccionesPdf } from "@/components/plan-partido/acciones-pdf";
 import { guardarHojaLocal } from "@/app/(app)/plan-partido/local-actions";
@@ -219,18 +219,20 @@ export function HojaPartido({
 }) {
   const contenedorRef = useRef<HTMLDivElement>(null);
   // Si el partido es de local nuestro equipo va a la izquierda y si es de
-  // visitante, a la derecha: se recoloca solo si cambia el partido.
-  const [datos, setDatos] = useState<HojaPartidoDatos>(() =>
-    ponerNuestroEquipoEn(leerHoja(hoja.datos), ladoPropio),
+  // visitante, a la derecha: el lado se calcula al pintar (y se guarda con la
+  // siguiente edición), así que también se recoloca si cambia el partido.
+  const [guardadoEnDb, setGuardadoEnDb] = useState<HojaPartidoDatos>(() =>
+    leerHoja(hoja.datos),
+  );
+  const datos = useMemo(
+    () => ponerNuestroEquipoEn(guardadoEnDb, ladoPropio),
+    [guardadoEnDb, ladoPropio],
   );
   const guardado = useRef(JSON.stringify(leerHoja(hoja.datos)));
-  useEffect(() => {
-    setDatos((d) => ponerNuestroEquipoEn(d, ladoPropio));
-  }, [ladoPropio]);
   const pendiente = useRef<HojaPartidoDatos | null>(null);
 
   function cambiar(mut: (d: HojaPartidoDatos) => HojaPartidoDatos) {
-    setDatos((d) => mut(d));
+    setGuardadoEnDb((d) => mut(ponerNuestroEquipoEn(d, ladoPropio)));
   }
 
   // Guardado automático: 700 ms después de dejar de escribir, y al salir de la
