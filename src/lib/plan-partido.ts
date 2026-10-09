@@ -56,11 +56,18 @@ export function clasePieza(color: string | undefined): ClasePieza {
 }
 
 /**
- * En el córner defensivo hay marcas individuales pegadas al rival y el nombre
- * debajo de la camiseta no se ve: ahí sale a la derecha de la camiseta.
+ * En el córner defensivo y la falta lateral defensiva hay marcas individuales (la
+ * columna de la derecha) y el nombre debajo de la camiseta no se ve: ahí sale a la
+ * derecha de la camiseta. En el córner, además, los de zona llevan el nombre debajo
+ * ("todos"); en la falta lateral el resto de nombres se queda donde estén colocados.
  */
-export function nombreAlLadoAbp(tipo: string | null | undefined, fase: string | null | undefined): boolean {
-  return tipoDeJugada(tipo) === "corner" && fase === "defensivo";
+export function nombreAlLadoAbp(
+  tipo: string | null | undefined,
+  fase: string | null | undefined,
+): boolean | "derecha" {
+  if (fase !== "defensivo") return false;
+  const t = tipoDeJugada(tipo);
+  return t === "corner" ? true : t === "falta_lateral" ? "derecha" : false;
 }
 
 /** Papel de cada grupo en un córner ofensivo: rematan los rojos, los azules recogen el rechace. */

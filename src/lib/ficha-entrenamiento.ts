@@ -378,7 +378,7 @@ function camisetaSvg(
   k: number,
   nombres?: NombresJugadores,
   numeros: boolean | "rojas" = true,
-  nombreAlLado = false,
+  nombreAlLado: boolean | "derecha" = false,
   textoK = 1,
   subrayados?: Map<string, string>,
 ): string {
@@ -388,12 +388,15 @@ function camisetaSvg(
   const ancho = ANCHO_CAMISETA * k * (e.escala ?? 1);
   const escala = ancho / base.ancho;
   const alto = base.alto * escala;
-  // Córner defensivo: los de la columna de la derecha (marcas individuales) llevan el
-  // nombre a su derecha; los que defienden en zona, justo debajo.
+  // Defensivo: los de la columna de la derecha (marcas individuales) llevan el nombre
+  // a su derecha. En el córner los que defienden en zona van justo debajo ("todos");
+  // en la falta lateral ("derecha") el resto se queda como esté colocado.
   let colocacion: ColocacionNombre = nombreAlLado
     ? e.x > 520 * k * 0.75
       ? ancho
-      : "debajo"
+      : nombreAlLado === "derecha"
+        ? "libre"
+        : "debajo"
     : "libre";
   // Un nombre colocado a mano a la derecha de la camiseta se ajusta para no salirse del campo.
   if (colocacion === "libre" && k > 1 && e.nombreDx != null && e.nombreDx > ancho * 0.4) {
@@ -455,11 +458,13 @@ function nombreSvg(
   let anclaje: "middle" | "start" | "end" = "middle";
 
   if (typeof colocacion === "number") {
-    // A la derecha de la camiseta; si no cabe, se achica hasta el 85 % y, si aún no
+    // A la derecha de la camiseta; si no cabe, se achica hasta el 75 % y, si aún no
     // cabe, pasa a su izquierda.
     const x0 = e.x + colocacion / 2 + 4 * k;
-    const hueco = (dentro ? maxX : Infinity) - x0;
-    if (medida(fs) > hueco) fs *= Math.max(0.85, hueco / medida(fs));
+    // Junto a la camiseta puede pasar un poco de la línea de banda (hasta casi el
+    // borde del dibujo) con tal de que se lea; así no se pasa de la hoja al imprimir.
+    const hueco = (dentro ? ancho * 0.985 : Infinity) - x0;
+    if (medida(fs) > hueco) fs *= Math.max(0.75, hueco / medida(fs));
     if (medida(fs) > hueco) {
       anclaje = "end";
       x = e.x - colocacion / 2 - 4 * k;
@@ -560,7 +565,7 @@ function elementoSvg(
   k: number,
   nombres?: NombresJugadores,
   numeros: boolean | "rojas" = true,
-  nombreAlLado = false,
+  nombreAlLado: boolean | "derecha" = false,
   textoK = 1,
   subrayados?: Map<string, string>,
 ): string {
@@ -657,7 +662,7 @@ export function diagramaASvg(
      */
     numeros?: boolean | "rojas";
     /** Los nombres salen a la derecha de la camiseta (no debajo), p. ej. en el córner defensivo. */
-    nombreAlLado?: boolean;
+    nombreAlLado?: boolean | "derecha";
     /** Factor de tamaño de los nombres (para dibujos que se imprimen pequeños). */
     textoK?: number;
     /** Raya de color bajo el nombre de cada jugador (id -> color): titular o suplente del partido. */
