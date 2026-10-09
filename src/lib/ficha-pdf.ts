@@ -123,6 +123,20 @@ export async function generarPdfFicha(
       const contenedor = doc.createElement("div");
       contenedor.style.cssText = `width:${ANCHO_HOJA_MM}mm;background:#fff;position:relative;color:#171717;-webkit-print-color-adjust:exact;print-color-adjust:exact`;
       const copia = hojas[i].cloneNode(true) as HTMLElement;
+      // cloneNode no copia lo que se ha escrito en campos de formulario (es
+      // una propiedad, no un atributo): se pasa a mano, en el mismo orden.
+      const camposOrigen = hojas[i].querySelectorAll<HTMLInputElement | HTMLTextAreaElement>(
+        "input, textarea",
+      );
+      const camposCopia = copia.querySelectorAll<HTMLInputElement | HTMLTextAreaElement>(
+        "input, textarea",
+      );
+      camposOrigen.forEach((campo, k) => {
+        const destino = camposCopia[k];
+        if (!destino) return;
+        if (destino instanceof HTMLTextAreaElement) destino.textContent = campo.value;
+        else destino.setAttribute("value", campo.value);
+      });
       contenedor.appendChild(copia);
 
       // Marca de agua del escudo, igual que al imprimir.

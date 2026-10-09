@@ -41,6 +41,8 @@ export type LocalNota = Tables["notas"]["Row"];
 export type LocalMulta = Tables["multas"]["Row"];
 export type LocalNorma = Tables["normas"]["Row"];
 export type LocalTareaGuardada = Tables["tareas_guardadas"]["Row"];
+export type LocalJugadaAbp = Tables["jugadas_abp"]["Row"];
+export type LocalHojaPartido = Tables["hojas_partido"]["Row"];
 export type LocalCampograma = Tables["campogramas"]["Row"];
 export type LocalCampogramaJugador = Tables["campograma_jugadores"]["Row"];
 export type LocalCampogramaRival = Tables["campograma_rivales"]["Row"];
@@ -77,6 +79,8 @@ export const SYNCED_TABLES = [
   "multas",
   "normas",
   "tareas_guardadas",
+  "jugadas_abp",
+  "hojas_partido",
   "campogramas",
   "campograma_jugadores",
   "campograma_rivales",
@@ -101,6 +105,7 @@ export const CONFLICT_TARGETS: Partial<Record<SyncedTable, string>> = {
   campograma_jugadores: "campograma_id,jugador_id",
   videos_sesion_clips: "sesion_id,video_id",
   rivales_goles_intervalo: "rival_id,intervalo",
+  hojas_partido: "partido_id",
 };
 
 export interface OutboxEntry {
@@ -145,6 +150,8 @@ class LocalDb extends Dexie {
   multas!: Table<LocalMulta, string>;
   normas!: Table<LocalNorma, string>;
   tareas_guardadas!: Table<LocalTareaGuardada, string>;
+  jugadas_abp!: Table<LocalJugadaAbp, string>;
+  hojas_partido!: Table<LocalHojaPartido, string>;
   campogramas!: Table<LocalCampograma, string>;
   campograma_jugadores!: Table<LocalCampogramaJugador, string>;
   campograma_rivales!: Table<LocalCampogramaRival, string>;
@@ -256,6 +263,11 @@ class LocalDb extends Dexie {
 
     this.version(20).stores({
       tareas_guardadas: "id, nombre",
+    });
+
+    this.version(21).stores({
+      jugadas_abp: "id, orden",
+      hojas_partido: "id, partido_id",
     });
   }
 }

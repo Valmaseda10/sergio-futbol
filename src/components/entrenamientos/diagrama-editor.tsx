@@ -70,12 +70,15 @@ function nuevoId() {
 export function DiagramaEditor({
   abierto,
   numeroTarea,
+  titulo,
   inicial,
   onCerrar,
   onGuardar,
 }: {
   abierto: boolean;
   numeroTarea: number;
+  /** Título del cuadro; por defecto, "Diagrama de la tarea N". */
+  titulo?: string;
   inicial: Diagrama | null;
   onCerrar: () => void;
   onGuardar: (diagrama: Diagrama, png: File) => void;
@@ -253,7 +256,7 @@ export function DiagramaEditor({
     <Dialog open={abierto} onOpenChange={(open) => !open && onCerrar()}>
       <DialogContent className="max-h-[95vh] max-w-3xl overflow-y-auto sm:max-w-3xl">
         <DialogHeader>
-          <DialogTitle>Diagrama de la tarea {numeroTarea}</DialogTitle>
+          <DialogTitle>{titulo ?? `Diagrama de la tarea ${numeroTarea}`}</DialogTitle>
         </DialogHeader>
 
         <div className="flex flex-wrap gap-1.5">

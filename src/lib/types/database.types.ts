@@ -1089,6 +1089,46 @@ export interface Database {
         Update: Partial<Database["public"]["Tables"]["multas"]["Insert"]>;
         Relationships: [];
       };
+      jugadas_abp: {
+        Row: {
+          id: string;
+          nombre: string;
+          fase: "ofensivo" | "defensivo";
+          diagrama: Json | null;
+          jugadores: Json;
+          notas: string | null;
+          orden: number;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          nombre: string;
+          fase?: "ofensivo" | "defensivo";
+          diagrama?: Json | null;
+          jugadores?: Json;
+          notas?: string | null;
+          orden?: number;
+          created_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["jugadas_abp"]["Insert"]>;
+        Relationships: [];
+      };
+      hojas_partido: {
+        Row: {
+          id: string;
+          partido_id: string;
+          datos: Json;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          partido_id: string;
+          datos?: Json;
+          created_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["hojas_partido"]["Insert"]>;
+        Relationships: [];
+      };
       tareas_guardadas: {
         Row: {
           id: string;
