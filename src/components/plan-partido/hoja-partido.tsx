@@ -217,9 +217,6 @@ export function HojaPartido({
   /** Lado donde va nuestro equipo según el partido (local = izquierda). */
   ladoPropio: LadoHoja;
 }) {
-  useEffect(() => {
-    setDatos((d) => ponerNuestroEquipoEn(d, ladoPropio));
-  }, [ladoPropio]);
   const contenedorRef = useRef<HTMLDivElement>(null);
   // Si el partido es de local nuestro equipo va a la izquierda y si es de
   // visitante, a la derecha: se recoloca solo si cambia el partido.
@@ -227,6 +224,9 @@ export function HojaPartido({
     ponerNuestroEquipoEn(leerHoja(hoja.datos), ladoPropio),
   );
   const guardado = useRef(JSON.stringify(leerHoja(hoja.datos)));
+  useEffect(() => {
+    setDatos((d) => ponerNuestroEquipoEn(d, ladoPropio));
+  }, [ladoPropio]);
   const pendiente = useRef<HojaPartidoDatos | null>(null);
 
   function cambiar(mut: (d: HojaPartidoDatos) => HojaPartidoDatos) {
