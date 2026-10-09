@@ -387,6 +387,17 @@ function camisetaSvg(
   const ancho = ANCHO_CAMISETA * k * (e.escala ?? 1);
   const escala = ancho / base.ancho;
   const alto = base.alto * escala;
+  // Córner defensivo: los de la columna de la derecha (marcas individuales) llevan el
+  // nombre a su derecha; los que defienden en zona, justo debajo.
+  let colocacion: ColocacionNombre = nombreAlLado
+    ? e.x > 520 * k * 0.75
+      ? ancho
+      : "debajo"
+    : "libre";
+  // Un nombre colocado a mano a la derecha de la camiseta se ajusta para no salirse del campo.
+  if (colocacion === "libre" && k > 1 && e.nombreDx != null && e.nombreDx > ancho * 0.4) {
+    colocacion = ancho;
+  }
   const clara = !portero && (c === "#ffffff" || colorClaro(c));
   const relleno = portero ? "#ffffff" : clara ? "#111111" : c;
   // El número va a ~la mitad del ancho de la camiseta, sin pasar de un tamaño razonable en las grandes.
@@ -399,30 +410,75 @@ function camisetaSvg(
       }" stroke-width="${fuente * 0.16}" stroke-linejoin="round" paint-order="stroke">${esc(e.etiqueta)}</text>`
     : "";
   return `<use href="#${portero ? ids.granate : ids.blanca}" transform="translate(${e.x - ancho / 2} ${
-    e.y - alto / 2}) scale(${escala})"/>${txt}${nombreSvg(e, nombres, k, alto, nombreAlLado ? ancho : undefined, textoK)}`;
+    e.y - alto / 2}) scale(${escala})"/>${txt}${nombreSvg(e, nombres, k, alto, colocacion, textoK)}`;
 }
 
-// Nombre del jugador junto a su camiseta (debajo por defecto).
+// Dónde queda el nombre de una pieza:
+//  - "libre": donde se colocó a mano (debajo si no se tocó).
+//  - "debajo": justo debajo de la camiseta, sin tener en cuenta lo colocado a mano.
+//  - un número: a la derecha de la camiseta (el número es el ancho de la camiseta).
+type ColocacionNombre = "libre" | "debajo" | number;
+
+// Márgenes del campo de ABP (las líneas de banda del dibujo), como fracción del ancho
+// del lienzo: lo que se escribe fuera se corta al imprimir.
+const CAMPO_ABP_MIN = 0.038;
+const CAMPO_ABP_MAX = 0.956;
+
+// Nombre del jugador junto a su camiseta (debajo por defecto). En los dibujos de ABP
+// nunca sale de las líneas del campo: se desplaza, se achica o pasa al otro lado.
 function nombreSvg(
   e: ElementoDiagrama,
   nombres: NombresJugadores | undefined,
   k: number,
   altoPieza: number,
-  // Ancho de la camiseta: si se da, el nombre sale a su derecha (en vez de
-  // debajo) mientras no se haya colocado a mano.
-  anchoAlLado?: number,
+  colocacion: ColocacionNombre = "libre",
   // Factor de tamaño de la letra (1 = normal; mayor en los dibujos pequeños).
   textoK = 1,
 ): string {
   const nombre = nombreDePieza(e, nombres);
   if (!nombre) return "";
-  const alLado = anchoAlLado != null && e.nombreDx == null && e.nombreDy == null;
-  const dx = alLado ? anchoAlLado / 2 + 4 * k : (e.nombreDx ?? 0);
-  const dy = alLado ? 5 * k : (e.nombreDy ?? altoPieza / 2 + 15 * k);
+  // Un nombre que es solo un número (los de la barrera: 1, 2, 3...) se escribe igual
+  // que los textos "1-", "2-"... del lateral del dibujo: negro y del mismo tamaño.
+  const numerico = e.tipo === "jugador" && /^\d+$/.test(nombre);
+  let fs = (numerico ? 15 : 14 * textoK) * k;
+  const ancho = 520 * k;
+  const minX = ancho * CAMPO_ABP_MIN;
+  const maxX = ancho * CAMPO_ABP_MAX;
+  const dentro = k > 1;
+  const medida = (f: number) => nombre.length * 0.72 * f;
+  const y0 = e.y;
+  let x = e.x;
+  let y = e.y;
+  let anclaje: "middle" | "start" | "end" = "middle";
+
+  if (typeof colocacion === "number") {
+    // A la derecha de la camiseta; si no cabe, se achica hasta el 85 % y, si aún no
+    // cabe, pasa a su izquierda.
+    const x0 = e.x + colocacion / 2 + 4 * k;
+    const hueco = (dentro ? maxX : Infinity) - x0;
+    if (medida(fs) > hueco) fs *= Math.max(0.85, hueco / medida(fs));
+    if (medida(fs) > hueco) {
+      anclaje = "end";
+      x = e.x - colocacion / 2 - 4 * k;
+    } else {
+      anclaje = "start";
+      x = x0;
+    }
+    y = y0 + 5 * k;
+  } else {
+    const dx = colocacion === "libre" ? (e.nombreDx ?? 0) : 0;
+    const dy = colocacion === "libre" ? (e.nombreDy ?? altoPieza / 2 + 15 * k) : altoPieza / 2 + 15 * k;
+    x = e.x + dx;
+    y = e.y + dy;
+    if (dentro) {
+      const mitad = medida(fs) / 2;
+      if (x + mitad > maxX) x = maxX - mitad;
+      if (x - mitad < minX) x = minX + mitad;
+    }
+  }
   const colorPorDefecto = e.tipo === "icono" ? "#0070c0" : (e.color ?? "#111111");
-  return `<text x="${e.x + dx}" y="${e.y + dy}" text-anchor="${alLado ? "start" : "middle"}" font-family="Arial, sans-serif" font-size="${14 * k * textoK}" font-weight="700" fill="${
-    e.colorNombre ?? colorPorDefecto
-  }" stroke="#ffffff" stroke-width="${2.2 * k}" stroke-linejoin="round" paint-order="stroke">${esc(nombre)}</text>`;
+  const relleno = numerico ? "#111111" : (e.colorNombre ?? colorPorDefecto);
+  return `<text x="${x}" y="${y}" text-anchor="${anclaje}" font-family="Arial, sans-serif" font-size="${fs}" font-weight="700" fill="${relleno}" stroke="#ffffff" stroke-width="${(numerico ? 3 : 2.2) * k}" stroke-linejoin="round" paint-order="stroke">${esc(nombre)}</text>`;
 }
 
 function iconoSvg(
