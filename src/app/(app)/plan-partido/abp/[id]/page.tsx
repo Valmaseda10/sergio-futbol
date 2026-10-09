@@ -157,6 +157,7 @@ export default function JugadaAbpPage() {
           abierto
           numeroTarea={0}
           titulo={`Dibujo: ${jugada.nombre}`}
+          camisetas
           inicial={leerDiagramaAbp(jugada.diagrama)}
           onCerrar={() => setDibujando(false)}
           onGuardar={async (diagrama) => {

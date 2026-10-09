@@ -31,7 +31,7 @@ function Miniatura({ jugada }: { jugada: LocalJugadaAbp }) {
   return (
     <div
       className="w-28 shrink-0 overflow-hidden rounded [&>svg]:block [&>svg]:h-auto [&>svg]:w-full"
-      dangerouslySetInnerHTML={{ __html: diagramaASvg(diagrama) }}
+      dangerouslySetInnerHTML={{ __html: diagramaASvg(diagrama, { camisetas: true }) }}
     />
   );
 }

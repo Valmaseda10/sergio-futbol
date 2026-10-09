@@ -3,6 +3,7 @@
 // dibujados en la app. Todo opcional: una sesión antigua tiene `ficha` null.
 
 import type { Json } from "@/lib/types/database.types";
+import { CAMISETA_BLANCA, CAMISETA_GRANATE } from "@/lib/camisetas";
 
 export type TipoElemento =
   | "jugador"
@@ -180,7 +181,11 @@ export const COLORES_DIAGRAMA: { valor: string; nombre: string }[] = [
   { valor: "#111111", nombre: "Negro" },
   { valor: "#ffffff", nombre: "Blanco" },
   { valor: "#f97316", nombre: "Naranja" },
+  // En las jugadas de ABP (piezas con camiseta) es la camiseta granate del portero.
+  { valor: "#7f1d1d", nombre: "Granate (portero)" },
 ];
+
+export const COLOR_PORTERO = "#7f1d1d";
 
 function esc(s: string) {
   return s
@@ -263,10 +268,55 @@ function flechaSvg(e: ElementoDiagrama): string {
     <polygon points="${x2},${y2} ${p1} ${p2}" fill="${color}"/>`;
 }
 
-function elementoSvg(e: ElementoDiagrama): string {
+// Identificadores de las camisetas dentro de un SVG (únicos por dibujo, para que
+// varios SVG en la misma página no se pisen).
+interface IdsCamisetas {
+  blanca: string;
+  granate: string;
+}
+
+let contadorCamisetas = 0;
+
+const ANCHO_CAMISETA = 30;
+
+function defsCamisetas(ids: IdsCamisetas): string {
+  return `<defs>
+    <image id="${ids.blanca}" href="${CAMISETA_BLANCA.src}" width="${CAMISETA_BLANCA.ancho}" height="${CAMISETA_BLANCA.alto}"/>
+    <image id="${ids.granate}" href="${CAMISETA_GRANATE.src}" width="${CAMISETA_GRANATE.ancho}" height="${CAMISETA_GRANATE.alto}"/>
+  </defs>`;
+}
+
+// Pieza de jugador como camiseta de la Cultural (blanca; granate si es portero)
+// con su número o letra encima, del color elegido.
+function camisetaSvg(e: ElementoDiagrama, ids: IdsCamisetas): string {
+  const c = e.color ?? "#dc2626";
+  const portero = c === COLOR_PORTERO;
+  const base = portero ? CAMISETA_GRANATE : CAMISETA_BLANCA;
+  const escala = ANCHO_CAMISETA / base.ancho;
+  const alto = base.alto * escala;
+  const clara = !portero && (c === "#ffffff" || colorClaro(c));
+  const relleno = portero ? "#ffffff" : clara ? "#111111" : c;
+  const txt = e.etiqueta
+    ? `<text x="${e.x}" y="${e.y + 7}" text-anchor="middle" font-family="Arial, sans-serif" font-size="13" font-weight="800" fill="${relleno}" stroke="${
+        portero ? "#7f1d1d" : "#ffffff"
+      }" stroke-width="2.2" stroke-linejoin="round" paint-order="stroke">${esc(e.etiqueta)}</text>`
+    : "";
+  return `<use href="#${portero ? ids.granate : ids.blanca}" transform="translate(${e.x - ANCHO_CAMISETA / 2} ${
+    e.y - alto / 2}) scale(${escala})"/>${txt}`;
+}
+
+function colorClaro(hex: string): boolean {
+  const m = /^#?([0-9a-f]{6})$/i.exec(hex);
+  if (!m) return false;
+  const n = parseInt(m[1], 16);
+  return 0.299 * ((n >> 16) & 255) + 0.587 * ((n >> 8) & 255) + 0.114 * (n & 255) > 170;
+}
+
+function elementoSvg(e: ElementoDiagrama, camisetas?: IdsCamisetas): string {
   const c = e.color ?? "#dc2626";
   switch (e.tipo) {
     case "jugador": {
+      if (camisetas) return camisetaSvg(e, camisetas);
       const txt = e.etiqueta
         ? `<text x="${e.x}" y="${e.y + 4}" text-anchor="middle" font-family="Arial, sans-serif" font-size="11" font-weight="700" fill="${
             c === "#ffffff" || c === "#facc15" || c === "#4ade80" ? "#111111" : "#ffffff"
@@ -313,8 +363,16 @@ function elementoSvg(e: ElementoDiagrama): string {
 
 export function diagramaASvg(
   d: Diagrama,
-  opciones?: { seleccionId?: string | null; borrador?: ElementoDiagrama | null },
+  opciones?: {
+    seleccionId?: string | null;
+    borrador?: ElementoDiagrama | null;
+    /** Pinta a los jugadores como camisetas de la Cultural en vez de fichas. */
+    camisetas?: boolean;
+  },
 ): string {
+  const ids: IdsCamisetas | undefined = opciones?.camisetas
+    ? { blanca: `camisa-b-${++contadorCamisetas}`, granate: `camisa-g-${contadorCamisetas}` }
+    : undefined;
   // Zonas y flechas debajo, jugadores/material encima.
   const orden: Record<TipoElemento, number> = {
     zona: 0,
@@ -353,8 +411,9 @@ export function diagramaASvg(
       )
       .join("")}
     ${lineasCampo(d.campo)}
-    ${elementos.map(elementoSvg).join("\n")}
-    ${opciones?.borrador ? elementoSvg(opciones.borrador) : ""}
+    ${ids ? defsCamisetas(ids) : ""}
+    ${elementos.map((e) => elementoSvg(e, ids)).join("\n")}
+    ${opciones?.borrador ? elementoSvg(opciones.borrador, ids) : ""}
     ${resalte}
   </svg>`;
 }

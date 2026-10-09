@@ -109,6 +109,7 @@ export function DiagramaEditor({
   abierto,
   numeroTarea,
   titulo,
+  camisetas,
   inicial,
   onCerrar,
   onGuardar,
@@ -117,6 +118,8 @@ export function DiagramaEditor({
   numeroTarea: number;
   /** Título del cuadro; por defecto, "Diagrama de la tarea N". */
   titulo?: string;
+  /** Jugadores como camisetas de la Cultural (las jugadas de ABP). */
+  camisetas?: boolean;
   inicial: Diagrama | null;
   onCerrar: () => void;
   onGuardar: (diagrama: Diagrama, png: File) => void;
@@ -142,8 +145,8 @@ export function DiagramaEditor({
   } | null>(null);
 
   const svg = useMemo(
-    () => diagramaASvg(diagrama, { seleccionId, borrador }),
-    [diagrama, seleccionId, borrador],
+    () => diagramaASvg(diagrama, { seleccionId, borrador, camisetas }),
+    [diagrama, seleccionId, borrador, camisetas],
   );
 
   function punto(e: React.PointerEvent) {

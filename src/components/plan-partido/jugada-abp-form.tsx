@@ -272,6 +272,7 @@ export function JugadaAbpForm({
           abierto
           numeroTarea={0}
           titulo="Dibujo de la jugada"
+          camisetas
           inicial={diagrama}
           onCerrar={() => setDibujando(false)}
           onGuardar={(d) => {

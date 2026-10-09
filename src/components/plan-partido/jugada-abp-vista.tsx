@@ -63,7 +63,7 @@ export function CampoAbp({
     <div className="relative w-full [container-type:inline-size]">
       <div
         className="overflow-hidden rounded-sm [&>svg]:block [&>svg]:h-auto [&>svg]:w-full"
-        dangerouslySetInnerHTML={{ __html: diagramaASvg(diagrama) }}
+        dangerouslySetInnerHTML={{ __html: diagramaASvg(diagrama, { camisetas: true }) }}
       />
       {visibles.length > 0 && (
         <ul className="absolute top-[3%] right-[2%] max-w-[26%] space-y-[0.4cqw] text-[2.9cqw] leading-[1.15] font-extrabold">
