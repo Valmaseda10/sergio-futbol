@@ -458,19 +458,19 @@ function nombreSvg(
   let anclaje: "middle" | "start" | "end" = "middle";
 
   if (typeof colocacion === "number") {
-    // A la derecha de la camiseta; si no cabe, se achica hasta el 75 % y, si aún no
+    // A la derecha de la camiseta; si no cabe, se achica hasta el 60 % y, si aún no
     // cabe, pasa a su izquierda.
-    const x0 = e.x + colocacion / 2 + 4 * k;
+    const x0 = e.x + colocacion / 2;
     // Junto a la camiseta puede pasar un poco de la línea de banda (hasta casi el
     // borde del dibujo) con tal de que se lea; así no se pasa de la hoja al imprimir.
     const hueco = (dentro ? ancho * 0.985 : Infinity) - x0;
-    if (medida(fs) > hueco) fs *= Math.max(0.75, hueco / medida(fs));
+    if (medida(fs) > hueco) fs *= Math.max(0.6, (hueco / medida(fs)) * 0.97);
     if (medida(fs) > hueco) {
       anclaje = "end";
       x = e.x - colocacion / 2 - 4 * k;
     } else {
       anclaje = "start";
-      x = x0;
+      x = x0 + 2 * k;
     }
     y = y0 + 5 * k;
   } else {
