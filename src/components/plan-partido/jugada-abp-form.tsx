@@ -182,6 +182,7 @@ export function JugadaAbpForm({
           </div>
           {diagrama ? (
             <CampoAbp
+              numeros
               diagrama={diagrama}
               filas={filas}
               jugadores={new Map(jugadores.map((j) => [j.id, j]))}

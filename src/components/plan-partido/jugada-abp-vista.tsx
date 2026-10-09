@@ -44,10 +44,13 @@ export function CampoAbp({
   diagrama,
   filas,
   jugadores,
+  numeros = false,
 }: {
   diagrama: Diagrama | null;
   filas: JugadorAbp[];
   jugadores: Map<string, LocalJugador>;
+  /** Con los números identificadores de las camisetas (solo al editar). */
+  numeros?: boolean;
 }) {
   // En la lista de la derecha solo salen las filas que ya tienen jugador.
   const visibles = filas.filter((f) => f.jugador_id || f.texto);
@@ -68,7 +71,7 @@ export function CampoAbp({
     <div className="relative w-full [container-type:inline-size]">
       <div
         className="overflow-hidden rounded-sm [&>svg]:block [&>svg]:h-auto [&>svg]:w-full"
-        dangerouslySetInnerHTML={{ __html: diagramaASvg(diagrama, { camisetas: true, nombres }) }}
+        dangerouslySetInnerHTML={{ __html: diagramaASvg(diagrama, { camisetas: true, nombres, numeros }) }}
       />
       {visibles.length > 0 && (
         <ul className="absolute top-[11%] left-[78%] space-y-[1.4cqw] text-[3.2cqw] leading-[1.1] font-extrabold">

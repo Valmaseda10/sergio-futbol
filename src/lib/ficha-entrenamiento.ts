@@ -374,6 +374,7 @@ function camisetaSvg(
   ids: IdsCamisetas,
   k: number,
   nombres?: NombresJugadores,
+  numeros = true,
 ): string {
   const c = e.color ?? "#dc2626";
   const portero = c === COLOR_PORTERO;
@@ -385,7 +386,7 @@ function camisetaSvg(
   const relleno = portero ? "#ffffff" : clara ? "#111111" : c;
   // El número va a ~la mitad del ancho de la camiseta, sin pasar de un tamaño razonable en las grandes.
   const fuente = Math.min(ancho * 0.5, 17 * k);
-  const txt = e.etiqueta
+  const txt = e.etiqueta && numeros
     ? `<text x="${e.x}" y="${e.y + fuente * 0.3 + alto * 0.04}" text-anchor="middle" font-family="Arial, sans-serif" font-size="${fuente}" font-weight="800" fill="${relleno}" stroke="${
         portero ? "#7f1d1d" : "#ffffff"
       }" stroke-width="${fuente * 0.16}" stroke-linejoin="round" paint-order="stroke">${esc(e.etiqueta)}</text>`
@@ -450,11 +451,12 @@ function elementoSvg(
   camisetas: IdsCamisetas | undefined,
   k: number,
   nombres?: NombresJugadores,
+  numeros = true,
 ): string {
   const c = e.color ?? "#dc2626";
   switch (e.tipo) {
     case "jugador": {
-      if (camisetas) return camisetaSvg(e, camisetas, k, nombres);
+      if (camisetas) return camisetaSvg(e, camisetas, k, nombres, numeros);
       const txt = e.etiqueta
         ? `<text x="${e.x}" y="${e.y + 4}" text-anchor="middle" font-family="Arial, sans-serif" font-size="11" font-weight="700" fill="${
             c === "#ffffff" || c === "#facc15" || c === "#4ade80" ? "#111111" : "#ffffff"
@@ -536,6 +538,11 @@ export function diagramaASvg(
     camisetas?: boolean;
     /** Nombres de los jugadores de la plantilla (id -> nombre) para sus camisetas. */
     nombres?: NombresJugadores;
+    /**
+     * Número identificador sobre cada camiseta. Solo sirve para saber qué pieza es cuál
+     * al editar: en lo que se ve y se imprime se quita para no confundirlo con el dorsal.
+     */
+    numeros?: boolean;
   },
 ): string {
   const { ancho, alto, k } = dimensionesCampo(d.campo);
@@ -586,8 +593,8 @@ export function diagramaASvg(
   return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${ancho} ${alto}" width="${ancho}" height="${alto}">
     ${fondo}
     ${ids ? defsCamisetas(ids) : ""}
-    ${elementos.map((e) => elementoSvg(e, ids, k, opciones?.nombres)).join("\n")}
-    ${opciones?.borrador ? elementoSvg(opciones.borrador, ids, k, opciones?.nombres) : ""}
+    ${elementos.map((e) => elementoSvg(e, ids, k, opciones?.nombres, opciones?.numeros ?? true)).join("\n")}
+    ${opciones?.borrador ? elementoSvg(opciones.borrador, ids, k, opciones?.nombres, opciones?.numeros ?? true) : ""}
     ${resalte}
   </svg>`;
 }
