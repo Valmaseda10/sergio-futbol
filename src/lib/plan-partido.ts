@@ -14,6 +14,20 @@ export const FASES_ABP: { value: FaseAbp; label: string; color: string }[] = [
   { value: "defensivo", label: "Defensivo", color: "#b91c1c" },
 ];
 
+export type TipoAbp = "corner" | "falta_directa" | "falta_lateral" | "falta_frontal";
+
+export const TIPOS_ABP: { value: TipoAbp; label: string; plural: string }[] = [
+  { value: "corner", label: "Córner", plural: "Córners" },
+  { value: "falta_directa", label: "Falta directa", plural: "Faltas directas" },
+  { value: "falta_lateral", label: "Falta lateral", plural: "Faltas laterales" },
+  { value: "falta_frontal", label: "Falta frontal", plural: "Faltas frontales" },
+];
+
+/** Las jugadas guardadas antes de existir el tipo no lo traen: son córners. */
+export function tipoDeJugada(tipo: string | null | undefined): TipoAbp {
+  return TIPOS_ABP.some((t) => t.value === tipo) ? (tipo as TipoAbp) : "corner";
+}
+
 /** Una fila numerada de la jugada: qué hace cada uno y quién lo hace. */
 export interface JugadorAbp {
   etiqueta: string; // "1", "Lanzador", "Zurdo"...

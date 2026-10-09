@@ -2,12 +2,12 @@
 
 import Link from "next/link";
 import { ChevronLeft } from "lucide-react";
-import { AbpHojas } from "@/components/plan-partido/abp-hojas";
+import { AbpIndice } from "@/components/plan-partido/abp-indice";
 
 export default function AbpPage() {
   return (
-    <div className="space-y-3">
-      <div className="print:hidden">
+    <div className="space-y-4">
+      <div>
         <Link
           href="/plan-partido"
           className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground"
@@ -17,7 +17,7 @@ export default function AbpPage() {
         </Link>
         <h1 className="text-2xl font-semibold">ABP</h1>
       </div>
-      <AbpHojas />
+      <AbpIndice />
     </div>
   );
 }

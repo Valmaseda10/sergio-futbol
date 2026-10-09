@@ -1094,6 +1094,7 @@ export interface Database {
           id: string;
           nombre: string;
           fase: "ofensivo" | "defensivo";
+          tipo: "corner" | "falta_directa" | "falta_lateral" | "falta_frontal";
           diagrama: Json | null;
           jugadores: Json;
           notas: string | null;
@@ -1104,6 +1105,7 @@ export interface Database {
           id?: string;
           nombre: string;
           fase?: "ofensivo" | "defensivo";
+          tipo?: "corner" | "falta_directa" | "falta_lateral" | "falta_frontal";
           diagrama?: Json | null;
           jugadores?: Json;
           notas?: string | null;

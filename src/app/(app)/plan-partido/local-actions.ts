@@ -18,6 +18,7 @@ import {
   NUM_SUPLENTES,
   NUM_TITULARES,
   type FaseAbp,
+  type TipoAbp,
   type HojaPartidoDatos,
   type JugadorAbp,
 } from "@/lib/plan-partido";
@@ -33,6 +34,7 @@ type ActionResult = { error: string } | { success: true; id: string };
 export interface DatosJugadaAbp {
   nombre: string;
   fase: FaseAbp;
+  tipo: TipoAbp;
   diagrama: Diagrama | null;
   jugadores: JugadorAbp[];
   notas: string;
@@ -52,6 +54,7 @@ export async function crearJugadaAbpLocal(
     id,
     nombre: datos.nombre.trim(),
     fase: datos.fase,
+    tipo: datos.tipo,
     diagrama: datos.diagrama ? json(datos.diagrama) : null,
     jugadores: json(datos.jugadores),
     notas: datos.notas.trim() || null,
@@ -71,6 +74,7 @@ export async function actualizarJugadaAbpLocal(
   const patch = {
     nombre: datos.nombre.trim(),
     fase: datos.fase,
+    tipo: datos.tipo,
     diagrama: datos.diagrama ? json(datos.diagrama) : null,
     jugadores: json(datos.jugadores),
     notas: datos.notas.trim() || null,
@@ -86,26 +90,23 @@ export async function eliminarJugadaAbpLocal(id: string): Promise<SimpleResult> 
   return { success: true };
 }
 
-/** Intercambia el orden de una jugada con la anterior (-1) o la siguiente (+1). */
-export async function moverJugadaAbpLocal(
-  id: string,
-  sentido: -1 | 1,
+/** Intercambia el orden de dos jugadas (para subir o bajar una dentro de su categoría). */
+export async function intercambiarOrdenJugadasAbpLocal(
+  idA: string,
+  idB: string,
 ): Promise<SimpleResult> {
-  const todas = (await localDb.jugadas_abp.toArray()).sort(
-    (a, b) => a.orden - b.orden || a.created_at.localeCompare(b.created_at),
-  );
-  const i = todas.findIndex((j) => j.id === id);
-  const k = i + sentido;
-  if (i < 0 || k < 0 || k >= todas.length) return { success: true };
-  // Se renumeran todas para que nunca haya órdenes repetidos.
-  const nuevo = [...todas];
-  [nuevo[i], nuevo[k]] = [nuevo[k], nuevo[i]];
-  for (let n = 0; n < nuevo.length; n++) {
-    if (nuevo[n].orden !== n + 1) {
-      await localDb.jugadas_abp.update(nuevo[n].id, { orden: n + 1 });
-      await queueMutation("jugadas_abp", "update", nuevo[n].id, { orden: n + 1 });
-    }
-  }
+  const [a, b] = await Promise.all([
+    localDb.jugadas_abp.get(idA),
+    localDb.jugadas_abp.get(idB),
+  ]);
+  if (!a || !b) return { success: true };
+  // Si tuvieran el mismo orden (importadas a la vez no, pero por si acaso), se
+  // separan para que el intercambio tenga efecto.
+  const ordenA = a.orden === b.orden ? b.orden + 1 : a.orden;
+  await localDb.jugadas_abp.update(a.id, { orden: b.orden });
+  await queueMutation("jugadas_abp", "update", a.id, { orden: b.orden });
+  await localDb.jugadas_abp.update(b.id, { orden: ordenA });
+  await queueMutation("jugadas_abp", "update", b.id, { orden: ordenA });
   return { success: true };
 }
 

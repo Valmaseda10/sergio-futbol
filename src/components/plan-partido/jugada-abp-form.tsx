@@ -18,6 +18,9 @@ import {
   leerDiagramaAbp,
   leerJugadoresAbp,
   type FaseAbp,
+  type TipoAbp,
+  TIPOS_ABP,
+  tipoDeJugada,
   type JugadorAbp,
 } from "@/lib/plan-partido";
 import {
@@ -28,10 +31,18 @@ import { cn } from "@/lib/utils";
 
 const sinJugador = "";
 
-export function JugadaAbpForm({ jugada }: { jugada?: LocalJugadaAbp }) {
+export function JugadaAbpForm({
+  jugada,
+  tipoInicial = "corner",
+}: {
+  jugada?: LocalJugadaAbp;
+  /** Tipo con el que se abre una jugada nueva (viene de la categoría desde la que se crea). */
+  tipoInicial?: TipoAbp;
+}) {
   const router = useRouter();
   const [nombre, setNombre] = useState(jugada?.nombre ?? "");
   const [fase, setFase] = useState<FaseAbp>(jugada?.fase ?? "ofensivo");
+  const [tipo, setTipo] = useState<TipoAbp>(jugada ? tipoDeJugada(jugada.tipo) : tipoInicial);
   const [diagrama, setDiagrama] = useState<Diagrama | null>(
     jugada ? leerDiagramaAbp(jugada.diagrama) : null,
   );
@@ -66,7 +77,7 @@ export function JugadaAbpForm({ jugada }: { jugada?: LocalJugadaAbp }) {
 
   async function guardar() {
     setGuardando(true);
-    const datos = { nombre, fase, diagrama, jugadores: filas, notas };
+    const datos = { nombre, fase, tipo, diagrama, jugadores: filas, notas };
     const resultado = jugada
       ? await actualizarJugadaAbpLocal(jugada.id, datos)
       : await crearJugadaAbpLocal(datos);
@@ -91,6 +102,21 @@ export function JugadaAbpForm({ jugada }: { jugada?: LocalJugadaAbp }) {
               onChange={(e) => setNombre(e.target.value)}
               placeholder="Ej: CORNER OFE 1, ABP DEFENSIVO – FALTA LATERAL…"
             />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="tipo-abp">Categoría</Label>
+            <select
+              id="tipo-abp"
+              value={tipo}
+              onChange={(e) => setTipo(e.target.value as TipoAbp)}
+              className="h-9 w-full rounded-md border border-input bg-background px-2 text-sm"
+            >
+              {TIPOS_ABP.map((t) => (
+                <option key={t.value} value={t.value}>
+                  {t.plural}
+                </option>
+              ))}
+            </select>
           </div>
           <div className="space-y-2">
             <Label>Fase</Label>
