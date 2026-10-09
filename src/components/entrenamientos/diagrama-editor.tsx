@@ -89,6 +89,7 @@ export function DiagramaEditor({
   const [color, setColor] = useState("#dc2626");
   const [etiqueta, setEtiqueta] = useState("");
   const [discontinua, setDiscontinua] = useState(false);
+  const [curvaNueva, setCurvaNueva] = useState(0);
   const [seleccionId, setSeleccionId] = useState<string | null>(null);
   const [borrador, setBorrador] = useState<ElementoDiagrama | null>(null);
   const [guardando, setGuardando] = useState(false);
@@ -98,6 +99,8 @@ export function DiagramaEditor({
     ox: number;
     oy: number;
     original: ElementoDiagrama;
+    // Si se arrastra solo un extremo de una flecha o zona.
+    punta?: "ini" | "fin";
   } | null>(null);
 
   const svg = useMemo(
@@ -138,6 +141,24 @@ export function DiagramaEditor({
     const p = punto(e);
 
     if (herramienta === "mover") {
+      // Con una flecha o zona seleccionada, tocar uno de sus extremos lo mueve
+      // solo a él (para cambiar hacia dónde va el movimiento).
+      const sel = diagrama.elementos.find((x) => x.id === seleccionId);
+      if (sel && (sel.tipo === "flecha" || sel.tipo === "zona")) {
+        const dIni = Math.hypot(p.x - sel.x, p.y - sel.y);
+        const dFin = Math.hypot(p.x - (sel.x2 ?? sel.x), p.y - (sel.y2 ?? sel.y));
+        if (Math.min(dIni, dFin) < 16) {
+          guardarHistorial();
+          arrastre.current = {
+            id: sel.id,
+            ox: p.x,
+            oy: p.y,
+            original: sel,
+            punta: dIni <= dFin ? "ini" : "fin",
+          };
+          return;
+        }
+      }
       const el = elementoEn(diagrama, p.x, p.y);
       setSeleccionId(el?.id ?? null);
       if (el) {
@@ -157,6 +178,7 @@ export function DiagramaEditor({
         y2: p.y,
         color: herramienta === "zona" ? "#111111" : color,
         discontinua,
+        curva: herramienta === "flecha" && curvaNueva ? curvaNueva : undefined,
       });
       return;
     }
@@ -199,7 +221,11 @@ export function DiagramaEditor({
       elementos: d.elementos.map((el) =>
         el.id !== a.id
           ? el
-          : {
+          : a.punta === "ini"
+            ? { ...el, x: p.x, y: p.y }
+            : a.punta === "fin"
+              ? { ...el, x2: p.x, y2: p.y }
+              : {
               ...el,
               x: a.original.x + dx,
               y: a.original.y + dy,
@@ -234,6 +260,16 @@ export function DiagramaEditor({
     setSeleccionId(null);
   }
 
+  // Cambia propiedades del elemento seleccionado (texto, color, curva...).
+  function actualizarSeleccion(parche: Partial<ElementoDiagrama>) {
+    if (!seleccionId) return;
+    guardarHistorial();
+    setDiagrama((d) => ({
+      ...d,
+      elementos: d.elementos.map((e) => (e.id === seleccionId ? { ...e, ...parche } : e)),
+    }));
+  }
+
   function limpiar() {
     guardarHistorial();
     setDiagrama((d) => ({ ...d, elementos: [] }));
@@ -251,6 +287,7 @@ export function DiagramaEditor({
   }
 
   const usaColor = ["jugador", "flecha", "texto"].includes(herramienta);
+  const seleccionado = diagrama.elementos.find((e) => e.id === seleccionId) ?? null;
 
   return (
     <Dialog open={abierto} onOpenChange={(open) => !open && onCerrar()}>
@@ -317,6 +354,25 @@ export function DiagramaEditor({
               Discontinua (desplazamiento sin balón)
             </label>
           )}
+          {herramienta === "flecha" && (
+            <div className="flex items-center gap-1" role="group" aria-label="Trazo">
+              {[
+                { v: 0, t: "Recta" },
+                { v: 0.3, t: "Curva ↷" },
+                { v: -0.3, t: "Curva ↶" },
+              ].map((o) => (
+                <Button
+                  key={o.v}
+                  type="button"
+                  size="sm"
+                  variant={curvaNueva === o.v ? "default" : "outline"}
+                  onClick={() => setCurvaNueva(o.v)}
+                >
+                  {o.t}
+                </Button>
+              ))}
+            </div>
+          )}
           <div className="ml-auto flex gap-1.5">
             <Button
               type="button"
@@ -348,9 +404,81 @@ export function DiagramaEditor({
         />
         <p className="text-xs text-muted-foreground">
           Elige una herramienta y toca el campo para colocar. Flecha y zona:
-          arrastra. Con &quot;Mover&quot; puedes arrastrar o seleccionar un
-          elemento para borrarlo.
+          arrastra. Con &quot;Mover&quot; puedes arrastrar un elemento o, si es una
+          flecha o zona, sus extremos; al seleccionarlo puedes cambiarle el texto,
+          el color o la curva, o borrarlo.
         </p>
+
+        {seleccionado && (
+          <div className="space-y-2 rounded-md border bg-muted/30 p-2">
+            <p className="text-xs font-semibold">Elemento seleccionado</p>
+            <div className="flex flex-wrap items-end gap-3">
+              {(seleccionado.tipo === "jugador" || seleccionado.tipo === "texto") && (
+                <div className="space-y-1">
+                  <Label htmlFor="etiqueta-seleccion" className="text-xs">
+                    {seleccionado.tipo === "jugador" ? "Número / letra" : "Texto"}
+                  </Label>
+                  <Input
+                    id="etiqueta-seleccion"
+                    value={seleccionado.etiqueta ?? ""}
+                    onChange={(e) => actualizarSeleccion({ etiqueta: e.target.value })}
+                    className="h-8 w-40"
+                    maxLength={seleccionado.tipo === "jugador" ? 3 : 40}
+                  />
+                </div>
+              )}
+              {seleccionado.tipo !== "balon" && seleccionado.tipo !== "porteria" && (
+                <div className="flex items-center gap-1.5">
+                  {COLORES_DIAGRAMA.map((c) => (
+                    <button
+                      key={c.valor}
+                      type="button"
+                      aria-label={c.nombre}
+                      title={c.nombre}
+                      onClick={() => actualizarSeleccion({ color: c.valor })}
+                      className={cn(
+                        "size-6 rounded-full border-2",
+                        seleccionado.color === c.valor
+                          ? "border-primary ring-2 ring-primary/40"
+                          : "border-border",
+                      )}
+                      style={{ backgroundColor: c.valor }}
+                    />
+                  ))}
+                </div>
+              )}
+              {seleccionado.tipo === "flecha" && (
+                <>
+                  <label className="flex items-center gap-1.5 text-xs">
+                    <input
+                      type="checkbox"
+                      checked={!!seleccionado.discontinua}
+                      onChange={(e) => actualizarSeleccion({ discontinua: e.target.checked })}
+                    />
+                    Discontinua
+                  </label>
+                  <div className="flex items-center gap-1" role="group" aria-label="Trazo">
+                    {[
+                { v: 0, t: "Recta" },
+                { v: 0.3, t: "Curva ↷" },
+                { v: -0.3, t: "Curva ↶" },
+              ].map((o) => (
+                      <Button
+                        key={o.v}
+                        type="button"
+                        size="sm"
+                        variant={(seleccionado.curva ?? 0) === o.v ? "default" : "outline"}
+                        onClick={() => actualizarSeleccion({ curva: o.v || undefined })}
+                      >
+                        {o.t}
+                      </Button>
+                    ))}
+                  </div>
+                </>
+              )}
+            </div>
+          </div>
+        )}
 
         <div className="flex flex-wrap items-center justify-between gap-2">
           <div className="flex gap-1.5">

@@ -27,6 +27,9 @@ export interface ElementoDiagrama {
   color?: string;
   etiqueta?: string;
   discontinua?: boolean;
+  // Solo flecha: curvatura del trazo (fracción de su largo; 0 o sin definir =
+  // recta; positivo y negativo, hacia lados opuestos). Para centros y pases.
+  curva?: number;
 }
 
 export interface Diagrama {
@@ -205,18 +208,34 @@ function lineasCampo(campo: TipoCampo): string {
     <path d="M200 340 A60 60 0 0 1 320 340" ${l}/>`;
 }
 
+// Punto de control de una flecha curva (curva cuadrática).
+function controlCurva(e: ElementoDiagrama): { cx: number; cy: number } {
+  const x2 = e.x2 ?? e.x;
+  const y2 = e.y2 ?? e.y;
+  const k = e.curva ?? 0;
+  return {
+    cx: (e.x + x2) / 2 - (y2 - e.y) * k,
+    cy: (e.y + y2) / 2 + (x2 - e.x) * k,
+  };
+}
+
 function flechaSvg(e: ElementoDiagrama, grosor = 3): string {
   const x2 = e.x2 ?? e.x;
   const y2 = e.y2 ?? e.y;
   const color = e.color ?? "#dc2626";
-  const ang = Math.atan2(y2 - e.y, x2 - e.x);
+  const curva = !!e.curva;
+  const { cx, cy } = controlCurva(e);
+  const ang = curva ? Math.atan2(y2 - cy, x2 - cx) : Math.atan2(y2 - e.y, x2 - e.x);
   const punta = 11;
   const a1 = ang + Math.PI - 0.45;
   const a2 = ang + Math.PI + 0.45;
   const p1 = `${x2 + punta * Math.cos(a1)},${y2 + punta * Math.sin(a1)}`;
   const p2 = `${x2 + punta * Math.cos(a2)},${y2 + punta * Math.sin(a2)}`;
   const dash = e.discontinua ? ' stroke-dasharray="7 5"' : "";
-  return `<line x1="${e.x}" y1="${e.y}" x2="${x2}" y2="${y2}" stroke="${color}" stroke-width="${grosor}"${dash} stroke-linecap="round"/>
+  const trazo = curva
+    ? `<path d="M${e.x} ${e.y} Q${cx} ${cy} ${x2} ${y2}" fill="none" stroke="${color}" stroke-width="${grosor}"${dash} stroke-linecap="round"/>`
+    : `<line x1="${e.x}" y1="${e.y}" x2="${x2}" y2="${y2}" stroke="${color}" stroke-width="${grosor}"${dash} stroke-linecap="round"/>`;
+  return `${trazo}
     <polygon points="${x2},${y2} ${p1} ${p2}" fill="${color}"/>`;
 }
 
@@ -333,7 +352,22 @@ export function elementoEn(d: Diagrama, x: number, y: number): ElementoDiagrama 
     const e = d.elementos[i];
     let dist: number;
     if (e.tipo === "flecha") {
-      dist = distanciaASegmento(x, y, e.x, e.y, e.x2 ?? e.x, e.y2 ?? e.y) + 4;
+      if (e.curva) {
+        // Se mide contra varios puntos de la curva (el trazo se aleja de la recta).
+        const { cx, cy } = controlCurva(e);
+        const ex = e.x2 ?? e.x;
+        const ey = e.y2 ?? e.y;
+        dist = Infinity;
+        for (let t = 0; t <= 1.0001; t += 0.1) {
+          const u = 1 - t;
+          const px = u * u * e.x + 2 * u * t * cx + t * t * ex;
+          const py = u * u * e.y + 2 * u * t * cy + t * t * ey;
+          dist = Math.min(dist, Math.hypot(x - px, y - py));
+        }
+        dist += 4;
+      } else {
+        dist = distanciaASegmento(x, y, e.x, e.y, e.x2 ?? e.x, e.y2 ?? e.y) + 4;
+      }
     } else if (e.tipo === "zona") {
       const x1 = Math.min(e.x, e.x2 ?? e.x);
       const x2 = Math.max(e.x, e.x2 ?? e.x);

@@ -1,22 +1,32 @@
 "use client";
 
-import { useMemo, useRef } from "react";
+import { useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { useLiveQuery } from "dexie-react-hooks";
-import { ChevronLeft, ChevronRight, Pencil, Trash2 } from "lucide-react";
+import { ChevronLeft, ChevronRight, Pencil, PenTool, Trash2 } from "lucide-react";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { PdfWatermark } from "@/components/branding/pdf-watermark";
 import { AccionesPdf } from "@/components/plan-partido/acciones-pdf";
 import { JugadaAbpVista } from "@/components/plan-partido/jugada-abp-vista";
 import { localDb } from "@/lib/db/local-db";
-import { TIPOS_ABP, tipoDeJugada } from "@/lib/plan-partido";
-import { eliminarJugadaAbpLocal } from "@/app/(app)/plan-partido/local-actions";
+import { DiagramaEditor } from "@/components/entrenamientos/diagrama-editor";
+import {
+  TIPOS_ABP,
+  leerDiagramaAbp,
+  leerJugadoresAbp,
+  tipoDeJugada,
+} from "@/lib/plan-partido";
+import {
+  actualizarJugadaAbpLocal,
+  eliminarJugadaAbpLocal,
+} from "@/app/(app)/plan-partido/local-actions";
 
 export default function JugadaAbpPage() {
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
   const contenedorRef = useRef<HTMLDivElement>(null);
+  const [dibujando, setDibujando] = useState(false);
   const jugada = useLiveQuery(
     async () => (await localDb.jugadas_abp.get(id)) ?? null,
     [id],
@@ -88,7 +98,16 @@ export default function JugadaAbpPage() {
               </Link>
             ) : null}
           </div>
-          <div className="flex gap-1">
+          <div className="flex flex-wrap gap-1">
+            <Button
+              type="button"
+              size="sm"
+              variant="outline"
+              onClick={() => setDibujando(true)}
+            >
+              <PenTool className="size-4" />
+              Editar dibujo
+            </Button>
             <Link
               href={`/plan-partido/abp/${jugada.id}/editar`}
               className={buttonVariants({ size: "sm", variant: "outline" })}
@@ -132,6 +151,27 @@ export default function JugadaAbpPage() {
           <JugadaAbpVista jugada={jugada} jugadores={porId} />
         </div>
       </div>
+
+      {dibujando && (
+        <DiagramaEditor
+          abierto
+          numeroTarea={0}
+          titulo={`Dibujo: ${jugada.nombre}`}
+          inicial={leerDiagramaAbp(jugada.diagrama)}
+          onCerrar={() => setDibujando(false)}
+          onGuardar={async (diagrama) => {
+            await actualizarJugadaAbpLocal(jugada.id, {
+              nombre: jugada.nombre,
+              fase: jugada.fase,
+              tipo: tipoDeJugada(jugada.tipo),
+              diagrama,
+              jugadores: leerJugadoresAbp(jugada.jugadores),
+              notas: jugada.notas ?? "",
+            });
+            setDibujando(false);
+          }}
+        />
+      )}
     </div>
   );
 }

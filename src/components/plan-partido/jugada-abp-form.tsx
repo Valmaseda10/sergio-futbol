@@ -11,7 +11,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { DiagramaEditor } from "@/components/entrenamientos/diagrama-editor";
-import { diagramaASvg, type Diagrama } from "@/lib/ficha-entrenamiento";
+import type { Diagrama } from "@/lib/ficha-entrenamiento";
+import { CampoAbp } from "@/components/plan-partido/jugada-abp-vista";
 import { localDb, type LocalJugadaAbp } from "@/lib/db/local-db";
 import {
   FASES_ABP,
@@ -158,9 +159,10 @@ export function JugadaAbpForm({
             </Button>
           </div>
           {diagrama ? (
-            <div
-              className="overflow-hidden rounded-md [&>svg]:block [&>svg]:h-auto [&>svg]:w-full"
-              dangerouslySetInnerHTML={{ __html: diagramaASvg(diagrama) }}
+            <CampoAbp
+              diagrama={diagrama}
+              filas={filas}
+              jugadores={new Map(jugadores.map((j) => [j.id, j]))}
             />
           ) : (
             <p className="rounded-md border border-dashed p-6 text-center text-sm text-muted-foreground">
