@@ -30,6 +30,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { PdfWatermark } from "@/components/branding/pdf-watermark";
 import { ObjetivosTablaVista } from "@/components/entrenamientos/objetivos-tabla";
+import { AbpDelDia } from "@/components/entrenamientos/abp-del-dia";
 import {
   equiposConContenido,
   RotacionEquiposVista,
@@ -517,6 +518,7 @@ export function EntrenamientoFichaImprimible({
   tablaImagenSignedUrl,
   tablaHeredada,
   tablaHeredadaDe,
+  extraSignedUrls,
   jugadores,
 }: {
   entrenamiento: LocalEntrenamiento;
@@ -526,6 +528,8 @@ export function EntrenamientoFichaImprimible({
   tablaHeredada?: ObjetivosTabla | null;
   /** Fecha de la sesión de la que se hereda (solo para avisarlo en pantalla). */
   tablaHeredadaDe?: string | null;
+  /** URLs firmadas de las imágenes extra de ABP, por ruta. */
+  extraSignedUrls?: Record<string, string>;
   jugadores?: LocalJugador[];
 }) {
   const ficha = leerFicha(entrenamiento.ficha);
@@ -774,6 +778,7 @@ export function EntrenamientoFichaImprimible({
           ))}
           <CampoLibre notas={e.notas} />
         </div>
+        <AbpDelDia entrenamiento={entrenamiento} urls={extraSignedUrls ?? {}} />
       </div>
     </div>
   );

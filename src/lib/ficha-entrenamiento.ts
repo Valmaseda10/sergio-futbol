@@ -139,6 +139,11 @@ export interface FichaEntrenamiento {
   diagramas?: (Diagrama | null)[];
   // Una por tarea (índice 0 = tarea 1).
   rotaciones?: (RotacionTarea | null)[];
+  // ABP del día, por tarea (índice 0 = tarea 1): ids de las jugadas de la
+  // sección ABP que se trabajan e imágenes extra (rutas en el bucket) para
+  // verlas en la ficha de la sesión.
+  abp_jugadas?: string[][];
+  imagenes_extra?: string[][];
 }
 
 const par = (): ParPrincipio => ({

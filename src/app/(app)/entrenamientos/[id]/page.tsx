@@ -15,6 +15,8 @@ import {
 import { localDb, type LocalEntrenamiento } from "@/lib/db/local-db";
 import { capitalizarPrimera } from "@/lib/date";
 import { leerFicha } from "@/lib/ficha-entrenamiento";
+import { useUrlsFirmadas } from "@/lib/use-urls-firmadas";
+import { rutasExtraDe } from "@/components/entrenamientos/abp-del-dia";
 import {
   fichaTieneTabla,
   lunesDeLaSemana,
@@ -100,6 +102,7 @@ function FichaEntrenamientoDetalle({
   const tablaImagenPath = heredada
     ? heredada.imagenPath
     : (fichaPropia.tabla_imagen_url ?? null);
+  const extraSignedUrls = useUrlsFirmadas(rutasExtraDe(fichaPropia));
   const jugadoresActivos = useLiveQuery(
     () =>
       localDb.jugadores
@@ -215,6 +218,7 @@ function FichaEntrenamientoDetalle({
         tablaImagenSignedUrl={tablaImagenPath ? tablaImagenSignedUrl : null}
         tablaHeredada={heredada?.tabla ?? null}
         tablaHeredadaDe={heredada?.origen.fecha ?? null}
+        extraSignedUrls={extraSignedUrls}
         jugadores={jugadoresActivos}
       />
 

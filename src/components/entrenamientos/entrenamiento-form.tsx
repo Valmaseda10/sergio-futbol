@@ -39,6 +39,7 @@ import {
 import { DiagramaEditor } from "@/components/entrenamientos/diagrama-editor";
 import { ObjetivosTablaEditor } from "@/components/entrenamientos/objetivos-tabla";
 import { RotacionEquiposEditor } from "@/components/entrenamientos/rotacion-equipos";
+import { AbpExtras } from "@/components/entrenamientos/abp-extras";
 import {
   crearEntrenamientoLocal,
   actualizarEntrenamientoLocal,
@@ -267,6 +268,8 @@ export function EntrenamientoForm({
     documentoSignedUrl?: string | null;
     tareaImagenSignedUrls?: (string | null)[];
     ficha?: FichaEntrenamiento;
+    /** URLs firmadas de las imágenes extra de ABP, por ruta. */
+    extraSignedUrls?: Record<string, string>;
   };
 }) {
   const router = useRouter();
@@ -288,6 +291,8 @@ export function EntrenamientoForm({
     [],
     [],
   );
+  // Imágenes extra de ABP aún sin subir, por tarea.
+  const [extrasNuevas, setExtrasNuevas] = useState<File[][]>([[], [], [], []]);
   const [tablaImagen, setTablaImagen] = useState<File | null>(null);
   const [tablaImagenPreview, setTablaImagenPreview] = useState<string | null>(null);
   const tablaInputRef = useRef<HTMLInputElement>(null);
@@ -567,6 +572,7 @@ export function EntrenamientoForm({
           imagenesTareas,
           ficha,
           tablaImagen,
+          extrasNuevas,
         )
       : await crearEntrenamientoLocal(
           values,
@@ -574,6 +580,7 @@ export function EntrenamientoForm({
           imagenesTareas,
           ficha,
           tablaImagen,
+          extrasNuevas,
         );
 
     if ("error" in result) {
@@ -1103,6 +1110,42 @@ export function EntrenamientoForm({
                       }
                     />
                   </div>
+                </details>
+                <details
+                  open={
+                    (ficha.abp_jugadas?.[i]?.length ?? 0) > 0 ||
+                    (ficha.imagenes_extra?.[i]?.length ?? 0) > 0 ||
+                    extrasNuevas[i].length > 0
+                  }
+                >
+                  <summary className="cursor-pointer pt-1 text-xs font-medium text-muted-foreground">
+                    ABP: jugadas e imágenes del día
+                  </summary>
+                  <AbpExtras
+                    seleccion={ficha.abp_jugadas?.[i] ?? []}
+                    onSeleccion={(ids) =>
+                      setFicha((f) => {
+                        const abp = [...(f.abp_jugadas ?? [[], [], [], []])];
+                        abp[i] = ids;
+                        return { ...f, abp_jugadas: abp };
+                      })
+                    }
+                    existentes={(ficha.imagenes_extra?.[i] ?? []).map((ruta) => ({
+                      ruta,
+                      url: entrenamiento?.extraSignedUrls?.[ruta] ?? null,
+                    }))}
+                    onQuitarExistente={(ruta) =>
+                      setFicha((f) => {
+                        const imgs = [...(f.imagenes_extra ?? [[], [], [], []])];
+                        imgs[i] = (imgs[i] ?? []).filter((r) => r !== ruta);
+                        return { ...f, imagenes_extra: imgs };
+                      })
+                    }
+                    nuevos={extrasNuevas[i]}
+                    onNuevos={(archivos) =>
+                      setExtrasNuevas((prev) => prev.map((x, k) => (k === i ? archivos : x)))
+                    }
+                  />
                 </details>
               </div>
               <div className="space-y-1">
