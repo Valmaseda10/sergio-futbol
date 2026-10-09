@@ -183,6 +183,8 @@ export function JugadaAbpForm({
           {diagrama ? (
             <CampoAbp
               numeros
+              tipo={tipo}
+              fase={fase}
               diagrama={diagrama}
               filas={filas}
               jugadores={new Map(jugadores.map((j) => [j.id, j]))}

@@ -67,31 +67,6 @@ async function subirImagenTarea(
   await localDb.entrenamientos.update(entrenamientoId, patch);
 }
 
-// Imágenes extra de cada tarea (capturas, fotos...): se les pone ruta con el id de
-// la sesión, se añaden a `ficha.imagenes_extra` y se suben después.
-function fusionarExtras(
-  id: string,
-  ficha: FichaEntrenamiento | undefined,
-  extras: File[][] | undefined,
-): { ficha: FichaEntrenamiento | undefined; subidas: { ruta: string; archivo: File }[] } {
-  const subidas: { ruta: string; archivo: File }[] = [];
-  if (!extras?.some((lista) => lista.length > 0)) return { ficha, subidas };
-  const imagenes = [0, 1, 2, 3].map((t) => [...(ficha?.imagenes_extra?.[t] ?? [])]);
-  let n = Date.now();
-  extras.forEach((lista, t) => {
-    for (const archivo of lista) {
-      const ruta = `entrenamientos/${id}-extra-${t + 1}-${n++}.${extensionDeArchivo(archivo)}`;
-      imagenes[t].push(ruta);
-      subidas.push({ ruta, archivo });
-    }
-  });
-  return { ficha: { ...ficha, imagenes_extra: imagenes }, subidas };
-}
-
-async function subirExtras(subidas: { ruta: string; archivo: File }[]): Promise<void> {
-  for (const { ruta, archivo } of subidas) await subirArchivoPrivado(ruta, archivo);
-}
-
 // La imagen de la tabla de objetivos vive solo en `ficha.tabla_imagen_url`; la
 // ruta se decide antes de subir para que quede guardada junto al resto.
 function rutaImagenTabla(entrenamientoId: string, archivo: File): string {
@@ -120,7 +95,6 @@ export async function crearEntrenamientoLocal(
   imagenesTareas?: ImagenesTareas,
   ficha?: FichaEntrenamiento,
   tablaImagen?: File | null,
-  extras?: File[][],
 ): Promise<ActionResult> {
   const parsed = entrenamientoSchema.safeParse(values);
   if (!parsed.success) {
@@ -131,8 +105,6 @@ export async function crearEntrenamientoLocal(
   if (tablaImagen && tablaImagen.size > 0) {
     ficha = { ...ficha, tabla_imagen_url: rutaImagenTabla(id, tablaImagen) };
   }
-  const fusion = fusionarExtras(id, ficha, extras);
-  ficha = fusion.ficha;
   const row: LocalEntrenamiento = {
     id,
     ...toEntrenamientoInsert(parsed.data),
@@ -174,17 +146,6 @@ export async function crearEntrenamientoLocal(
     }
   }
 
-  try {
-    await subirExtras(fusion.subidas);
-  } catch (e) {
-    return {
-      error:
-        e instanceof Error
-          ? e.message
-          : "Entrenamiento creado, pero alguna imagen de ABP no se pudo subir",
-    };
-  }
-
   if (imagenesTareas) {
     try {
       await subirImagenesTareas(id, imagenesTareas);
@@ -208,7 +169,6 @@ export async function actualizarEntrenamientoLocal(
   imagenesTareas?: ImagenesTareas,
   ficha?: FichaEntrenamiento,
   tablaImagen?: File | null,
-  extras?: File[][],
 ): Promise<ActionResult> {
   const parsed = entrenamientoSchema.safeParse(values);
   if (!parsed.success) {
@@ -218,8 +178,6 @@ export async function actualizarEntrenamientoLocal(
   if (tablaImagen && tablaImagen.size > 0) {
     ficha = { ...ficha, tabla_imagen_url: rutaImagenTabla(id, tablaImagen) };
   }
-  const fusion = fusionarExtras(id, ficha, extras);
-  ficha = fusion.ficha;
   const patch = {
     ...toEntrenamientoInsert(parsed.data),
     ...(ficha ? { ficha: fichaAJson(ficha) } : {}),
@@ -251,17 +209,6 @@ export async function actualizarEntrenamientoLocal(
             : "Entrenamiento actualizado, pero la imagen de la tabla no se pudo subir",
       };
     }
-  }
-
-  try {
-    await subirExtras(fusion.subidas);
-  } catch (e) {
-    return {
-      error:
-        e instanceof Error
-          ? e.message
-          : "Entrenamiento actualizado, pero alguna imagen de ABP no se pudo subir",
-    };
   }
 
   if (imagenesTareas) {

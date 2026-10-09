@@ -30,7 +30,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { PdfWatermark } from "@/components/branding/pdf-watermark";
 import { ObjetivosTablaVista } from "@/components/entrenamientos/objetivos-tabla";
-import { AbpDelDia } from "@/components/entrenamientos/abp-del-dia";
+import { AbpDeLaTarea } from "@/components/entrenamientos/abp-tarea";
 import {
   equiposConContenido,
   RotacionEquiposVista,
@@ -396,6 +396,7 @@ function BloqueTarea({
   ausentes,
   reglasProvocacion,
   observaciones,
+  abpIds,
 }: {
   numero: number;
   titulo: string | null;
@@ -411,8 +412,11 @@ function BloqueTarea({
   ausentes: Set<string>;
   reglasProvocacion: string | null;
   observaciones: string | null;
+  /** Jugadas de ABP que se trabajan en la tarea (solo la 4 del viernes). */
+  abpIds: string[];
 }) {
   const sinContenido =
+    abpIds.length === 0 &&
     !titulo &&
     !imagenUrl &&
     !dimension &&
@@ -493,6 +497,8 @@ function BloqueTarea({
           </div>
         </div>
 
+        <AbpDeLaTarea ids={abpIds} barra={<BarraAzul>ABP a trabajar</BarraAzul>} />
+
         <div className="grid grid-cols-1 sm:grid-cols-2 print:grid-cols-2">
           <div>
             <BarraAzul>Reglas de provocación</BarraAzul>
@@ -518,7 +524,6 @@ export function EntrenamientoFichaImprimible({
   tablaImagenSignedUrl,
   tablaHeredada,
   tablaHeredadaDe,
-  extraSignedUrls,
   jugadores,
 }: {
   entrenamiento: LocalEntrenamiento;
@@ -528,8 +533,6 @@ export function EntrenamientoFichaImprimible({
   tablaHeredada?: ObjetivosTabla | null;
   /** Fecha de la sesión de la que se hereda (solo para avisarlo en pantalla). */
   tablaHeredadaDe?: string | null;
-  /** URLs firmadas de las imágenes extra de ABP, por ruta. */
-  extraSignedUrls?: Record<string, string>;
   jugadores?: LocalJugador[];
 }) {
   const ficha = leerFicha(entrenamiento.ficha);
@@ -597,10 +600,13 @@ export function EntrenamientoFichaImprimible({
   const tareas = [1, 2, 3, 4].map((n) => {
     const k = (campo: string) =>
       (e as unknown as Record<string, string | null>)[`tarea_${n}${campo}`] ?? null;
+    // Con jugadas de ABP elegidas, su dibujo ocupa el hueco de la imagen de la tarea 4.
+    const abpIds = n === 4 ? (ficha.abp_jugadas?.[3] ?? []) : [];
     return {
       numero: n,
+      abpIds,
       titulo: k(""),
-      imagenUrl: tareaImagenSignedUrls?.[n - 1] ?? null,
+      imagenUrl: abpIds.length > 0 ? null : (tareaImagenSignedUrls?.[n - 1] ?? null),
       dimension: k("_dimension"),
       series: k("_series"),
       tiempo: k("_tiempo"),
@@ -778,7 +784,6 @@ export function EntrenamientoFichaImprimible({
           ))}
           <CampoLibre notas={e.notas} />
         </div>
-        <AbpDelDia entrenamiento={entrenamiento} urls={extraSignedUrls ?? {}} />
       </div>
     </div>
   );

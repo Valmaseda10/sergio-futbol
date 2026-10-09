@@ -7,8 +7,6 @@ import { localDb, type LocalEntrenamiento } from "@/lib/db/local-db";
 import { leerFicha } from "@/lib/ficha-entrenamiento";
 import { createClient } from "@/lib/supabase/client";
 import { EntrenamientoForm } from "@/components/entrenamientos/entrenamiento-form";
-import { rutasExtraDe } from "@/components/entrenamientos/abp-del-dia";
-import { useUrlsFirmadas } from "@/lib/use-urls-firmadas";
 
 export default function EditarEntrenamientoPage() {
   const { id } = useParams<{ id: string }>();
@@ -48,7 +46,6 @@ function EditarEntrenamientoDetalle({
   const [tareaImagenSignedUrls, setTareaImagenSignedUrls] = useState<
     (string | null)[]
   >([null, null, null, null]);
-  const extraSignedUrls = useUrlsFirmadas(rutasExtraDe(leerFicha(entrenamiento.ficha)));
 
   useEffect(() => {
     if (!entrenamiento.documento_url || !navigator.onLine) return;
@@ -167,7 +164,6 @@ function EditarEntrenamientoDetalle({
           documentoSignedUrl,
           tareaImagenSignedUrls,
           ficha: leerFicha(entrenamiento.ficha),
-          extraSignedUrls,
         }}
       />
     </div>

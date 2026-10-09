@@ -9,6 +9,7 @@ import { diagramaASvg, type Diagrama } from "@/lib/ficha-entrenamiento";
 import {
   FASES_ABP,
   leerDiagramaAbp,
+  nombreAlLadoAbp,
   leerJugadoresAbp,
   type JugadorAbp,
 } from "@/lib/plan-partido";
@@ -45,12 +46,20 @@ export function CampoAbp({
   filas,
   jugadores,
   numeros = false,
+  tipo,
+  fase,
+  grande = false,
 }: {
   diagrama: Diagrama | null;
   filas: JugadorAbp[];
   jugadores: Map<string, LocalJugador>;
   /** Con los números identificadores de las camisetas (solo al editar). */
   numeros?: boolean;
+  /** Categoría y fase de la jugada: deciden dónde salen los nombres de las camisetas. */
+  tipo?: string | null;
+  fase?: string | null;
+  /** Lista de la derecha con letra mayor (para dibujos pequeños, como en la ficha de sesión). */
+  grande?: boolean;
 }) {
   // En la lista de la derecha solo salen las filas que ya tienen jugador.
   const visibles = filas.filter((f) => f.jugador_id || f.texto);
@@ -71,10 +80,22 @@ export function CampoAbp({
     <div className="relative w-full [container-type:inline-size]">
       <div
         className="overflow-hidden rounded-sm [&>svg]:block [&>svg]:h-auto [&>svg]:w-full"
-        dangerouslySetInnerHTML={{ __html: diagramaASvg(diagrama, { camisetas: true, nombres, numeros }) }}
+        dangerouslySetInnerHTML={{ __html: diagramaASvg(diagrama, {
+          camisetas: true,
+          nombres,
+          // Al editar, todas las camisetas llevan número; al ver, solo las rojas
+          // (las de la lista de la derecha) para saber qué movimiento hace cada una.
+          numeros: numeros ? true : "rojas",
+          nombreAlLado: nombreAlLadoAbp(tipo, fase),
+          textoK: grande ? 1.3 : 1,
+        }) }}
       />
       {visibles.length > 0 && (
-        <ul className="absolute top-[11%] left-[78%] space-y-[1.4cqw] text-[3.2cqw] leading-[1.1] font-extrabold">
+        <ul
+          className={`absolute top-[11%] left-[78%] space-y-[1.4cqw] leading-[1.1] font-extrabold ${
+            grande ? "text-[3.5cqw]" : "text-[3.2cqw]"
+          }`}
+        >
           {visibles.map((f, i) => {
             const color = colorDeFila(f, diagrama);
             // Halo del color contrario para que se lea sobre el césped.
@@ -127,6 +148,8 @@ export function JugadaAbpVista({
           diagrama={leerDiagramaAbp(jugada.diagrama)}
           filas={leerJugadoresAbp(jugada.jugadores)}
           jugadores={jugadores}
+          tipo={jugada.tipo}
+          fase={jugada.fase}
         />
       </div>
       {jugada.notas && (

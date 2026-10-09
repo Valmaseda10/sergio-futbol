@@ -139,11 +139,9 @@ export interface FichaEntrenamiento {
   diagramas?: (Diagrama | null)[];
   // Una por tarea (índice 0 = tarea 1).
   rotaciones?: (RotacionTarea | null)[];
-  // ABP del día, por tarea (índice 0 = tarea 1): ids de las jugadas de la
-  // sección ABP que se trabajan e imágenes extra (rutas en el bucket) para
-  // verlas en la ficha de la sesión.
+  // Jugadas de ABP (ids de la sección Plan de partido) que se trabajan en cada
+  // tarea (índice 0 = tarea 1); salen dibujadas en su hueco de la ficha.
   abp_jugadas?: string[][];
-  imagenes_extra?: string[][];
 }
 
 const par = (): ParPrincipio => ({
@@ -379,7 +377,9 @@ function camisetaSvg(
   ids: IdsCamisetas,
   k: number,
   nombres?: NombresJugadores,
-  numeros = true,
+  numeros: boolean | "rojas" = true,
+  nombreAlLado = false,
+  textoK = 1,
 ): string {
   const c = e.color ?? "#dc2626";
   const portero = c === COLOR_PORTERO;
@@ -391,13 +391,15 @@ function camisetaSvg(
   const relleno = portero ? "#ffffff" : clara ? "#111111" : c;
   // El número va a ~la mitad del ancho de la camiseta, sin pasar de un tamaño razonable en las grandes.
   const fuente = Math.min(ancho * 0.5, 17 * k);
-  const txt = e.etiqueta && numeros
+  // "rojas": solo las piezas rojas (las de la lista numerada de la derecha).
+  const verNumero = numeros === true || (numeros === "rojas" && c !== "#1e3a8a" && !portero);
+  const txt = e.etiqueta && verNumero
     ? `<text x="${e.x}" y="${e.y + fuente * 0.3 + alto * 0.04}" text-anchor="middle" font-family="Arial, sans-serif" font-size="${fuente}" font-weight="800" fill="${relleno}" stroke="${
         portero ? "#7f1d1d" : "#ffffff"
       }" stroke-width="${fuente * 0.16}" stroke-linejoin="round" paint-order="stroke">${esc(e.etiqueta)}</text>`
     : "";
   return `<use href="#${portero ? ids.granate : ids.blanca}" transform="translate(${e.x - ancho / 2} ${
-    e.y - alto / 2}) scale(${escala})"/>${txt}${nombreSvg(e, nombres, k, alto)}`;
+    e.y - alto / 2}) scale(${escala})"/>${txt}${nombreSvg(e, nombres, k, alto, nombreAlLado ? ancho : undefined, textoK)}`;
 }
 
 // Nombre del jugador junto a su camiseta (debajo por defecto).
@@ -406,13 +408,19 @@ function nombreSvg(
   nombres: NombresJugadores | undefined,
   k: number,
   altoPieza: number,
+  // Ancho de la camiseta: si se da, el nombre sale a su derecha (en vez de
+  // debajo) mientras no se haya colocado a mano.
+  anchoAlLado?: number,
+  // Factor de tamaño de la letra (1 = normal; mayor en los dibujos pequeños).
+  textoK = 1,
 ): string {
   const nombre = nombreDePieza(e, nombres);
   if (!nombre) return "";
-  const dx = e.nombreDx ?? 0;
-  const dy = e.nombreDy ?? altoPieza / 2 + 15 * k;
+  const alLado = anchoAlLado != null && e.nombreDx == null && e.nombreDy == null;
+  const dx = alLado ? anchoAlLado / 2 + 4 * k : (e.nombreDx ?? 0);
+  const dy = alLado ? 5 * k : (e.nombreDy ?? altoPieza / 2 + 15 * k);
   const colorPorDefecto = e.tipo === "icono" ? "#0070c0" : (e.color ?? "#111111");
-  return `<text x="${e.x + dx}" y="${e.y + dy}" text-anchor="middle" font-family="Arial, sans-serif" font-size="${14 * k}" font-weight="700" fill="${
+  return `<text x="${e.x + dx}" y="${e.y + dy}" text-anchor="${alLado ? "start" : "middle"}" font-family="Arial, sans-serif" font-size="${14 * k * textoK}" font-weight="700" fill="${
     e.colorNombre ?? colorPorDefecto
   }" stroke="#ffffff" stroke-width="${2.2 * k}" stroke-linejoin="round" paint-order="stroke">${esc(nombre)}</text>`;
 }
@@ -422,13 +430,14 @@ function iconoSvg(
   ids: IdsCamisetas | undefined,
   k: number,
   nombres?: NombresJugadores,
+  textoK = 1,
 ): string {
   const esc1 = e.escala ?? 1;
   if (e.icono === "lanzador" && ids) {
     const ancho = 36 * k * esc1;
     const escala = ancho / CAMISETA_LANZADOR.ancho;
     const alto = CAMISETA_LANZADOR.alto * escala;
-    return `<use href="#${ids.lanzador}" transform="translate(${e.x - ancho / 2} ${e.y - alto / 2}) scale(${escala})"/>${nombreSvg(e, nombres, k, alto)}`;
+    return `<use href="#${ids.lanzador}" transform="translate(${e.x - ancho / 2} ${e.y - alto / 2}) scale(${escala})"/>${nombreSvg(e, nombres, k, alto, undefined, textoK)}`;
   }
   if (e.icono === "ojo-portero") {
     const r = 14 * k * esc1;
@@ -456,12 +465,14 @@ function elementoSvg(
   camisetas: IdsCamisetas | undefined,
   k: number,
   nombres?: NombresJugadores,
-  numeros = true,
+  numeros: boolean | "rojas" = true,
+  nombreAlLado = false,
+  textoK = 1,
 ): string {
   const c = e.color ?? "#dc2626";
   switch (e.tipo) {
     case "jugador": {
-      if (camisetas) return camisetaSvg(e, camisetas, k, nombres, numeros);
+      if (camisetas) return camisetaSvg(e, camisetas, k, nombres, numeros, nombreAlLado, textoK);
       const txt = e.etiqueta
         ? `<text x="${e.x}" y="${e.y + 4}" text-anchor="middle" font-family="Arial, sans-serif" font-size="11" font-weight="700" fill="${
             c === "#ffffff" || c === "#facc15" || c === "#4ade80" ? "#111111" : "#ffffff"
@@ -474,7 +485,7 @@ function elementoSvg(
       );
     }
     case "icono":
-      return iconoSvg(e, camisetas, k, nombres);
+      return iconoSvg(e, camisetas, k, nombres, textoK);
     case "porteria":
       return escalado(
         e,
@@ -547,7 +558,11 @@ export function diagramaASvg(
      * Número identificador sobre cada camiseta. Solo sirve para saber qué pieza es cuál
      * al editar: en lo que se ve y se imprime se quita para no confundirlo con el dorsal.
      */
-    numeros?: boolean;
+    numeros?: boolean | "rojas";
+    /** Los nombres salen a la derecha de la camiseta (no debajo), p. ej. en el córner defensivo. */
+    nombreAlLado?: boolean;
+    /** Factor de tamaño de los nombres (para dibujos que se imprimen pequeños). */
+    textoK?: number;
   },
 ): string {
   const { ancho, alto, k } = dimensionesCampo(d.campo);
@@ -565,7 +580,23 @@ export function diagramaASvg(
       ? // En las jugadas de ABP las flechas van por encima de las camisetas, como en el PowerPoint.
         { zona: 0, porteria: 1, icono: 1, cono: 2, pica: 2, jugador: 2, balon: 3, flecha: 4, texto: 5 }
       : { zona: 0, porteria: 1, flecha: 2, icono: 3, cono: 3, pica: 3, balon: 4, jugador: 5, texto: 6 };
-  const elementos = [...d.elementos].sort((a, b) => orden[a.tipo] - orden[b.tipo]);
+  // En las jugadas de ABP el balón va junto al lanzador, hacia el centro del campo,
+  // salvo que ya se haya dibujado uno.
+  const extra: ElementoDiagrama[] = [];
+  if (d.campo === "abp" && !d.elementos.some((e) => e.tipo === "balon")) {
+    const l = d.elementos.find((e) => e.tipo === "icono" && e.icono === "lanzador");
+    if (l) {
+      const lado = l.x < ancho / 2 ? 1 : -1;
+      const esc = l.escala ?? 1;
+      extra.push({
+        id: "balon-lanzador",
+        tipo: "balon",
+        x: l.x + lado * 22 * k * esc,
+        y: l.y + 12 * k * esc,
+      });
+    }
+  }
+  const elementos = [...d.elementos, ...extra].sort((a, b) => orden[a.tipo] - orden[b.tipo]);
   const sel = opciones?.seleccionId
     ? d.elementos.find((e) => e.id === opciones.seleccionId)
     : null;
@@ -598,8 +629,8 @@ export function diagramaASvg(
   return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${ancho} ${alto}" width="${ancho}" height="${alto}">
     ${fondo}
     ${ids ? defsCamisetas(ids) : ""}
-    ${elementos.map((e) => elementoSvg(e, ids, k, opciones?.nombres, opciones?.numeros ?? true)).join("\n")}
-    ${opciones?.borrador ? elementoSvg(opciones.borrador, ids, k, opciones?.nombres, opciones?.numeros ?? true) : ""}
+    ${elementos.map((e) => elementoSvg(e, ids, k, opciones?.nombres, opciones?.numeros ?? true, opciones?.nombreAlLado, opciones?.textoK)).join("\n")}
+    ${opciones?.borrador ? elementoSvg(opciones.borrador, ids, k, opciones?.nombres, opciones?.numeros ?? true, opciones?.nombreAlLado, opciones?.textoK) : ""}
     ${resalte}
   </svg>`;
 }

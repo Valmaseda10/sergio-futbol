@@ -46,6 +46,14 @@ export function clasePieza(color: string | undefined): ClasePieza {
   return "rojo";
 }
 
+/**
+ * En el córner defensivo hay marcas individuales pegadas al rival y el nombre
+ * debajo de la camiseta no se ve: ahí sale a la derecha de la camiseta.
+ */
+export function nombreAlLadoAbp(tipo: string | null | undefined, fase: string | null | undefined): boolean {
+  return tipoDeJugada(tipo) === "corner" && fase === "defensivo";
+}
+
 /** Papel de cada grupo en un córner ofensivo: rematan los rojos, los azules recogen el rechace. */
 export const ROLES_CORNER_OFENSIVO: RolesAbp = {
   rojo: "Rematar",
