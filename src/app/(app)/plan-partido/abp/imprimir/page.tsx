@@ -21,7 +21,7 @@ function Contenido() {
           ABP
         </Link>
         <h1 className="text-2xl font-semibold">
-          ABP · {tipo ? TIPOS_ABP.find((t) => t.value === tipo)?.plural : "todas las jugadas"}
+          Imprimir ABP{tipo ? ` · ${TIPOS_ABP.find((t) => t.value === tipo)?.plural}` : ""}
         </h1>
       </div>
       <AbpHojas tipo={tipo} />

@@ -71,7 +71,7 @@ export function AbpIndice() {
           className={buttonVariants({ size: "sm", variant: "outline" })}
         >
           <FileDown className="size-4" />
-          PDF / imprimir todas
+          Imprimir / PDF (elegir jugadas)
         </Link>
       </div>
 

@@ -446,7 +446,7 @@ function nombreSvg(
   // Un nombre que es solo un número (los de la barrera: 1, 2, 3...) se escribe igual
   // que los textos "1-", "2-"... del lateral del dibujo: negro y del mismo tamaño.
   const numerico = e.tipo === "jugador" && /^\d+$/.test(nombre);
-  let fs = (numerico ? 15 : 14 * textoK) * k;
+  const fs = (numerico ? 15 : 14 * textoK) * k;
   const ancho = 520 * k;
   const minX = ancho * CAMPO_ABP_MIN;
   const maxX = ancho * CAMPO_ABP_MAX;
