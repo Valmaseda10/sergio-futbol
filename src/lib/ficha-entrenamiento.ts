@@ -485,13 +485,12 @@ function nombreSvg(
 
   if (typeof colocacion === "number") {
     // A la derecha de la camiseta y con el mismo tamaño que el resto de nombres; si no
-    // cabe, se sube sobre la camiseta lo justo (puede pasar un poco de la línea de banda,
-    // hasta casi el borde del dibujo, para que no se corte al imprimir) y solo si ni así
-    // cabe pasa a su izquierda.
-    const limite = dentro ? ancho * 0.985 : Infinity;
+    // cabe dentro del campo (sin pasar de la línea de banda), se sube sobre la camiseta lo
+    // justo y solo si ni así cabe pasa a su izquierda.
+    const limite = dentro ? maxX : Infinity;
     const w = medida(fs);
     let x0 = e.x + colocacion / 2 + 2 * k;
-    if (x0 + w > limite) x0 = Math.max(limite - w, e.x - colocacion * 0.25);
+    if (x0 + w > limite) x0 = Math.max(limite - w, e.x - colocacion * 0.5);
     if (x0 + w > limite + 1) {
       anclaje = "end";
       x = e.x - colocacion / 2 - 4 * k;
