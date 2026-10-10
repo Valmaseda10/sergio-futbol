@@ -97,7 +97,7 @@ export function CampoAbp({
     ),
   );
   const base = grande ? 3.5 : 3.2;
-  const tamano = masLargo ? Math.max(2, Math.min(base, 16.5 / (masLargo * 0.72))) : base;
+  const tamano = masLargo ? Math.max(2, Math.min(base, 13 / (masLargo * 0.72))) : base;
   // Nombre de cada jugador de la plantilla junto a su camiseta del dibujo.
   const nombres = anadirPiernas(
     new Map([...jugadores.values()].map((j) => [j.id, (j.alias || j.nombre).toUpperCase()])),
@@ -129,7 +129,7 @@ export function CampoAbp({
       />
       {visibles.length > 0 && (
         <ul
-          className="absolute top-[11%] left-[75%] space-y-[1.4cqw] leading-[1.1] font-extrabold"
+          className="absolute top-[11%] left-[78.5%] space-y-[1.4cqw] leading-[1.1] font-extrabold"
           style={{ fontSize: `${tamano}cqw` }}
         >
           {visibles.map((f, i) => {
