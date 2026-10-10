@@ -30,7 +30,6 @@ import { HorarioSemanalResumen } from "@/components/entrenamientos/horario-seman
 import { RecordatoriosPanel } from "@/components/inicio/recordatorios-panel";
 import { NotasPanel } from "@/components/inicio/notas-panel";
 import { MultasPanel } from "@/components/inicio/multas-panel";
-import { NoticiasPanel } from "@/components/inicio/noticias-panel";
 
 function hoyISO() {
   const now = new Date();
@@ -442,8 +441,6 @@ export function InicioDashboard({
       )}
 
       <HorarioSemanalResumen />
-
-      <NoticiasPanel />
 
       {lesionados.length > 0 && (
         <Card>
