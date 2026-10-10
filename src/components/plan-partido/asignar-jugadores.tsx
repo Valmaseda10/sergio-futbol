@@ -5,7 +5,8 @@
 // cada grupo lleva el papel que cumple ("Rematar", "Rechace y cerrar 2ª
 // jugada"...) y cada pieza tiene su desplegable con la plantilla.
 
-import { Fragment, type Dispatch, type SetStateAction } from "react";
+import { Fragment, useState, type Dispatch, type SetStateAction } from "react";
+import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -80,6 +81,8 @@ export function AsignarJugadores({
   /** Titulares y suplentes del partido sincronizado. */
   estados?: Map<string, EstadoPartido>;
 }) {
+  // Piezas con el selector del segundo jugador abierto (las que ya lo tienen, también).
+  const [abiertas, setAbiertas] = useState<Set<string>>(new Set());
   const camisetas = diagrama.elementos.filter((e) => e.tipo === "jugador");
   const lanzador = diagrama.elementos.find((e) => e.tipo === "icono" && e.icono === "lanzador");
 
@@ -114,20 +117,47 @@ export function AsignarJugadores({
     );
   }
 
-  // Segundo lanzador (la otra pierna): se guarda en el propio icono del lanzador.
-  function elegirLanzador2(id: string | null) {
+  // Segundo jugador de una pieza (la otra pierna del lanzador, o quien alterna en una
+  // posición como la de la frontal en un córner): en las piezas rojas numeradas va en
+  // su fila de la lista de la derecha y en las demás en la propia pieza.
+  function esFila(pieza: ElementoDiagrama) {
+    return !!pieza.etiqueta && clasePieza(pieza.color) === "rojo";
+  }
+
+  function elegirSegundo(pieza: ElementoDiagrama, id: string | null) {
+    if (esFila(pieza)) {
+      setFilas((prev) => {
+        const i = prev.findIndex((f) => f.etiqueta === pieza.etiqueta);
+        if (i >= 0) return prev.map((f, k) => (k === i ? { ...f, jugador2_id: id } : f));
+        return [...prev, { etiqueta: pieza.etiqueta!, jugador_id: null, texto: "", jugador2_id: id }];
+      });
+      return;
+    }
     setDiagrama((d) =>
       d
         ? {
             ...d,
             elementos: d.elementos.map((e) =>
-              e.id === lanzador?.id
-                ? { ...e, jugador2_id: id, nombre2: id ? undefined : e.nombre2 }
-                : e,
+              e.id === pieza.id ? { ...e, jugador2_id: id, nombre2: id ? undefined : e.nombre2 } : e,
             ),
           }
         : d,
     );
+  }
+
+  function valorSegundo(pieza: ElementoDiagrama): string | null {
+    return esFila(pieza)
+      ? (filas.find((f) => f.etiqueta === pieza.etiqueta)?.jugador2_id ?? null)
+      : (pieza.jugador2_id ?? null);
+  }
+
+  function alternarSegundo(pieza: ElementoDiagrama) {
+    setAbiertas((prev) => {
+      const s = new Set(prev);
+      if (s.has(pieza.id)) s.delete(pieza.id);
+      else s.add(pieza.id);
+      return s;
+    });
   }
 
   function valorDe(pieza: ElementoDiagrama): string | null {
@@ -196,17 +226,31 @@ export function AsignarJugadores({
                       etiqueta={`Jugador de la pieza ${pieza.etiqueta ?? i + 1}`}
                       estados={estados}
                     />
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="ghost"
+                      className="h-8 shrink-0 px-2 text-xs"
+                      title="Añadir un segundo jugador que alterna en esta posición"
+                      onClick={() => alternarSegundo(pieza)}
+                    >
+                      + 2º
+                    </Button>
                   </div>
-                  {clase === "lanzador" && (
+                  {(abiertas.has(pieza.id) || valorSegundo(pieza)) && (
                     <div className="flex items-center gap-2">
                       <span className="w-28 shrink-0 text-xs text-muted-foreground">
-                        Lanzador (otra pierna)
+                        {clase === "lanzador" ? "Lanzador (otra pierna)" : "Alterna con"}
                       </span>
                       <Selector
-                        valor={pieza.jugador2_id}
+                        valor={valorSegundo(pieza)}
                         opciones={jugadores}
-                        onChange={elegirLanzador2}
-                        etiqueta="Segundo lanzador (zurdo o diestro)"
+                        onChange={(id) => elegirSegundo(pieza, id)}
+                        etiqueta={
+                          clase === "lanzador"
+                            ? "Segundo lanzador (zurdo o diestro)"
+                            : `Segundo jugador de la pieza ${pieza.etiqueta ?? i + 1}`
+                        }
                         estados={estados}
                       />
                     </div>

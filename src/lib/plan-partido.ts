@@ -86,6 +86,9 @@ export interface JugadorAbp {
   etiqueta: string; // "1", "Lanzador", "Zurdo"...
   jugador_id: string | null; // jugador de la plantilla, o null
   texto: string; // nombre escrito a mano (si no hay jugador_id)
+  // Segundo jugador que alterna en esta posición (p. ej. el de la frontal, que cambia
+  // según quién saque el córner).
+  jugador2_id?: string | null;
 }
 
 export function leerJugadoresAbp(json: Json | null | undefined): JugadorAbp[] {
@@ -94,6 +97,7 @@ export function leerJugadoresAbp(json: Json | null | undefined): JugadorAbp[] {
     etiqueta: j.etiqueta ?? "",
     jugador_id: j.jugador_id ?? null,
     texto: j.texto ?? "",
+    jugador2_id: j.jugador2_id ?? null,
   }));
 }
 

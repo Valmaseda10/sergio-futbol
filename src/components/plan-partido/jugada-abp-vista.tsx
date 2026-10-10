@@ -42,6 +42,21 @@ function colorDeFila(fila: JugadorAbp, diagrama: Diagrama): string {
   return pieza?.color ?? "#dc2626";
 }
 
+// Raya de color bajo un nombre de la lista según su estado en el partido sincronizado.
+function subrayadoEstado(
+  id: string | null | undefined,
+  estados?: Map<string, EstadoPartido>,
+): React.CSSProperties | undefined {
+  const estado = id ? estados?.get(id) : undefined;
+  if (!estado) return undefined;
+  return {
+    textDecoration: "underline",
+    textDecorationColor: COLOR_ESTADO_PARTIDO[estado],
+    textDecorationThickness: "0.5cqw",
+    textUnderlineOffset: "0.5cqw",
+  };
+}
+
 /** El dibujo con la lista numerada superpuesta en la esquina superior derecha. */
 export function CampoAbp({
   diagrama,
@@ -70,10 +85,17 @@ export function CampoAbp({
     ? new Map([...estados].map(([id, e]) => [id, COLOR_ESTADO_PARTIDO[e]] as const))
     : undefined;
   // En la lista de la derecha solo salen las filas que ya tienen jugador.
-  const visibles = filas.filter((f) => f.jugador_id || f.texto);
+  const visibles = filas.filter((f) => f.jugador_id || f.texto || f.jugador2_id);
   // La lista va a la derecha del campo y no puede pasar de su línea de banda: la letra
   // se achica lo justo para que el nombre más largo quepa (hasta ~95 % del ancho).
-  const masLargo = Math.max(0, ...visibles.map((f) => nombreJugadorAbp(f, jugadores).length));
+  const masLargo = Math.max(
+    0,
+    ...visibles.map(
+      (f) =>
+        nombreJugadorAbp(f, jugadores).length +
+        (f.jugador2_id ? 3 + nombreJugadorAbp({ jugador_id: f.jugador2_id, texto: "" }, jugadores).length : 0),
+    ),
+  );
   const base = grande ? 3.5 : 3.2;
   const tamano = masLargo ? Math.max(2, Math.min(base, 13 / (masLargo * 0.72))) : base;
   // Nombre de cada jugador de la plantilla junto a su camiseta del dibujo.
@@ -124,20 +146,18 @@ export function CampoAbp({
                 }}
               >
                 <span className="min-w-[2.4cqw] text-right">{f.etiqueta}</span>
-                <span
-                  className="min-w-0 break-words"
-                  style={
-                    f.jugador_id && estados?.get(f.jugador_id)
-                      ? {
-                          textDecoration: "underline",
-                          textDecorationColor: COLOR_ESTADO_PARTIDO[estados.get(f.jugador_id)!],
-                          textDecorationThickness: "0.5cqw",
-                          textUnderlineOffset: "0.5cqw",
-                        }
-                      : undefined
-                  }
-                >
-                  {nombreJugadorAbp(f, jugadores)}
+                <span className="min-w-0 break-words">
+                  <span style={subrayadoEstado(f.jugador_id, estados)}>
+                    {nombreJugadorAbp(f, jugadores)}
+                  </span>
+                  {f.jugador2_id && (
+                    <>
+                      {" / "}
+                      <span style={subrayadoEstado(f.jugador2_id, estados)}>
+                        {nombreJugadorAbp({ jugador_id: f.jugador2_id, texto: "" }, jugadores)}
+                      </span>
+                    </>
+                  )}
                 </span>
               </li>
             );

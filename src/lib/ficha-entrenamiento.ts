@@ -438,7 +438,7 @@ function camisetaSvg(
       }" stroke-width="${fuente * 0.16}" stroke-linejoin="round" paint-order="stroke">${esc(e.etiqueta)}</text>`
     : "";
   return `<use href="#${portero ? ids.granate : ids.blanca}" transform="translate(${e.x - ancho / 2} ${
-    e.y - alto / 2}) scale(${escala})"/>${txt}${nombreSvg(e, nombres, k, alto, colocacion, textoK, subrayadoDe(e, subrayados))}`;
+    e.y - alto / 2}) scale(${escala})"/>${txt}${nombresPiezaSvg(e, nombres, k, alto, colocacion, textoK, subrayados)}`;
 }
 
 // Dónde queda el nombre de una pieza:
@@ -464,6 +464,8 @@ function nombreSvg(
   textoK = 1,
   // Color de la raya bajo el nombre (verde titular, rojo suplente) si se da.
   subraya?: string,
+  // Desplazamiento vertical (la segunda línea cuando hay dos nombres).
+  desplazY = 0,
 ): string {
   const nombre = nombreDePieza(e, nombres);
   if (!nombre) return "";
@@ -509,6 +511,7 @@ function nombreSvg(
       if (x - mitad < minX) x = minX + mitad;
     }
   }
+  y += desplazY;
   const colorPorDefecto = e.tipo === "icono" ? "#0070c0" : (e.color ?? "#111111");
   const relleno = numerico ? "#111111" : (e.colorNombre ?? colorPorDefecto);
   let raya = "";
@@ -525,44 +528,41 @@ function subrayadoDe(e: ElementoDiagrama, subrayados?: Map<string, string>): str
   return e.jugador_id ? subrayados?.get(e.jugador_id) : undefined;
 }
 
-// Nombre(s) del lanzador bajo su icono: uno, o dos (zurdo y diestro) uno encima del
-// otro y con su pierna entre paréntesis si se conoce.
-function nombresLanzadorSvg(
+// Nombre(s) de una pieza: uno, o dos (el lanzador zurdo y diestro; el jugador que alterna
+// en una posición según quién saque) uno encima del otro. En el lanzador se añade la
+// pierna entre paréntesis si se conoce.
+function nombresPiezaSvg(
   e: ElementoDiagrama,
   nombres: NombresJugadores | undefined,
   k: number,
   alto: number,
+  colocacion: ColocacionNombre,
   textoK: number,
   subrayados?: Map<string, string>,
 ): string {
   const nombre2 = nombreDePieza({ ...e, jugador_id: e.jugador2_id, nombre: e.nombre2 }, nombres);
   if (!nombre2) {
-    return nombreSvg(e, nombres, k, alto, undefined, textoK, subrayadoDe(e, subrayados));
+    return nombreSvg(e, nombres, k, alto, colocacion, textoK, subrayadoDe(e, subrayados));
   }
   const nombre1 = nombreDePieza(e, nombres);
   const conPierna = (id: string | null | undefined, n: string) => {
-    const p = id ? nombres?.get(clavePierna(id)) : undefined;
+    const p = e.tipo === "icono" && id ? nombres?.get(clavePierna(id)) : undefined;
     return p ? `${n} (${p})` : n;
   };
-  const dy = e.nombreDy ?? alto / 2 + 15 * k;
   const linea = 16 * k * textoK;
   const uno: ElementoDiagrama = { ...e, jugador_id: undefined, nombre: conPierna(e.jugador_id, nombre1) };
-  const dos: ElementoDiagrama = {
-    ...e,
-    jugador_id: undefined,
-    nombre: conPierna(e.jugador2_id, nombre2),
-    nombreDy: nombre1 ? dy + linea : dy,
-  };
+  const dos: ElementoDiagrama = { ...e, jugador_id: undefined, nombre: conPierna(e.jugador2_id, nombre2) };
   return (
-    nombreSvg(uno, nombres, k, alto, undefined, textoK, subrayadoDe(e, subrayados)) +
+    nombreSvg(uno, nombres, k, alto, colocacion, textoK, subrayadoDe(e, subrayados)) +
     nombreSvg(
       dos,
       nombres,
       k,
       alto,
-      undefined,
+      colocacion,
       textoK,
       subrayadoDe({ ...e, jugador_id: e.jugador2_id }, subrayados),
+      nombre1 ? linea : 0,
     )
   );
 }
@@ -580,7 +580,7 @@ function iconoSvg(
     const ancho = 36 * k * esc1;
     const escala = ancho / CAMISETA_LANZADOR.ancho;
     const alto = CAMISETA_LANZADOR.alto * escala;
-    return `<use href="#${ids.lanzador}" transform="translate(${e.x - ancho / 2} ${e.y - alto / 2}) scale(${escala})"/>${nombresLanzadorSvg(e, nombres, k, alto, textoK, subrayados)}`;
+    return `<use href="#${ids.lanzador}" transform="translate(${e.x - ancho / 2} ${e.y - alto / 2}) scale(${escala})"/>${nombresPiezaSvg(e, nombres, k, alto, "libre", textoK, subrayados)}`;
   }
   if (e.icono === "ojo-portero") {
     const r = 14 * k * esc1;

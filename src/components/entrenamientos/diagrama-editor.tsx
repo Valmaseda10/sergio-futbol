@@ -580,11 +580,13 @@ export function DiagramaEditor({
                     />
                   </div>
                 )}
-                {seleccionado.tipo === "icono" && (
+                {(
                   <>
                     <div className="space-y-1">
                       <Label htmlFor="jugador2-seleccion" className="text-xs">
-                        Segundo lanzador (la otra pierna: zurdo o diestro)
+                        {seleccionado.tipo === "icono"
+                          ? "Segundo lanzador (la otra pierna: zurdo o diestro)"
+                          : "Segundo jugador (alterna en esta posición)"}
                       </Label>
                       <select
                         id="jugador2-seleccion"
