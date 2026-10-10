@@ -5,7 +5,7 @@
 // cada grupo lleva el papel que cumple ("Rematar", "Rechace y cerrar 2ª
 // jugada"...) y cada pieza tiene su desplegable con la plantilla.
 
-import type { Dispatch, SetStateAction } from "react";
+import { Fragment, type Dispatch, type SetStateAction } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -114,6 +114,22 @@ export function AsignarJugadores({
     );
   }
 
+  // Segundo lanzador (la otra pierna): se guarda en el propio icono del lanzador.
+  function elegirLanzador2(id: string | null) {
+    setDiagrama((d) =>
+      d
+        ? {
+            ...d,
+            elementos: d.elementos.map((e) =>
+              e.id === lanzador?.id
+                ? { ...e, jugador2_id: id, nombre2: id ? undefined : e.nombre2 }
+                : e,
+            ),
+          }
+        : d,
+    );
+  }
+
   function valorDe(pieza: ElementoDiagrama): string | null {
     if (pieza.etiqueta && clasePieza(pieza.color) === "rojo") {
       return filas.find((f) => f.etiqueta === pieza.etiqueta)?.jugador_id ?? null;
@@ -164,7 +180,8 @@ export function AsignarJugadores({
               </div>
               <div className="space-y-1.5 pl-6">
                 {ordenadas.map((pieza, i) => (
-                  <div key={pieza.id} className="flex items-center gap-2">
+                  <Fragment key={pieza.id}>
+                  <div className="flex items-center gap-2">
                     <span className="w-28 shrink-0 text-xs text-muted-foreground">
                       {clase === "lanzador"
                         ? "Lanzador"
@@ -180,6 +197,21 @@ export function AsignarJugadores({
                       estados={estados}
                     />
                   </div>
+                  {clase === "lanzador" && (
+                    <div className="flex items-center gap-2">
+                      <span className="w-28 shrink-0 text-xs text-muted-foreground">
+                        Lanzador (otra pierna)
+                      </span>
+                      <Selector
+                        valor={pieza.jugador2_id}
+                        opciones={jugadores}
+                        onChange={elegirLanzador2}
+                        etiqueta="Segundo lanzador (zurdo o diestro)"
+                        estados={estados}
+                      />
+                    </div>
+                  )}
+                  </Fragment>
                 ))}
               </div>
             </div>

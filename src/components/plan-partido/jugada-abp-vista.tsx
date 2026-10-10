@@ -5,7 +5,7 @@
 // dentro del campo, arriba a la derecha.
 
 import type { ReactNode } from "react";
-import { diagramaASvg, type Diagrama } from "@/lib/ficha-entrenamiento";
+import { anadirPiernas, diagramaASvg, type Diagrama } from "@/lib/ficha-entrenamiento";
 import {
   COLOR_ESTADO_PARTIDO,
   FASES_ABP,
@@ -72,8 +72,9 @@ export function CampoAbp({
   // En la lista de la derecha solo salen las filas que ya tienen jugador.
   const visibles = filas.filter((f) => f.jugador_id || f.texto);
   // Nombre de cada jugador de la plantilla junto a su camiseta del dibujo.
-  const nombres = new Map(
-    [...jugadores.values()].map((j) => [j.id, (j.alias || j.nombre).toUpperCase()]),
+  const nombres = anadirPiernas(
+    new Map([...jugadores.values()].map((j) => [j.id, (j.alias || j.nombre).toUpperCase()])),
+    [...jugadores.values()],
   );
   if (!diagrama) {
     return (

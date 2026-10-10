@@ -32,6 +32,7 @@ import {
 } from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
 import {
+  anadirPiernas,
   COLORES_DIAGRAMA,
   diagramaASvg,
   diagramaAPng,
@@ -148,7 +149,7 @@ export function DiagramaEditor({
   /** Jugadores como camisetas de la Cultural (las jugadas de ABP). */
   camisetas?: boolean;
   /** Plantilla para el desplegable de cada camiseta (nombre ya en el formato que se quiera ver). */
-  jugadores?: { id: string; nombre: string }[];
+  jugadores?: { id: string; nombre: string; pierna_dominante?: string | null }[];
   /** Titulares (verde) y suplentes (rojo) de un partido: raya bajo sus nombres y desplegable agrupado. */
   estados?: Map<string, EstadoPartido>;
   inicial: Diagrama | null;
@@ -178,7 +179,7 @@ export function DiagramaEditor({
   } | null>(null);
 
   const nombres = useMemo(
-    () => new Map(jugadores.map((j) => [j.id, j.nombre])),
+    () => anadirPiernas(new Map(jugadores.map((j) => [j.id, j.nombre])), jugadores),
     [jugadores],
   );
   const { ancho: ANCHO, alto: ALTO, k: K } = dimensionesCampo(diagrama.campo);
@@ -578,6 +579,43 @@ export function DiagramaEditor({
                       maxLength={30}
                     />
                   </div>
+                )}
+                {seleccionado.tipo === "icono" && (
+                  <>
+                    <div className="space-y-1">
+                      <Label htmlFor="jugador2-seleccion" className="text-xs">
+                        Segundo lanzador (la otra pierna: zurdo o diestro)
+                      </Label>
+                      <select
+                        id="jugador2-seleccion"
+                        value={seleccionado.jugador2_id ?? ""}
+                        onChange={(e) =>
+                          actualizarSeleccion({
+                            jugador2_id: e.target.value || null,
+                            nombre2: e.target.value ? undefined : seleccionado.nombre2,
+                          })
+                        }
+                        className="h-8 rounded-md border border-input bg-background px-2 text-sm"
+                      >
+                        <option value="">— Ninguno / escribir a mano —</option>
+                        <OpcionesJugador jugadores={jugadores} estados={estados} />
+                      </select>
+                    </div>
+                    {!seleccionado.jugador2_id && (
+                      <div className="space-y-1">
+                        <Label htmlFor="nombre2-seleccion" className="text-xs">
+                          Nombre a mano (segundo)
+                        </Label>
+                        <Input
+                          id="nombre2-seleccion"
+                          value={seleccionado.nombre2 ?? ""}
+                          onChange={(e) => actualizarSeleccion({ nombre2: e.target.value })}
+                          className="h-8 w-40"
+                          maxLength={30}
+                        />
+                      </div>
+                    )}
+                  </>
                 )}
                 <div className="flex items-center gap-1.5" role="group" aria-label="Color del nombre">
                   {COLORES_DIAGRAMA.map((c) => (

@@ -329,6 +329,7 @@ export function JugadaAbpForm({
           jugadores={jugadores.map((j) => ({
             id: j.id,
             nombre: (j.alias || j.nombre).toUpperCase(),
+            pierna_dominante: j.pierna_dominante,
           }))}
           estados={sync.estados}
           inicial={diagrama}

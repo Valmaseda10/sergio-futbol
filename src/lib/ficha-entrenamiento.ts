@@ -59,6 +59,10 @@ export interface ElementoDiagrama {
   escala?: number;
   jugador_id?: string | null;
   nombre?: string;
+  // Solo lanzador: segundo lanzador (el de la otra pierna, zurdo o diestro) y su
+  // nombre a mano; salen los dos nombres juntos bajo el icono.
+  jugador2_id?: string | null;
+  nombre2?: string;
   colorNombre?: string;
   nombreDx?: number;
   nombreDy?: number;
@@ -352,6 +356,26 @@ interface IdsCamisetas {
 /** Cómo se nombran los jugadores de la plantilla junto a su camiseta. */
 export type NombresJugadores = Map<string, string>;
 
+/**
+ * Clave, dentro del mismo mapa de nombres, de la pierna de un jugador ("Z" zurdo, "D"
+ * diestro): sirve para marcar a los dos lanzadores (zurdo y diestro) de una jugada.
+ */
+export function clavePierna(jugadorId: string): string {
+  return `pierna:${jugadorId}`;
+}
+
+/** Llena el mapa de nombres con la pierna de cada jugador (solo zurdos y diestros). */
+export function anadirPiernas(
+  nombres: NombresJugadores,
+  jugadores: { id: string; pierna_dominante?: string | null }[],
+): NombresJugadores {
+  for (const j of jugadores) {
+    if (j.pierna_dominante === "izquierda") nombres.set(clavePierna(j.id), "Z");
+    else if (j.pierna_dominante === "derecha") nombres.set(clavePierna(j.id), "D");
+  }
+  return nombres;
+}
+
 let contadorCamisetas = 0;
 
 const ANCHO_CAMISETA = 30;
@@ -501,6 +525,48 @@ function subrayadoDe(e: ElementoDiagrama, subrayados?: Map<string, string>): str
   return e.jugador_id ? subrayados?.get(e.jugador_id) : undefined;
 }
 
+// Nombre(s) del lanzador bajo su icono: uno, o dos (zurdo y diestro) uno encima del
+// otro y con su pierna entre paréntesis si se conoce.
+function nombresLanzadorSvg(
+  e: ElementoDiagrama,
+  nombres: NombresJugadores | undefined,
+  k: number,
+  alto: number,
+  textoK: number,
+  subrayados?: Map<string, string>,
+): string {
+  const nombre2 = nombreDePieza({ ...e, jugador_id: e.jugador2_id, nombre: e.nombre2 }, nombres);
+  if (!nombre2) {
+    return nombreSvg(e, nombres, k, alto, undefined, textoK, subrayadoDe(e, subrayados));
+  }
+  const nombre1 = nombreDePieza(e, nombres);
+  const conPierna = (id: string | null | undefined, n: string) => {
+    const p = id ? nombres?.get(clavePierna(id)) : undefined;
+    return p ? `${n} (${p})` : n;
+  };
+  const dy = e.nombreDy ?? alto / 2 + 15 * k;
+  const linea = 16 * k * textoK;
+  const uno: ElementoDiagrama = { ...e, jugador_id: undefined, nombre: conPierna(e.jugador_id, nombre1) };
+  const dos: ElementoDiagrama = {
+    ...e,
+    jugador_id: undefined,
+    nombre: conPierna(e.jugador2_id, nombre2),
+    nombreDy: nombre1 ? dy + linea : dy,
+  };
+  return (
+    nombreSvg(uno, nombres, k, alto, undefined, textoK, subrayadoDe(e, subrayados)) +
+    nombreSvg(
+      dos,
+      nombres,
+      k,
+      alto,
+      undefined,
+      textoK,
+      subrayadoDe({ ...e, jugador_id: e.jugador2_id }, subrayados),
+    )
+  );
+}
+
 function iconoSvg(
   e: ElementoDiagrama,
   ids: IdsCamisetas | undefined,
@@ -514,7 +580,7 @@ function iconoSvg(
     const ancho = 36 * k * esc1;
     const escala = ancho / CAMISETA_LANZADOR.ancho;
     const alto = CAMISETA_LANZADOR.alto * escala;
-    return `<use href="#${ids.lanzador}" transform="translate(${e.x - ancho / 2} ${e.y - alto / 2}) scale(${escala})"/>${nombreSvg(e, nombres, k, alto, undefined, textoK, subrayadoDe(e, subrayados))}`;
+    return `<use href="#${ids.lanzador}" transform="translate(${e.x - ancho / 2} ${e.y - alto / 2}) scale(${escala})"/>${nombresLanzadorSvg(e, nombres, k, alto, textoK, subrayados)}`;
   }
   if (e.icono === "ojo-portero") {
     const r = 14 * k * esc1;
