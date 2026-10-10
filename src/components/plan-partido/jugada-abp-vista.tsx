@@ -96,8 +96,10 @@ export function CampoAbp({
         (f.jugador2_id ? 3 + nombreJugadorAbp({ jugador_id: f.jugador2_id, texto: "" }, jugadores).length : 0),
     ),
   );
-  const base = grande ? 3.5 : 3.2;
-  const tamano = masLargo ? Math.max(2, Math.min(base, 13 / (masLargo * 0.72))) : base;
+  // Mismo tamaño de letra que los nombres de las camisetas del dibujo (14/520 del ancho,
+  // por el factor de texto de los dibujos pequeños); solo se achica si no cabe.
+  const base = (14 / 520) * 100 * (grande ? 1.15 : 1);
+  const tamano = masLargo ? Math.max(2, Math.min(base, 14.7 / (masLargo * 0.72))) : base;
   // Nombre de cada jugador de la plantilla junto a su camiseta del dibujo.
   const nombres = anadirPiernas(
     new Map([...jugadores.values()].map((j) => [j.id, (j.alias || j.nombre).toUpperCase()])),
@@ -139,13 +141,13 @@ export function CampoAbp({
             return (
               <li
                 key={i}
-                className="flex gap-[1.6cqw]"
+                className="flex gap-[0.9cqw]"
                 style={{
                   color,
                   textShadow: `0 0 2px ${halo}, 0 0 2px ${halo}, 0 0 3px ${halo}, 1px 1px 2px ${halo}`,
                 }}
               >
-                <span className="min-w-[2.4cqw] text-right">{f.etiqueta}</span>
+                <span className="min-w-[1.8cqw] text-right">{f.etiqueta}</span>
                 <span className="min-w-0 break-words">
                   <span style={subrayadoEstado(f.jugador_id, estados)}>
                     {nombreJugadorAbp(f, jugadores)}
