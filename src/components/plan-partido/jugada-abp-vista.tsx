@@ -71,6 +71,11 @@ export function CampoAbp({
     : undefined;
   // En la lista de la derecha solo salen las filas que ya tienen jugador.
   const visibles = filas.filter((f) => f.jugador_id || f.texto);
+  // La lista va a la derecha del campo y no puede pasar de su línea de banda: la letra
+  // se achica lo justo para que el nombre más largo quepa (hasta ~95 % del ancho).
+  const masLargo = Math.max(0, ...visibles.map((f) => nombreJugadorAbp(f, jugadores).length));
+  const base = grande ? 3.5 : 3.2;
+  const tamano = masLargo ? Math.max(2, Math.min(base, 13 / (masLargo * 0.72))) : base;
   // Nombre de cada jugador de la plantilla junto a su camiseta del dibujo.
   const nombres = anadirPiernas(
     new Map([...jugadores.values()].map((j) => [j.id, (j.alias || j.nombre).toUpperCase()])),
@@ -102,9 +107,8 @@ export function CampoAbp({
       />
       {visibles.length > 0 && (
         <ul
-          className={`absolute top-[11%] left-[78%] space-y-[1.4cqw] leading-[1.1] font-extrabold ${
-            grande ? "text-[3.5cqw]" : "text-[3.2cqw]"
-          }`}
+          className="absolute top-[11%] left-[78.5%] space-y-[1.4cqw] leading-[1.1] font-extrabold"
+          style={{ fontSize: `${tamano}cqw` }}
         >
           {visibles.map((f, i) => {
             const color = colorDeFila(f, diagrama);
