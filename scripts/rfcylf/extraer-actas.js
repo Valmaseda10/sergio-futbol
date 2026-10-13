@@ -24,6 +24,9 @@
     'C.D.F. Peña Elyte B', 'Soccer Ponferradina', 'León C.F.', 'C.D. La Bañeza',
     'C.D. Cuatrovientos',
   ];
+  // La web de la federación bloquea (páginas en blanco) si se hacen cientos de peticiones
+  // seguidas: ir despacio, como máximo ~2 por segundo.
+  const pausa = () => new Promise((r) => setTimeout(r, 500));
   const norm = (s) => s.replace(/["“”]/g, '').replace(/\s+/g, ' ').trim();
   const tramo = (m) => (m < 15 ? 0 : m < 30 ? 1 : m < 45 ? 2 : m < 60 ? 3 : 4);
 
@@ -31,11 +34,13 @@
   const faltan = [];
   for (let j = 1; j <= JORNADAS; j++) {
     const url = `/pnfg/NPcd/NFG_CmpJornada?cod_primaria=1000120&CodCompeticion=${COMPETICION}&CodGrupo=${GRUPO}&CodTemporada=${TEMPORADA}&CodJornada=${j}`;
+    await pausa();
     const html = await (await fetch(url)).text();
     const ids = [...new Set([...html.matchAll(/CodActa=(\d+)/g)].map((m) => m[1]))];
     if (ids.length === 0) break; // jornada futura sin calendario
     const leidasAntes = partidos.length;
     for (const id of ids) {
+      await pausa();
       const buf = await (await fetch(`/pnfg/NPcd/NFG_CmpPartido?cod_primaria=1000120&CodActa=${id}&cod_acta=${id}`)).arrayBuffer();
       const doc = new DOMParser().parseFromString(new TextDecoder('iso-8859-1').decode(buf), 'text/html');
       doc.querySelectorAll('style,script').forEach((e) => e.remove());

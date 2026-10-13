@@ -39,6 +39,10 @@ Equipo propio: C. y D. Leonesa S.A.D. "B" (la app es del Infantil B).
 
 ## Reglas
 
+- **Ir despacio con la web de la federación**: unas 500 peticiones seguidas hicieron que
+  rfcylf.es devolviera páginas en blanco (bloqueo temporal por exceso). Máximo ~2 peticiones por
+  segundo y no escanear ligas enteras de golpe; si las páginas salen en blanco, parar y reintentar
+  horas después en vez de insistir.
 - Solo datos públicos de actas y tablas: nombres, dorsales, goles, tarjetas y cambios. Nada más
   sobre los menores.
 - No guardar nada si Supabase pide iniciar sesión: avisar al usuario.
