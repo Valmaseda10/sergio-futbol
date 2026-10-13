@@ -34,7 +34,14 @@ Equipo propio: C. y D. Leonesa S.A.D. "B" (la app es del Infantil B).
      `plantilla_id` enlazado y una nota corta en mayúsculas con goles, titularidad y tarjetas.
    - Equipación en `rivales_scouting` (`color_camiseta`, `color_pantalon`, `color_medias`) a partir
      de "Equipación (Color)" de esa misma página.
-6. **Resumen** para el entrenador: qué se ha actualizado, qué actas faltaban y qué jugadores
+6. **Cabecera de las sesiones de la semana.** Para los entrenamientos de esa semana (lunes a
+   domingo) en `entrenamientos`: poner `rival_torneo` con el rival del partido del fin de semana
+   (tabla `partidos`, en mayúsculas y sin prefijos: `Veguellina C.F.` -> `VEGUELLINA`,
+   `C.D.F. Peña Elyte "B"` -> `PEÑA ELYTE B`, `León C.F.` -> `LEÓN`) si está vacío, y comprobar que
+   `ficha->>'numero_sesion'` sigue el orden (`24-MARTES`, `25-JUEVES`, `26-VIERNES`...: el número de
+   la sesión anterior + 1 y el día de la semana en mayúsculas). La app ya lo rellena sola al crear
+   la sesión; esto solo corrige las que se crearon antes o quedaron vacías.
+7. **Resumen** para el entrenador: qué se ha actualizado, qué actas faltaban y qué jugadores
    destacan (goleadores, tarjetas, cambios).
 
 ## Reglas
