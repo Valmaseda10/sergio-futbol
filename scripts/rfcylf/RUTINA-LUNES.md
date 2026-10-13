@@ -23,8 +23,17 @@ Equipo propio: C. y D. Leonesa S.A.D. "B" (la app es del Infantil B).
    `fecha` y `resultado_favor/contra` iguales a los de la federación (en la jornada 4 la fecha del
    Veguellina estaba un día mal). Corregir solo diferencias claras.
 5. **Próximo rival.** Mirar en `partidos` el siguiente partido de liga, leer sus actas y, si hace
-   falta, actualizar su ficha (plantilla y jugadores destacados en `rivales_plantilla` y
-   `rivales_jugadores_destacados`) y el informe en `informes/` (modelo: `informes/scouting-leon-cf-jornada-5.html`).
+   falta, actualizar su ficha y el informe en `informes/` (modelo: `informes/scouting-leon-cf-jornada-5.html`).
+   La ficha se rellena igual que la del Atlético Pinilla "B":
+   - `rivales_plantilla`: la plantilla de `https://www.rfcylf.es/pnfg/NPcd/NFG_VisEquipos?cod_primaria=1000119&Codigo_Equipo=<codequipo>`
+     (el `codequipo` sale de los enlaces de la clasificación). Un jugador por fila con nombre
+     en formato **"Apellidos, Nombre"** (con tildes), dorsal de las actas y `rol` jugador;
+     además el técnico (`entrenador`) y el delegado (`delegado`). `curso` y la temporada anterior
+     no salen de la web pública: dejarlos vacíos salvo que los dé el entrenador.
+   - `rivales_jugadores_destacados`: los jugadores `top` (goleadores, los que deciden) con
+     `plantilla_id` enlazado y una nota corta en mayúsculas con goles, titularidad y tarjetas.
+   - Equipación en `rivales_scouting` (`color_camiseta`, `color_pantalon`, `color_medias`) a partir
+     de "Equipación (Color)" de esa misma página.
 6. **Resumen** para el entrenador: qué se ha actualizado, qué actas faltaban y qué jugadores
    destacan (goleadores, tarjetas, cambios).
 
