@@ -13,6 +13,12 @@ import { queueMutation } from "@/lib/db/sync";
 import { createClient } from "@/lib/supabase/client";
 import { subirArchivoPrivado, extensionDeArchivo } from "@/lib/storage";
 import { fichaAJson, type FichaEntrenamiento } from "@/lib/ficha-entrenamiento";
+import {
+  etiquetasSesionesNuevas,
+  numeroSesionAuto,
+  rivalDeLaSemanaAuto,
+  rivalDeLaSemanaDe,
+} from "@/lib/sesion-auto";
 import type { DatosTareaGuardada } from "@/lib/tareas-guardadas";
 import type { Json } from "@/lib/types/database.types";
 import {
@@ -105,9 +111,17 @@ export async function crearEntrenamientoLocal(
   if (tablaImagen && tablaImagen.size > 0) {
     ficha = { ...ficha, tabla_imagen_url: rutaImagenTabla(id, tablaImagen) };
   }
+  // El nº de sesión (en orden de fechas) y el rival de la semana salen solos si no se han escrito.
+  if (!ficha?.numero_sesion?.trim()) {
+    ficha = { ...ficha, numero_sesion: await numeroSesionAuto(parsed.data.fecha) };
+  }
+  const rivalAuto = parsed.data.rival_torneo?.trim()
+    ? ""
+    : await rivalDeLaSemanaAuto(parsed.data.fecha);
   const row: LocalEntrenamiento = {
     id,
     ...toEntrenamientoInsert(parsed.data),
+    ...(rivalAuto ? { rival_torneo: rivalAuto } : {}),
     tarea_1_imagen_url: null,
     tarea_2_imagen_url: null,
     tarea_3_imagen_url: null,
@@ -314,6 +328,12 @@ export async function generarEntrenamientosLocal(
   const aCrear = fechasCandidatas.filter((f) => !fechasExistentes.has(f.fecha));
 
   const now = new Date().toISOString();
+  // Cada sesión nueva lleva su nº en orden de fechas y el rival del partido de esa semana.
+  const etiquetas = etiquetasSesionesNuevas(
+    await localDb.entrenamientos.toArray(),
+    aCrear.map((f) => f.fecha),
+  );
+  const partidosDeTemporada = await localDb.partidos.toArray();
   const nuevasFilas: LocalEntrenamiento[] = aCrear.map((f) => ({
     id: crypto.randomUUID(),
     fecha: f.fecha,
@@ -321,7 +341,7 @@ export async function generarEntrenamientosLocal(
     hora_fin: hora_fin || null,
     lugar: lugar || null,
     objetivos: null,
-    rival_torneo: null,
+    rival_torneo: rivalDeLaSemanaDe(partidosDeTemporada, f.fecha) || null,
     microciclo: null,
     bajas: null,
     charla: null,
@@ -390,7 +410,7 @@ export async function generarEntrenamientosLocal(
     extra_minutos: null,
     notas: null,
     documento_url: null,
-    ficha: null,
+    ficha: fichaAJson({ numero_sesion: etiquetas.get(f.fecha) }),
     created_at: now,
   }));
 

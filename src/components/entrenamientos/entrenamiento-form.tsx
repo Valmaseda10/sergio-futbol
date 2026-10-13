@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Controller, useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useRouter } from "next/navigation";
@@ -40,6 +40,7 @@ import { DiagramaEditor } from "@/components/entrenamientos/diagrama-editor";
 import { ObjetivosTablaEditor } from "@/components/entrenamientos/objetivos-tabla";
 import { RotacionEquiposEditor } from "@/components/entrenamientos/rotacion-equipos";
 import { AbpJugadasPicker } from "@/components/entrenamientos/abp-jugadas-picker";
+import { numeroSesionAuto, rivalDeLaSemanaAuto } from "@/lib/sesion-auto";
 import {
   crearEntrenamientoLocal,
   actualizarEntrenamientoLocal,
@@ -393,6 +394,36 @@ export function EntrenamientoForm({
 
   // Con la tarea 4 en "ABP" se pueden elegir las jugadas que se trabajan.
   const categoriaTarea4 = useWatch({ control, name: "tarea_4_categoria" });
+
+  // El nº de sesión (en orden de fechas) y el rival de la semana salen solos al elegir la
+  // fecha, mientras no se hayan escrito a mano (o sean los que se pusieron solos antes).
+  const fechaForm = useWatch({ control, name: "fecha" });
+  const autoSesion = useRef({ numero: "", rival: "" });
+  useEffect(() => {
+    if (!fechaForm) return;
+    let cancelado = false;
+    void (async () => {
+      const [numero, rival] = await Promise.all([
+        numeroSesionAuto(fechaForm, entrenamiento?.id),
+        rivalDeLaSemanaAuto(fechaForm),
+      ]);
+      if (cancelado) return;
+      setFicha((f) => {
+        const actual = f.numero_sesion?.trim() ?? "";
+        if (actual && actual !== autoSesion.current.numero) return f;
+        autoSesion.current.numero = numero;
+        return { ...f, numero_sesion: numero };
+      });
+      const rivalActual = (getValues("rival_torneo") ?? "").trim();
+      if (rival && (!rivalActual || rivalActual === autoSesion.current.rival)) {
+        autoSesion.current.rival = rival;
+        setValue("rival_torneo", rival, { shouldDirty: true });
+      }
+    })();
+    return () => {
+      cancelado = true;
+    };
+  }, [fechaForm, entrenamiento?.id, getValues, setValue]);
 
   // Nombre de campo del formulario para una tarea (índice 0-3) y sufijo.
   function campoDe(i: number, sufijo: string) {

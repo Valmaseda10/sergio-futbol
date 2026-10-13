@@ -32,6 +32,12 @@ import { PdfWatermark } from "@/components/branding/pdf-watermark";
 import { ObjetivosTablaVista } from "@/components/entrenamientos/objetivos-tabla";
 import { AbpDeLaTarea } from "@/components/entrenamientos/abp-tarea";
 import {
+  etiquetaSesion,
+  numeroDeSesion,
+  numeroSesionDe,
+  rivalDeLaSemanaDe,
+} from "@/lib/sesion-auto";
+import {
   equiposConContenido,
   RotacionEquiposVista,
 } from "@/components/entrenamientos/rotacion-equipos";
@@ -542,6 +548,21 @@ export function EntrenamientoFichaImprimible({
 }) {
   const ficha = leerFicha(entrenamiento.ficha);
   const ausentes = useAusentes(entrenamiento.id);
+  // Si la sesión no tiene escritos el nº ni el rival, salen solos: el nº por orden de fechas
+  // y el rival del partido de esa semana.
+  const sesionesTodas = useLiveQuery(() => localDb.entrenamientos.toArray(), [], []);
+  const partidosTodos = useLiveQuery(() => localDb.partidos.toArray(), [], []);
+  const numeroMostrado =
+    ficha.numero_sesion?.trim() ||
+    (sesionesTodas.length > 0
+      ? etiquetaSesion(
+          numeroSesionDe(sesionesTodas, entrenamiento.fecha, entrenamiento.id),
+          entrenamiento.fecha,
+        )
+      : "");
+  const rivalMostrado =
+    entrenamiento.rival_torneo?.trim() ||
+    rivalDeLaSemanaDe(partidosTodos, entrenamiento.fecha);
   const hojasRef = useRef<HTMLDivElement>(null);
   const [generandoPdf, setGenerandoPdf] = useState(false);
   // El PDF generado se guarda: en iPad/iPhone compartir solo funciona justo
@@ -561,7 +582,7 @@ export function EntrenamientoFichaImprimible({
     setGenerandoPdf(true);
     try {
       // Ej.: "Sesión 22 08-10-2026.pdf" (nº de sesión sin el día de la semana).
-      const numero = ficha.numero_sesion?.match(/^\s*(\d+)/)?.[1];
+      const numero = numeroDeSesion(numeroMostrado)?.toString();
       const [anio, mes, dia] = entrenamiento.fecha.split("-");
       const nombre = `Sesión ${numero ? `${numero} ` : ""}${dia}-${mes}-${anio}.pdf`;
       pdfRef.current = await generarPdfFicha(hojas, nombre);
@@ -707,9 +728,9 @@ export function EntrenamientoFichaImprimible({
                   <CeldaEtiqueta>Fecha sesión</CeldaEtiqueta>
                   <CeldaValor>{formatearFechaCorta(e.fecha)}</CeldaValor>
                   <CeldaEtiqueta>Nº sesión</CeldaEtiqueta>
-                  <CeldaValor>{ficha.numero_sesion}</CeldaValor>
+                  <CeldaValor>{numeroMostrado}</CeldaValor>
                   <CeldaEtiqueta>Rival</CeldaEtiqueta>
-                  <CeldaValor>{e.rival_torneo}</CeldaValor>
+                  <CeldaValor>{rivalMostrado}</CeldaValor>
                   <CeldaEtiqueta>Microciclo</CeldaEtiqueta>
                   <CeldaValor>{e.microciclo}</CeldaValor>
                   <CeldaEtiqueta>Bajas</CeldaEtiqueta>
