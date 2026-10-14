@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useLiveQuery } from "dexie-react-hooks";
 import { Pencil, Printer } from "lucide-react";
+import { marcarCapitanJugadorLocal } from "@/app/(app)/plantilla/local-actions";
 import { localDb, type LocalPartido } from "@/lib/db/local-db";
 import { createClient } from "@/lib/supabase/client";
 import { calcularStatsJugadores } from "@/lib/estadisticas";
@@ -441,6 +442,7 @@ export default function FichaJugadorPage() {
               {nombreCompleto}
             </h1>
             {!jugador.activo && <Badge variant="outline">Inactivo</Badge>}
+            {jugador.es_capitan && <Badge>Capitán · multas x2</Badge>}
           </div>
           <p className="text-sm text-muted-foreground">
             {jugador.dorsal != null ? `Dorsal ${jugador.dorsal} · ` : ""}
@@ -448,6 +450,16 @@ export default function FichaJugadorPage() {
             {jugador.alias ? ` · "${jugador.alias}"` : ""}
           </p>
         </div>
+        <Button
+          variant={jugador.es_capitan ? "default" : "outline"}
+          size="sm"
+          className="print:hidden"
+          aria-pressed={!!jugador.es_capitan}
+          title="Los capitanes tienen las multas dobles (x2)"
+          onClick={() => void marcarCapitanJugadorLocal(jugador.id, !jugador.es_capitan)}
+        >
+          Capitán
+        </Button>
         <Button
           variant="ghost"
           size="icon"

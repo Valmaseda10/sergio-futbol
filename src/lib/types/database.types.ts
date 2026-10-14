@@ -203,6 +203,7 @@ export interface Database {
           notas_medicas: string | null;
           fecha_alta: string;
           activo: boolean;
+          es_capitan: boolean;
           created_at: string;
           updated_at: string;
         };
@@ -225,6 +226,7 @@ export interface Database {
           notas_medicas?: string | null;
           fecha_alta?: string;
           activo?: boolean;
+          es_capitan?: boolean;
           created_at?: string;
           updated_at?: string;
         };

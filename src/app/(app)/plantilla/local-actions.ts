@@ -57,6 +57,7 @@ export async function crearJugadorLocal(
     ...toJugadorInsert(parsed.data),
     foto_url: null,
     activo: true,
+    es_capitan: false,
     created_at: now,
     updated_at: now,
   };
@@ -116,6 +117,16 @@ export async function toggleActivoJugadorLocal(
 ): Promise<ActionResult> {
   await localDb.jugadores.update(id, { activo });
   await queueMutation("jugadores", "update", id, { activo });
+  return { success: true, id };
+}
+
+/** Marca o quita a un jugador como capitán: sus multas cuentan doble (x2). */
+export async function marcarCapitanJugadorLocal(
+  id: string,
+  esCapitan: boolean,
+): Promise<ActionResult> {
+  await localDb.jugadores.update(id, { es_capitan: esCapitan });
+  await queueMutation("jugadores", "update", id, { es_capitan: esCapitan });
   return { success: true, id };
 }
 

@@ -69,6 +69,9 @@ export function MultasPanel() {
   const [guardando, setGuardando] = useState(false);
   const [pendiente, setPendiente] = useState<string | null>(null);
 
+  // Los capitanes tienen las multas dobles (x2): sus puntos se multiplican al registrarlas.
+  const esCapitan = !!jugadoresPorId.get(jugadorId)?.es_capitan;
+  const factor = esCapitan ? 2 : 1;
   const esOtra = normaSel === NORMA_OTRA;
   const normaElegida = normas.find(
     (n) => `${n.categoria}::${n.texto}` === normaSel,
@@ -92,12 +95,19 @@ export function MultasPanel() {
       ? "generales"
       : (normaSel.split("::")[0] as CategoriaNorma);
     const norma = esOtra ? normaLibre.trim() : (normaElegida?.texto ?? "");
-    const puntos = esOtra ? Number(puntosLibre) : (normaElegida?.puntos ?? 1);
+    const puntosBase = esOtra ? Number(puntosLibre) : (normaElegida?.puntos ?? 1);
+    const puntos = puntosBase * factor;
 
     if (!norma) return;
 
     setGuardando(true);
-    const result = await crearMultaLocal({ jugador_id: jugadorId, categoria, norma, puntos });
+    const result = await crearMultaLocal({
+      jugador_id: jugadorId,
+      categoria,
+      norma,
+      puntos,
+      ...(esCapitan ? { notas: "Capitán: x2" } : {}),
+    });
     setGuardando(false);
 
     if ("error" in result) {
@@ -126,7 +136,7 @@ export function MultasPanel() {
   function nombreJugador(id: string) {
     const j = jugadoresPorId.get(id);
     if (!j) return "?";
-    return `${j.dorsal != null ? `${j.dorsal} · ` : ""}${j.nombre} ${j.apellidos}`;
+    return `${j.dorsal != null ? `${j.dorsal} · ` : ""}${j.nombre} ${j.apellidos}${j.es_capitan ? " (C)" : ""}`;
   }
 
   return (
@@ -146,7 +156,7 @@ export function MultasPanel() {
                   {(value) => {
                     const j = jugadoresPorId.get(value as string);
                     if (!j) return "Jugador";
-                    return `${j.dorsal != null ? `${j.dorsal} · ` : ""}${j.nombre} ${j.apellidos}`;
+                    return `${j.dorsal != null ? `${j.dorsal} · ` : ""}${j.nombre} ${j.apellidos}${j.es_capitan ? " (C) x2" : ""}`;
                   }}
                 </SelectValue>
               </SelectTrigger>
@@ -155,6 +165,7 @@ export function MultasPanel() {
                   <SelectItem key={j.id} value={j.id}>
                     {j.dorsal != null ? `${j.dorsal} · ` : ""}
                     {j.nombre} {j.apellidos}
+                    {j.es_capitan ? " (C) x2" : ""}
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -181,7 +192,8 @@ export function MultasPanel() {
                         key={`${n.categoria}::${n.texto}`}
                         value={`${n.categoria}::${n.texto}`}
                       >
-                        {n.texto} ({n.puntos} pt{n.puntos > 1 ? "s" : ""})
+                        {n.texto} ({n.puntos} pt{n.puntos > 1 ? "s" : ""}
+                        {esCapitan ? ` x2 = ${n.puntos * 2} pts` : ""})
                       </SelectItem>
                     ))}
                   </SelectGroup>
@@ -194,6 +206,11 @@ export function MultasPanel() {
             </Select>
           </div>
 
+          {esCapitan && (
+            <p className="text-xs font-semibold text-destructive">
+              Capitán: la multa cuenta doble (x2).
+            </p>
+          )}
           {esOtra && (
             <div className="flex gap-2">
               <Input

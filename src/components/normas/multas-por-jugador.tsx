@@ -153,6 +153,7 @@ export function MultasPorJugador() {
                     {jugador.dorsal != null ? `${jugador.dorsal} · ` : ""}
                     {jugador.nombre} {jugador.apellidos}
                   </p>
+                  {jugador.es_capitan && <Badge>Capitán · x2</Badge>}
                   {pendientes > 0 && (
                     <Badge
                       variant="outline"
