@@ -1,10 +1,10 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useLiveQuery } from "dexie-react-hooks";
-import { ChevronLeft, Users, LayoutGrid, ListOrdered } from "lucide-react";
+import { ChevronLeft, Users, LayoutGrid, ListOrdered, Crosshair } from "lucide-react";
 import { localDb } from "@/lib/db/local-db";
 import { calcularOnceFinal } from "@/lib/alineacion-final";
 import {
@@ -15,10 +15,12 @@ import { cn } from "@/lib/utils";
 import { ConvocatoriaList } from "@/components/partidos/convocatoria-list";
 import { AlineacionCampo } from "@/components/partidos/alineacion-campo";
 import { EventosList } from "@/components/partidos/eventos-list";
+import { AbpPartido } from "@/components/partidos/abp-partido";
 
 const VISTAS = [
   { value: "convocatoria", label: "Convocatoria", icon: Users },
   { value: "alineacion", label: "Alineación", icon: LayoutGrid },
+  { value: "abp", label: "ABP", icon: Crosshair },
   { value: "eventos", label: "Eventos", icon: ListOrdered },
 ] as const;
 
@@ -27,6 +29,12 @@ type Vista = (typeof VISTAS)[number]["value"];
 export default function DiaPartidoPage() {
   const { id } = useParams<{ id: string }>();
   const [vista, setVista] = useState<Vista>("convocatoria");
+
+  // Al volver del editor de una jugada de ABP se abre directamente esa pestaña.
+  useEffect(() => {
+    const v = new URLSearchParams(window.location.search).get("vista");
+    if (v === "abp") queueMicrotask(() => setVista("abp"));
+  }, []);
 
   const partido = useLiveQuery(
     async () => (await localDb.partidos.get(id)) ?? null,
@@ -157,7 +165,7 @@ export default function DiaPartidoPage() {
       </Link>
       <h1 className="text-2xl font-semibold">Día de partido vs {partido.rival}</h1>
 
-      <div className="grid grid-cols-3 gap-2">
+      <div className="grid grid-cols-4 gap-2">
         {VISTAS.map((v) => (
           <button
             key={v.value}
@@ -219,6 +227,10 @@ export default function DiaPartidoPage() {
             />
           </div>
         )}
+      </div>
+
+      <div className={cn(vista !== "abp" && "hidden")}>
+        <AbpPartido partidoId={id} volverA={`/partidos/${id}/dia?vista=abp`} />
       </div>
 
       <div className={cn(vista !== "eventos" && "hidden")}>

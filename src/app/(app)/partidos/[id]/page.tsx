@@ -179,18 +179,6 @@ export default function FichaPartidoPage() {
 
   const secciones = [
     {
-      href: `/partidos/${id}/abp`,
-      icon: Crosshair,
-      label: "ABP",
-      estado: abpCount > 0 ? `${abpCount} ${abpCount === 1 ? "jugada" : "jugadas"}` : "Sin crear",
-    },
-    {
-      href: `/plan-partido/hoja/${id}`,
-      icon: FileText,
-      label: "Hoja de partido",
-      estado: hojaRellena ? "Rellenada" : "Sin rellenar",
-    },
-    {
       href: `/partidos/${id}/convocatoria`,
       icon: Users,
       label: "Convocatoria",
@@ -201,6 +189,18 @@ export default function FichaPartidoPage() {
       icon: LayoutGrid,
       label: "Alineación",
       estado: titularesCount > 0 ? "Definida" : "Sin definir",
+    },
+    {
+      href: `/partidos/${id}/abp`,
+      icon: Crosshair,
+      label: "ABP",
+      estado: abpCount > 0 ? `${abpCount} ${abpCount === 1 ? "jugada" : "jugadas"}` : "Sin crear",
+    },
+    {
+      href: `/plan-partido/hoja/${id}`,
+      icon: FileText,
+      label: "Hoja de partido",
+      estado: hojaRellena ? "Rellenada" : "Sin rellenar",
     },
     {
       href: `/partidos/${id}/cambios`,

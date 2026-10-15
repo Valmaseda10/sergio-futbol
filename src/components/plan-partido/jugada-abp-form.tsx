@@ -84,7 +84,12 @@ export function JugadaAbpForm({
   // Una jugada de un partido solo deja elegir a los de su convocatoria y alineación.
   const partidoFijo = jugada?.partido_id ?? undefined;
   const sync = usePartidoAbp(partidoFijo);
-  const volverA = partidoFijo ? `/partidos/${partidoFijo}` : "/plan-partido/abp";
+  // Una jugada de un partido vuelve a la página desde la que se abrió (ficha o modo día).
+  const volverA = () => {
+    if (!partidoFijo) return "/plan-partido/abp";
+    const origen = new URLSearchParams(window.location.search).get("volver");
+    return origen && origen.startsWith("/partidos/") ? origen : `/partidos/${partidoFijo}`;
+  };
   const jugadoresDelPartido = partidoFijo && sync.estados.size > 0
     ? jugadores.filter((j) => sync.estados.has(j.id))
     : jugadores;
@@ -129,7 +134,7 @@ export function JugadaAbpForm({
       return;
     }
     toast.success("Jugada guardada");
-    router.push(volverA);
+    router.push(volverA());
   }
 
   return (
@@ -318,7 +323,7 @@ export function JugadaAbpForm({
         <Button
           type="button"
           variant="outline"
-          onClick={() => router.push(volverA)}
+          onClick={() => router.push(volverA())}
           disabled={guardando}
         >
           Cancelar

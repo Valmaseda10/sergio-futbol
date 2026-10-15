@@ -21,7 +21,15 @@ import {
 } from "@/app/(app)/plan-partido/local-actions";
 import { FASES_ABP, TIPOS_ABP, leerDiagramaAbp, tipoDeJugada } from "@/lib/plan-partido";
 
-export function AbpPartido({ partidoId }: { partidoId: string }) {
+export function AbpPartido({
+  partidoId,
+  volverA,
+}: {
+  partidoId: string;
+  /** Página a la que vuelve el editor de la jugada (por defecto, la ficha del partido). */
+  volverA?: string;
+}) {
+  const sufijo = volverA ? `?volver=${encodeURIComponent(volverA)}` : "";
   const router = useRouter();
   const todas = useLiveQuery(
     () =>
@@ -41,7 +49,7 @@ export function AbpPartido({ partidoId }: { partidoId: string }) {
     // Si ya hay una para este partido, se abre en vez de crear otra.
     const existente = delPartido.find((j) => j.origen_id === origenId);
     if (existente) {
-      router.push(`/plan-partido/abp/${existente.id}/editar`);
+      router.push(`/plan-partido/abp/${existente.id}/editar${sufijo}`);
       return;
     }
     setCreando(true);
@@ -51,7 +59,7 @@ export function AbpPartido({ partidoId }: { partidoId: string }) {
       toast.error(resultado.error);
       return;
     }
-    router.push(`/plan-partido/abp/${resultado.id}/editar`);
+    router.push(`/plan-partido/abp/${resultado.id}/editar${sufijo}`);
   }
 
   async function borrar(id: string, nombre: string) {
@@ -150,7 +158,7 @@ export function AbpPartido({ partidoId }: { partidoId: string }) {
                   )}
                   <div className="flex gap-1">
                     <Link
-                      href={`/plan-partido/abp/${j.id}/editar`}
+                      href={`/plan-partido/abp/${j.id}/editar${sufijo}`}
                       className={buttonVariants({ size: "sm", variant: "outline", className: "h-7 flex-1 px-2 text-xs" })}
                     >
                       <Pencil className="size-3" />
