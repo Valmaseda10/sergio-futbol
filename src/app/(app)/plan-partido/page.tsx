@@ -7,7 +7,11 @@ import { Card, CardContent } from "@/components/ui/card";
 import { localDb } from "@/lib/db/local-db";
 
 export default function PlanPartidoPage() {
-  const jugadas = useLiveQuery(() => localDb.jugadas_abp.count(), [], 0);
+  const jugadas = useLiveQuery(
+    () => localDb.jugadas_abp.filter((j) => !j.partido_id).count(),
+    [],
+    0,
+  );
   const hojas = useLiveQuery(() => localDb.hojas_partido.count(), [], 0);
 
   return (

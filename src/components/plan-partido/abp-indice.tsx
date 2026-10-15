@@ -40,6 +40,7 @@ export function AbpIndice() {
   const todas = useLiveQuery(
     () =>
       localDb.jugadas_abp
+        .filter((j) => !j.partido_id)
         .toArray()
         .then((rows) =>
           rows.sort(

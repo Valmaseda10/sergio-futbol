@@ -1,28 +1,29 @@
 "use client";
 
-// ABP del partido: se eligen, de las jugadas de Plan de partido → ABP, las que se van
-// a trabajar o a usar contra este rival. La elección se guarda sola con la hoja de
-// partido (hojas_partido.datos.abp_jugadas) y desde aquí se imprimen de dos en dos.
+// ABP del partido: se elige una jugada de la biblioteca (Plan de partido → ABP) y la app
+// la crea para este partido con la convocatoria y la alineación (titulares y suplentes)
+// para colocar a cada jugador. La jugada del partido se guarda aparte y no cambia la de la
+// biblioteca; desde aquí se editan, se borran y se imprimen de dos en dos.
 
 import { useMemo, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useLiveQuery } from "dexie-react-hooks";
-import { FileDown } from "lucide-react";
+import { FileDown, Pencil, Trash2 } from "lucide-react";
+import { toast } from "sonner";
+import { Button, buttonVariants } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { buttonVariants } from "@/components/ui/button";
 import { localDb } from "@/lib/db/local-db";
 import { diagramaASvg } from "@/lib/ficha-entrenamiento";
-import { guardarAbpPartidoLocal } from "@/app/(app)/plan-partido/local-actions";
 import {
-  FASES_ABP,
-  TIPOS_ABP,
-  leerDiagramaAbp,
-  leerHoja,
-  tipoDeJugada,
-} from "@/lib/plan-partido";
+  crearJugadaAbpParaPartidoLocal,
+  eliminarJugadaAbpLocal,
+} from "@/app/(app)/plan-partido/local-actions";
+import { FASES_ABP, TIPOS_ABP, leerDiagramaAbp, tipoDeJugada } from "@/lib/plan-partido";
 
 export function AbpPartido({ partidoId }: { partidoId: string }) {
-  const jugadas = useLiveQuery(
+  const router = useRouter();
+  const todas = useLiveQuery(
     () =>
       localDb.jugadas_abp
         .toArray()
@@ -32,26 +33,30 @@ export function AbpPartido({ partidoId }: { partidoId: string }) {
     [],
     [],
   );
-  const hoja = useLiveQuery(
-    async () =>
-      (await localDb.hojas_partido.where("partido_id").equals(partidoId).first()) ?? null,
-    [partidoId],
-  );
-  const guardadas = useMemo(
-    () => (hoja ? leerHoja(hoja.datos).abp_jugadas : []),
-    [hoja],
-  );
-  const [guardando, setGuardando] = useState(false);
+  const biblioteca = useMemo(() => todas.filter((j) => !j.partido_id), [todas]);
+  const delPartido = useMemo(() => todas.filter((j) => j.partido_id === partidoId), [todas, partidoId]);
+  const [creando, setCreando] = useState(false);
 
-  const elegidas = guardadas.filter((id) => jugadas.some((j) => j.id === id));
+  async function elegir(origenId: string) {
+    // Si ya hay una para este partido, se abre en vez de crear otra.
+    const existente = delPartido.find((j) => j.origen_id === origenId);
+    if (existente) {
+      router.push(`/plan-partido/abp/${existente.id}/editar`);
+      return;
+    }
+    setCreando(true);
+    const resultado = await crearJugadaAbpParaPartidoLocal(origenId, partidoId);
+    setCreando(false);
+    if ("error" in resultado) {
+      toast.error(resultado.error);
+      return;
+    }
+    router.push(`/plan-partido/abp/${resultado.id}/editar`);
+  }
 
-  async function alternar(id: string) {
-    const siguiente = guardadas.includes(id)
-      ? guardadas.filter((x) => x !== id)
-      : [...guardadas, id];
-    setGuardando(true);
-    await guardarAbpPartidoLocal(partidoId, siguiente);
-    setGuardando(false);
+  async function borrar(id: string, nombre: string) {
+    if (!window.confirm(`¿Quitar "${nombre}" de este partido?`)) return;
+    await eliminarJugadaAbpLocal(id);
   }
 
   return (
@@ -60,12 +65,12 @@ export function AbpPartido({ partidoId }: { partidoId: string }) {
         <CardTitle className="text-base">
           ABP del partido{" "}
           <span className="text-sm font-normal text-muted-foreground">
-            ({elegidas.length} {elegidas.length === 1 ? "jugada" : "jugadas"})
+            ({delPartido.length} {delPartido.length === 1 ? "jugada" : "jugadas"})
           </span>
         </CardTitle>
-        {elegidas.length > 0 && (
+        {delPartido.length > 0 && (
           <Link
-            href={`/plan-partido/abp/imprimir?ids=${elegidas.join(",")}`}
+            href={`/plan-partido/abp/imprimir?ids=${delPartido.map((j) => j.id).join(",")}`}
             className={buttonVariants({ size: "sm", variant: "outline" })}
           >
             <FileDown className="size-4" />
@@ -74,7 +79,13 @@ export function AbpPartido({ partidoId }: { partidoId: string }) {
         )}
       </CardHeader>
       <CardContent className="space-y-4">
-        {jugadas.length === 0 ? (
+        <p className="text-xs text-muted-foreground">
+          Elige una jugada y se abre lista para colocar a los jugadores de la convocatoria y la
+          alineación de este partido (titulares en verde, suplentes en rojo). La jugada de la
+          biblioteca no cambia.
+        </p>
+
+        {biblioteca.length === 0 ? (
           <p className="text-sm text-muted-foreground">
             Todavía no hay jugadas.{" "}
             <Link href="/plan-partido/abp" className="font-medium underline">
@@ -84,28 +95,28 @@ export function AbpPartido({ partidoId }: { partidoId: string }) {
           </p>
         ) : (
           TIPOS_ABP.map((tipo) => {
-            const delTipo = jugadas.filter((j) => tipoDeJugada(j.tipo) === tipo.value);
+            const delTipo = biblioteca.filter((j) => tipoDeJugada(j.tipo) === tipo.value);
             if (delTipo.length === 0) return null;
             return (
               <div key={tipo.value} className="space-y-1.5">
                 <p className="text-xs font-medium text-muted-foreground">{tipo.plural}</p>
                 <div className="flex flex-wrap gap-1.5">
                   {delTipo.map((j) => {
-                    const activa = guardadas.includes(j.id);
+                    const hecha = delPartido.some((x) => x.origen_id === j.id);
                     const color = FASES_ABP.find((f) => f.value === j.fase)?.color;
                     return (
                       <button
                         key={j.id}
                         type="button"
-                        aria-pressed={activa}
-                        disabled={guardando}
-                        onClick={() => void alternar(j.id)}
+                        disabled={creando}
+                        onClick={() => void elegir(j.id)}
                         className={`rounded-full border px-2.5 py-1 text-xs font-medium disabled:opacity-60 ${
-                          activa
+                          hecha
                             ? "border-primary bg-primary text-primary-foreground"
                             : "border-input bg-background hover:bg-muted"
                         }`}
-                        style={activa ? undefined : { color }}
+                        style={hecha ? undefined : { color }}
+                        title={hecha ? "Ya está en este partido: toca para editarla" : "Crear para este partido"}
                       >
                         {j.nombre}
                       </button>
@@ -117,18 +128,13 @@ export function AbpPartido({ partidoId }: { partidoId: string }) {
           })
         )}
 
-        {elegidas.length > 0 && (
+        {delPartido.length > 0 && (
           <div className="grid grid-cols-2 gap-2 border-t pt-3 sm:grid-cols-3">
-            {elegidas.map((id) => {
-              const j = jugadas.find((x) => x.id === id)!;
+            {delPartido.map((j) => {
               const diagrama = leerDiagramaAbp(j.diagrama);
               const color = FASES_ABP.find((f) => f.value === j.fase)?.color ?? "#111111";
               return (
-                <Link
-                  key={id}
-                  href={`/plan-partido/abp/${id}`}
-                  className="min-w-0 space-y-1 rounded-md border p-1.5 hover:bg-muted/50"
-                >
+                <div key={j.id} className="min-w-0 space-y-1 rounded-md border p-1.5">
                   <p className="truncate text-[11px] font-bold uppercase" style={{ color }}>
                     {j.nombre}
                   </p>
@@ -142,7 +148,26 @@ export function AbpPartido({ partidoId }: { partidoId: string }) {
                   ) : (
                     <p className="text-[10px] text-muted-foreground">Sin dibujo</p>
                   )}
-                </Link>
+                  <div className="flex gap-1">
+                    <Link
+                      href={`/plan-partido/abp/${j.id}/editar`}
+                      className={buttonVariants({ size: "sm", variant: "outline", className: "h-7 flex-1 px-2 text-xs" })}
+                    >
+                      <Pencil className="size-3" />
+                      Editar
+                    </Link>
+                    <Button
+                      type="button"
+                      size="icon"
+                      variant="ghost"
+                      className="size-7 text-destructive"
+                      aria-label="Quitar del partido"
+                      onClick={() => void borrar(j.id, j.nombre)}
+                    >
+                      <Trash2 className="size-3.5" />
+                    </Button>
+                  </div>
+                </div>
               );
             })}
           </div>

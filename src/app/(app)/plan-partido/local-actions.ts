@@ -13,7 +13,9 @@ import {
   fechaHoja,
   hojaAJson,
   hojaVacia,
+  leerDiagramaAbp,
   leerHoja,
+  leerJugadoresAbp,
   ponerNuestroEquipoEn,
   NUM_SUPLENTES,
   NUM_TITULARES,
@@ -58,8 +60,10 @@ export async function crearJugadaAbpLocal(
     diagrama: datos.diagrama ? json(datos.diagrama) : null,
     jugadores: json(datos.jugadores),
     notas: datos.notas.trim() || null,
-    orden: Math.max(0, ...existentes.map((j) => j.orden)) + 1,
+    orden: Math.max(0, ...existentes.filter((j) => !j.partido_id).map((j) => j.orden)) + 1,
     created_at: new Date().toISOString(),
+    partido_id: null,
+    origen_id: null,
   };
   await localDb.jugadas_abp.put(row);
   await queueMutation("jugadas_abp", "insert", id, row);
@@ -204,14 +208,61 @@ export async function guardarHojaLocal(
   return { success: true };
 }
 
-/** Guarda qué jugadas de ABP se usan en un partido (dentro de su hoja de partido). */
-export async function guardarAbpPartidoLocal(
+/**
+ * Crea la jugada de ABP de un partido a partir de una de la biblioteca: copia el dibujo y
+ * quién hace qué, y deja solo a los jugadores de la convocatoria y la alineación de ese
+ * partido (los demás quedan sin asignar para elegirlos de nuevo).
+ */
+export async function crearJugadaAbpParaPartidoLocal(
+  origenId: string,
   partidoId: string,
-  ids: string[],
-): Promise<SimpleResult> {
-  const hoja = await obtenerOCrearHojaLocal(partidoId);
-  const datos = { ...leerHoja(hoja.datos), abp_jugadas: ids };
-  return guardarHojaLocal(hoja.id, datos);
+): Promise<ActionResult> {
+  const origen = await localDb.jugadas_abp.get(origenId);
+  if (!origen) return { error: "No se encuentra la jugada" };
+
+  const convocatoria = await localDb.convocatorias.where("partido_id").equals(partidoId).toArray();
+  const alineacion = await localDb.alineaciones.where("partido_id").equals(partidoId).toArray();
+  const permitidos = new Set<string>([
+    ...convocatoria.filter((c) => c.convocado).map((c) => c.jugador_id),
+    ...alineacion.flatMap((a) => (a.jugador_id ? [a.jugador_id] : [])),
+  ]);
+  // Sin convocatoria ni alineación todavía no se puede filtrar: se deja tal cual.
+  const vale = (id: string | null | undefined) => (!id ? null : permitidos.size === 0 || permitidos.has(id) ? id : null);
+
+  const diagrama = leerDiagramaAbp(origen.diagrama);
+  const diagramaCopia: Diagrama | null = diagrama
+    ? {
+        ...diagrama,
+        elementos: diagrama.elementos.map((e) => ({
+          ...e,
+          jugador_id: vale(e.jugador_id),
+          jugador2_id: vale(e.jugador2_id),
+        })),
+      }
+    : null;
+  const filas = leerJugadoresAbp(origen.jugadores).map((f) => ({
+    ...f,
+    jugador_id: vale(f.jugador_id),
+    jugador2_id: vale(f.jugador2_id),
+  }));
+
+  const id = crypto.randomUUID();
+  const row: LocalJugadaAbp = {
+    id,
+    nombre: origen.nombre,
+    fase: origen.fase,
+    tipo: origen.tipo,
+    diagrama: diagramaCopia ? json(diagramaCopia) : null,
+    jugadores: json(filas),
+    notas: origen.notas,
+    orden: origen.orden,
+    created_at: new Date().toISOString(),
+    partido_id: partidoId,
+    origen_id: origenId,
+  };
+  await localDb.jugadas_abp.put(row);
+  await queueMutation("jugadas_abp", "insert", id, row);
+  return { success: true, id };
 }
 
 export { leerHoja };

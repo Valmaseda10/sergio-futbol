@@ -61,9 +61,12 @@ export function OpcionesJugador({
 export function SincronizarPartido({
   sync,
   jugadores,
+  fijo = false,
 }: {
   sync: PartidoAbp;
   jugadores: OpcionJugador[];
+  /** El partido viene dado (jugada de un partido): sin selector, solo titulares y suplentes. */
+  fijo?: boolean;
 }) {
   const grupo = (estado: EstadoPartido) =>
     jugadores.filter((j) => sync.estados.get(j.id) === estado);
@@ -73,6 +76,11 @@ export function SincronizarPartido({
   return (
     <Card>
       <CardContent className="space-y-3 pt-6">
+        {fijo ? (
+          <p className="text-sm font-medium">
+            Jugadores de la convocatoria y la alineación de este partido
+          </p>
+        ) : (
         <div className="space-y-2">
           <Label htmlFor="partido-abp">Partido (para ver titulares y suplentes)</Label>
           <select
@@ -89,6 +97,7 @@ export function SincronizarPartido({
             ))}
           </select>
         </div>
+        )}
         {sync.partidoId &&
           (titulares.length + suplentes.length === 0 ? (
             <p className="text-xs text-muted-foreground">

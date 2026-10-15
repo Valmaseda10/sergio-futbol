@@ -20,6 +20,7 @@ export function AbpJugadasPicker({
   const jugadas = useLiveQuery(
     () =>
       localDb.jugadas_abp
+        .filter((j) => !j.partido_id)
         .toArray()
         .then((rows) =>
           rows.sort((a, b) => a.orden - b.orden || a.created_at.localeCompare(b.created_at)),

@@ -25,7 +25,7 @@ export interface PartidoAbp {
   estados: Map<string, EstadoPartido>;
 }
 
-export function usePartidoAbp(): PartidoAbp {
+export function usePartidoAbp(partidoFijo?: string): PartidoAbp {
   const partidos = useLiveQuery(() => localDb.partidos.orderBy("fecha").toArray(), [], []);
   const [elegido, setElegido] = useState<string | null>(null);
 
@@ -33,7 +33,11 @@ export function usePartidoAbp(): PartidoAbp {
     const hoy = hoyIso();
     return partidos.find((p) => p.fecha >= hoy) ?? partidos[partidos.length - 1] ?? null;
   }, [partidos]);
-  const partidoId = elegido === null ? (porDefecto?.id ?? null) : elegido || null;
+  const partidoId = partidoFijo
+    ? partidoFijo
+    : elegido === null
+      ? (porDefecto?.id ?? null)
+      : elegido || null;
 
   const alineaciones = useLiveQuery(
     () =>

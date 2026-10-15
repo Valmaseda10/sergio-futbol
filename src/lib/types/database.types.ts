@@ -1102,6 +1102,8 @@ export interface Database {
           notas: string | null;
           orden: number;
           created_at: string;
+          partido_id: string | null;
+          origen_id: string | null;
         };
         Insert: {
           id?: string;
@@ -1113,6 +1115,8 @@ export interface Database {
           notas?: string | null;
           orden?: number;
           created_at?: string;
+          partido_id?: string | null;
+          origen_id?: string | null;
         };
         Update: Partial<Database["public"]["Tables"]["jugadas_abp"]["Insert"]>;
         Relationships: [];

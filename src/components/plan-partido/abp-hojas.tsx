@@ -19,7 +19,7 @@ const POR_PAGINA = 2;
 
 export function AbpHojas({ tipo, ids }: { tipo?: TipoAbp; ids?: string[] }) {
   const contenedorRef = useRef<HTMLDivElement>(null);
-  const todas = useLiveQuery(
+  const todasLasFilas = useLiveQuery(
     () =>
       localDb.jugadas_abp
         .toArray()
@@ -30,6 +30,14 @@ export function AbpHojas({ tipo, ids }: { tipo?: TipoAbp; ids?: string[] }) {
         ),
     [],
     [],
+  );
+  // Con unas jugadas ya elegidas (las de un partido) solo se ven esas; si no, la biblioteca.
+  const todas = useMemo(
+    () =>
+      ids && ids.length > 0
+        ? todasLasFilas.filter((j) => ids.includes(j.id))
+        : todasLasFilas.filter((j) => !j.partido_id),
+    [todasLasFilas, ids],
   );
   const jugadores = useLiveQuery(() => localDb.jugadores.toArray(), [], []);
   const porId = useMemo(() => new Map(jugadores.map((j) => [j.id, j])), [jugadores]);

@@ -81,8 +81,14 @@ export function JugadaAbpForm({
   );
 
   // Partido con el que se sincroniza: titulares en verde y suplentes en rojo.
-  const sync = usePartidoAbp();
-  const opcionesJugadores = jugadores.map((j) => ({
+  // Una jugada de un partido solo deja elegir a los de su convocatoria y alineación.
+  const partidoFijo = jugada?.partido_id ?? undefined;
+  const sync = usePartidoAbp(partidoFijo);
+  const volverA = partidoFijo ? `/partidos/${partidoFijo}` : "/plan-partido/abp";
+  const jugadoresDelPartido = partidoFijo && sync.estados.size > 0
+    ? jugadores.filter((j) => sync.estados.has(j.id))
+    : jugadores;
+  const opcionesJugadores = jugadoresDelPartido.map((j) => ({
     id: j.id,
     nombre: `${j.alias || j.nombre} ${j.apellidos}`,
   }));
@@ -123,7 +129,7 @@ export function JugadaAbpForm({
       return;
     }
     toast.success("Jugada guardada");
-    router.push("/plan-partido/abp");
+    router.push(volverA);
   }
 
   return (
@@ -184,7 +190,7 @@ export function JugadaAbpForm({
         </CardContent>
       </Card>
 
-      <SincronizarPartido sync={sync} jugadores={opcionesJugadores} />
+      <SincronizarPartido sync={sync} jugadores={opcionesJugadores} fijo={!!partidoFijo} />
 
       <Card>
         <CardContent className="space-y-3 pt-6">
@@ -312,7 +318,7 @@ export function JugadaAbpForm({
         <Button
           type="button"
           variant="outline"
-          onClick={() => router.push("/plan-partido/abp")}
+          onClick={() => router.push(volverA)}
           disabled={guardando}
         >
           Cancelar
@@ -326,7 +332,7 @@ export function JugadaAbpForm({
           numeroTarea={0}
           titulo="Dibujo de la jugada"
           camisetas
-          jugadores={jugadores.map((j) => ({
+          jugadores={jugadoresDelPartido.map((j) => ({
             id: j.id,
             nombre: (j.alias || j.nombre).toUpperCase(),
             pierna_dominante: j.pierna_dominante,

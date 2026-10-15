@@ -48,8 +48,14 @@ export default function JugadaAbpPage() {
 
   const tipo = jugada ? tipoDeJugada(jugada.tipo) : null;
   const hermanas = useMemo(
-    () => (tipo ? todas.filter((j) => tipoDeJugada(j.tipo) === tipo) : []),
-    [todas, tipo],
+    () =>
+      tipo
+        ? todas.filter(
+            (j) =>
+              tipoDeJugada(j.tipo) === tipo && (j.partido_id ?? null) === (jugada?.partido_id ?? null),
+          )
+        : [],
+    [todas, tipo, jugada?.partido_id],
   );
 
   if (jugada === undefined) {
