@@ -17,7 +17,7 @@ import { FASES_ABP, TIPOS_ABP, tipoDeJugada, type TipoAbp } from "@/lib/plan-par
 
 const POR_PAGINA = 2;
 
-export function AbpHojas({ tipo }: { tipo?: TipoAbp }) {
+export function AbpHojas({ tipo, ids }: { tipo?: TipoAbp; ids?: string[] }) {
   const contenedorRef = useRef<HTMLDivElement>(null);
   const todas = useLiveQuery(
     () =>
@@ -49,8 +49,10 @@ export function AbpHojas({ tipo }: { tipo?: TipoAbp }) {
   const seleccion = useMemo(
     () =>
       elegidas ??
-      new Set(todas.filter((j) => !tipo || tipoDeJugada(j.tipo) === tipo).map((j) => j.id)),
-    [elegidas, todas, tipo],
+      (ids && ids.length > 0
+        ? new Set(ids)
+        : new Set(todas.filter((j) => !tipo || tipoDeJugada(j.tipo) === tipo).map((j) => j.id))),
+    [elegidas, todas, tipo, ids],
   );
 
   function cambiar(ids: string[], marcar: boolean) {

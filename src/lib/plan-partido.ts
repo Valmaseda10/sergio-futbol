@@ -146,6 +146,8 @@ export interface HojaPartidoDatos {
   nuestro_lado: LadoHoja;
   cambios: string[]; // 5 filas x 2 columnas, por filas
   analisis: AnalisisHoja;
+  // Jugadas de ABP (ids de `jugadas_abp`) elegidas para este partido.
+  abp_jugadas: string[];
 }
 
 export const NUM_TITULARES = 11;
@@ -187,6 +189,7 @@ export function hojaVacia(): HojaPartidoDatos {
       abp_ofensivo: "",
       observaciones: "",
     },
+    abp_jugadas: [],
   };
 }
 
@@ -213,6 +216,9 @@ export function leerHoja(json: Json | null | undefined): HojaPartidoDatos {
     nuestro_lado: d.nuestro_lado === "izquierda" ? "izquierda" : "derecha",
     cambios: ajustar(d.cambios, FILAS_CAMBIOS * 2),
     analisis: { ...v.analisis, ...d.analisis },
+    abp_jugadas: Array.isArray(d.abp_jugadas)
+      ? d.abp_jugadas.filter((x): x is string => typeof x === "string")
+      : [],
   };
 }
 

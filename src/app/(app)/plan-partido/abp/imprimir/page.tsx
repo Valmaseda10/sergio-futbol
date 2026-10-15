@@ -8,7 +8,10 @@ import { AbpHojas } from "@/components/plan-partido/abp-hojas";
 import { TIPOS_ABP } from "@/lib/plan-partido";
 
 function Contenido() {
-  const tipoParam = useSearchParams().get("tipo");
+  const params = useSearchParams();
+  const tipoParam = params.get("tipo");
+  // Jugadas ya elegidas (las ABP de un partido): ?ids=id1,id2,...
+  const ids = params.get("ids")?.split(",").filter(Boolean);
   const tipo = TIPOS_ABP.find((t) => t.value === tipoParam)?.value;
   return (
     <div className="space-y-3">
@@ -24,7 +27,7 @@ function Contenido() {
           Imprimir ABP{tipo ? ` · ${TIPOS_ABP.find((t) => t.value === tipo)?.plural}` : ""}
         </h1>
       </div>
-      <AbpHojas tipo={tipo} />
+      <AbpHojas tipo={tipo} ids={ids} />
     </div>
   );
 }

@@ -17,6 +17,7 @@ import {
   Video,
   PlayCircle,
   Tag,
+  FileText,
 } from "lucide-react";
 import { localDb } from "@/lib/db/local-db";
 import { capitalizarPrimera } from "@/lib/date";
@@ -28,6 +29,8 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { EliminarPartidoButton } from "@/components/partidos/eliminar-partido-button";
 import { ResumenGoles } from "@/components/partidos/resumen-goles";
+import { AbpPartido } from "@/components/partidos/abp-partido";
+import { leerHoja } from "@/lib/plan-partido";
 import { FechaTile } from "@/components/ui/fecha-tile";
 
 function formatearFecha(fecha: string) {
@@ -64,6 +67,10 @@ export default function FichaPartidoPage() {
 
   const partido = useLiveQuery(
     async () => (await localDb.partidos.get(id)) ?? null,
+    [id],
+  );
+  const hojaPartido = useLiveQuery(
+    async () => (await localDb.hojas_partido.where("partido_id").equals(id).first()) ?? null,
     [id],
   );
   const rivalScouting = useLiveQuery(
@@ -159,7 +166,19 @@ export default function FichaPartidoPage() {
       )
     : null;
 
+  const datosHoja = hojaPartido ? leerHoja(hojaPartido.datos) : null;
+  const hojaRellena =
+    !!datosHoja &&
+    ([...datosHoja.izquierda.titulares, ...datosHoja.derecha.titulares].some((t) => t.trim()) ||
+      Object.values(datosHoja.analisis).some((t) => t.trim()));
+
   const secciones = [
+    {
+      href: `/plan-partido/hoja/${id}`,
+      icon: FileText,
+      label: "Hoja de partido",
+      estado: hojaRellena ? "Rellenada" : "Sin rellenar",
+    },
     {
       href: `/partidos/${id}/convocatoria`,
       icon: Users,
@@ -315,6 +334,8 @@ export default function FichaPartidoPage() {
           </li>
         ))}
       </ul>
+
+      <AbpPartido partidoId={id} />
 
       <ResumenGoles partidoId={id} />
 

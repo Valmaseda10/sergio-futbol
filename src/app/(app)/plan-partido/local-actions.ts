@@ -204,4 +204,14 @@ export async function guardarHojaLocal(
   return { success: true };
 }
 
+/** Guarda qué jugadas de ABP se usan en un partido (dentro de su hoja de partido). */
+export async function guardarAbpPartidoLocal(
+  partidoId: string,
+  ids: string[],
+): Promise<SimpleResult> {
+  const hoja = await obtenerOCrearHojaLocal(partidoId);
+  const datos = { ...leerHoja(hoja.datos), abp_jugadas: ids };
+  return guardarHojaLocal(hoja.id, datos);
+}
+
 export { leerHoja };
