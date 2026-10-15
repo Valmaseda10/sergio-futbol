@@ -18,6 +18,7 @@ import {
   PlayCircle,
   Tag,
   FileText,
+  Crosshair,
 } from "lucide-react";
 import { localDb } from "@/lib/db/local-db";
 import { capitalizarPrimera } from "@/lib/date";
@@ -29,7 +30,6 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { EliminarPartidoButton } from "@/components/partidos/eliminar-partido-button";
 import { ResumenGoles } from "@/components/partidos/resumen-goles";
-import { AbpPartido } from "@/components/partidos/abp-partido";
 import { leerHoja } from "@/lib/plan-partido";
 import { FechaTile } from "@/components/ui/fecha-tile";
 
@@ -68,6 +68,11 @@ export default function FichaPartidoPage() {
   const partido = useLiveQuery(
     async () => (await localDb.partidos.get(id)) ?? null,
     [id],
+  );
+  const abpCount = useLiveQuery(
+    () => localDb.jugadas_abp.filter((j) => j.partido_id === id).count(),
+    [id],
+    0,
   );
   const hojaPartido = useLiveQuery(
     async () => (await localDb.hojas_partido.where("partido_id").equals(id).first()) ?? null,
@@ -173,6 +178,12 @@ export default function FichaPartidoPage() {
       Object.values(datosHoja.analisis).some((t) => t.trim()));
 
   const secciones = [
+    {
+      href: `/partidos/${id}/abp`,
+      icon: Crosshair,
+      label: "ABP",
+      estado: abpCount > 0 ? `${abpCount} ${abpCount === 1 ? "jugada" : "jugadas"}` : "Sin crear",
+    },
     {
       href: `/plan-partido/hoja/${id}`,
       icon: FileText,
@@ -334,8 +345,6 @@ export default function FichaPartidoPage() {
           </li>
         ))}
       </ul>
-
-      <AbpPartido partidoId={id} />
 
       <ResumenGoles partidoId={id} />
 
