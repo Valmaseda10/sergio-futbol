@@ -127,6 +127,18 @@ function descripcion(e: ElementoDiagrama): string {
   }
 }
 
+// Colores con los que se puede rellenar una zona (se ven con el campo debajo, a media opacidad).
+const COLORES_RELLENO: { valor: string; nombre: string }[] = [
+  { valor: "#facc15", nombre: "Amarillo" },
+  { valor: "#dc2626", nombre: "Rojo" },
+  { valor: "#2563eb", nombre: "Azul" },
+  { valor: "#16a34a", nombre: "Verde" },
+  { valor: "#f97316", nombre: "Naranja" },
+  { valor: "#9333ea", nombre: "Morado" },
+  { valor: "#ffffff", nombre: "Blanco" },
+  { valor: "#111111", nombre: "Negro" },
+];
+
 function nuevoId() {
   return crypto.randomUUID();
 }
@@ -165,6 +177,8 @@ export function DiagramaEditor({
   const [etiqueta, setEtiqueta] = useState("");
   const [discontinua, setDiscontinua] = useState(false);
   const [curvaNueva, setCurvaNueva] = useState(0);
+  // Color de relleno de las zonas nuevas ("" = solo el borde).
+  const [rellenoNuevo, setRellenoNuevo] = useState("");
   const [seleccionId, setSeleccionId] = useState<string | null>(null);
   const [borrador, setBorrador] = useState<ElementoDiagrama | null>(null);
   const [guardando, setGuardando] = useState(false);
@@ -272,7 +286,8 @@ export function DiagramaEditor({
         y: p.y,
         x2: p.x,
         y2: p.y,
-        color: herramienta === "zona" ? "#111111" : color,
+        color: herramienta === "zona" ? (rellenoNuevo || "#111111") : color,
+        relleno: herramienta === "zona" && rellenoNuevo ? rellenoNuevo : undefined,
         discontinua,
         curva: herramienta === "flecha" && curvaNueva ? curvaNueva : undefined,
       });
@@ -441,6 +456,35 @@ export function DiagramaEditor({
                 className="h-8 w-28"
                 maxLength={herramienta === "jugador" ? 3 : 40}
               />
+            </div>
+          )}
+          {herramienta === "zona" && (
+            <div className="flex flex-wrap items-center gap-1.5" role="group" aria-label="Relleno de la zona">
+              <span className="text-xs text-muted-foreground">Rellenar de</span>
+              <button
+                type="button"
+                onClick={() => setRellenoNuevo("")}
+                className={cn(
+                  "h-6 rounded-full border-2 px-2 text-[11px]",
+                  rellenoNuevo === "" ? "border-primary ring-2 ring-primary/40" : "border-border",
+                )}
+              >
+                Sin color
+              </button>
+              {COLORES_RELLENO.map((c) => (
+                <button
+                  key={c.valor}
+                  type="button"
+                  aria-label={`Rellenar de ${c.nombre}`}
+                  title={c.nombre}
+                  onClick={() => setRellenoNuevo(c.valor)}
+                  className={cn(
+                    "size-6 rounded-full border-2",
+                    rellenoNuevo === c.valor ? "border-primary ring-2 ring-primary/40" : "border-border",
+                  )}
+                  style={{ backgroundColor: c.valor }}
+                />
+              ))}
             </div>
           )}
           {herramienta === "flecha" && (
@@ -721,6 +765,54 @@ export function DiagramaEditor({
                       {o.t}
                     </Button>
                   ))}
+                </div>
+              )}
+              {seleccionado.tipo === "zona" && (
+                <div className="flex flex-wrap items-center gap-1.5" role="group" aria-label="Relleno de la zona">
+                  <span className="text-xs text-muted-foreground">Relleno</span>
+                  <button
+                    type="button"
+                    onClick={() => actualizarSeleccion({ relleno: undefined })}
+                    className={cn(
+                      "h-6 rounded-full border-2 px-2 text-[11px]",
+                      !seleccionado.relleno ? "border-primary ring-2 ring-primary/40" : "border-border",
+                    )}
+                  >
+                    Sin color
+                  </button>
+                  {COLORES_RELLENO.map((c) => (
+                    <button
+                      key={c.valor}
+                      type="button"
+                      aria-label={`Rellenar de ${c.nombre}`}
+                      title={c.nombre}
+                      onClick={() => actualizarSeleccion({ relleno: c.valor, color: c.valor })}
+                      className={cn(
+                        "size-6 rounded-full border-2",
+                        seleccionado.relleno === c.valor ? "border-primary ring-2 ring-primary/40" : "border-border",
+                      )}
+                      style={{ backgroundColor: c.valor }}
+                    />
+                  ))}
+                  {seleccionado.relleno && (
+                    <div className="flex items-center gap-1" role="group" aria-label="Intensidad del relleno">
+                      {[
+                        { v: 0.2, t: "Suave" },
+                        { v: 0.4, t: "Media" },
+                        { v: 0.7, t: "Fuerte" },
+                      ].map((o) => (
+                        <Button
+                          key={o.t}
+                          type="button"
+                          size="sm"
+                          variant={(seleccionado.opacidad ?? 0.4) === o.v ? "default" : "outline"}
+                          onClick={() => actualizarSeleccion({ opacidad: o.v })}
+                        >
+                          {o.t}
+                        </Button>
+                      ))}
+                    </div>
+                  )}
                 </div>
               )}
               {seleccionado.tipo === "zona" && (

@@ -49,6 +49,10 @@ export interface ElementoDiagrama {
   sinPunta?: boolean;
   // Zona con el borde continuo en vez de discontinuo.
   solida?: boolean;
+  // Zona coloreada por dentro: color del relleno (sin definir = solo el borde) y su opacidad
+  // (0 a 1; por defecto 0,4 para que se vea el campo debajo).
+  relleno?: string;
+  opacidad?: number;
   // Flecha curva con el punto de control dado (anula `curva`); lo usan los
   // pases curvos copiados del PowerPoint, que no son simétricos.
   cx?: number;
@@ -706,7 +710,9 @@ function elementoSvg(
       const y2 = e.y2 ?? e.y;
       return `<rect x="${Math.min(e.x, x2)}" y="${Math.min(e.y, y2)}" width="${Math.abs(
         x2 - e.x,
-      )}" height="${Math.abs(y2 - e.y)}" fill="none" stroke="${
+      )}" height="${Math.abs(y2 - e.y)}" fill="${e.relleno ?? "none"}"${
+        e.relleno ? ` fill-opacity="${e.opacidad ?? 0.4}"` : ""
+      } stroke="${
         e.color ?? "#111111"
       }" stroke-width="${(e.grosor ?? 2.5) * k}"${e.solida ? "" : ` stroke-dasharray="${8 * k} ${6 * k}"`}/>`;
     }
