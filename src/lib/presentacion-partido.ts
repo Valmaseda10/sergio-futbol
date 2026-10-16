@@ -23,8 +23,71 @@ export function hexTitulo(c: ColorTitulo | undefined): string {
   return COLORES_TITULO.find((x) => x.value === c)?.hex ?? "#ee1c25";
 }
 
+/** Caja de texto o recuadro colocado a mano sobre una diapositiva (coordenadas del lienzo 1920 x 1080). */
+export interface ElementoLibre {
+  id: string;
+  x: number;
+  y: number;
+  w: number;
+  h: number;
+  texto: string;
+  /** Tamaño de la letra en px del lienzo. */
+  tamano: number;
+  color: string;
+  negrita: boolean;
+  cursiva: boolean;
+  alinear: "left" | "center" | "right";
+  /** Color de fondo ("" = transparente). */
+  fondo: string;
+  /** Con borde del color de la letra. */
+  borde: boolean;
+}
+
+export function nuevoElementoLibre(parche?: Partial<ElementoLibre>): ElementoLibre {
+  return {
+    id: nuevoId(),
+    x: 560,
+    y: 420,
+    w: 800,
+    h: 160,
+    texto: "Escribe aquí",
+    tamano: 48,
+    color: "#111111",
+    negrita: false,
+    cursiva: false,
+    alinear: "left",
+    fondo: "",
+    borde: false,
+    ...parche,
+  };
+}
+
+function leerElementoLibre(crudo: unknown): ElementoLibre | null {
+  if (!crudo || typeof crudo !== "object") return null;
+  const e = crudo as Partial<ElementoLibre>;
+  const num = (v: unknown, def: number) => (typeof v === "number" && Number.isFinite(v) ? v : def);
+  const base = nuevoElementoLibre();
+  return {
+    id: typeof e.id === "string" ? e.id : base.id,
+    x: num(e.x, base.x),
+    y: num(e.y, base.y),
+    w: Math.max(40, num(e.w, base.w)),
+    h: Math.max(30, num(e.h, base.h)),
+    texto: typeof e.texto === "string" ? e.texto : "",
+    tamano: Math.min(300, Math.max(10, num(e.tamano, base.tamano))),
+    color: typeof e.color === "string" ? e.color : base.color,
+    negrita: !!e.negrita,
+    cursiva: !!e.cursiva,
+    alinear: e.alinear === "center" || e.alinear === "right" ? e.alinear : "left",
+    fondo: typeof e.fondo === "string" ? e.fondo : "",
+    borde: !!e.borde,
+  };
+}
+
 interface Base {
   id: string;
+  /** Cajas de texto y recuadros puestos a mano encima de la diapositiva. */
+  extras?: ElementoLibre[];
 }
 
 export interface DPortada extends Base {
@@ -109,7 +172,16 @@ export interface DAbp extends Base {
   columnas: number;
 }
 
+export interface DLibre extends Base {
+  tipo: "libre";
+  titulo: string;
+  color: ColorTitulo;
+  /** Con título arriba (como las demás) o sin cabecera, solo el fondo del club. */
+  conTitulo: boolean;
+}
+
 export type Diapositiva =
+  | DLibre
   | DPortada
   | DInforme
   | DTexto
@@ -124,6 +196,7 @@ export type Diapositiva =
 export type TipoDiapositiva = Diapositiva["tipo"];
 
 export const TIPOS_DIAPOSITIVA: { value: TipoDiapositiva; label: string; descripcion: string }[] = [
+  { value: "libre", label: "En blanco", descripcion: "Vacía, para escribir y colocar cajas de texto a tu manera" },
   { value: "pizarra", label: "Pizarra táctica", descripcion: "Campo dibujado con título y texto al pie" },
   { value: "texto", label: "Texto", descripcion: "Título y líneas de texto" },
   { value: "bloques", label: "Bloques (transiciones)", descripcion: "Varios bloques con cabecera de color, texto y dibujo" },
@@ -144,6 +217,8 @@ function nuevoId(): string {
 export function nuevaDiapositiva(tipo: TipoDiapositiva): Diapositiva {
   const id = nuevoId();
   switch (tipo) {
+    case "libre":
+      return { id, tipo, titulo: "", color: "rojo", conTitulo: false };
     case "portada":
       return {
         id,
@@ -276,6 +351,9 @@ export function leerPresentacion(json: Json | null | undefined): Diapositiva[] {
     if (!d.tipo || !TIPOS_CONOCIDOS.has(d.tipo)) continue;
     const base = nuevaDiapositiva(d.tipo as TipoDiapositiva);
     const mezcla = { ...base, ...d, id: d.id ?? base.id } as Diapositiva;
+    mezcla.extras = (Array.isArray(d.extras) ? d.extras : [])
+      .map(leerElementoLibre)
+      .filter((x): x is ElementoLibre => !!x);
     if (mezcla.tipo === "bloques" && Array.isArray((d as Partial<DBloques>).bloques)) {
       mezcla.bloques = ((d as Partial<DBloques>).bloques ?? []).map((b) => ({
         titulo: b?.titulo ?? "",
@@ -300,6 +378,8 @@ export function presentacionAJson(d: Diapositiva[]): Json {
 /** Nombre corto de una diapositiva para la lista de la izquierda. */
 export function resumenDiapositiva(d: Diapositiva): string {
   switch (d.tipo) {
+    case "libre":
+      return d.titulo || d.extras?.find((x) => x.texto.trim())?.texto.split(/\r?\n/)[0] || "En blanco";
     case "portada":
       return "Portada";
     case "informe":

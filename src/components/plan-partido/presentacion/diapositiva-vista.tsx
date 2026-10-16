@@ -14,6 +14,8 @@ import {
   type DAbp,
   type DBloques,
   type DInforme,
+  type DLibre,
+  type ElementoLibre,
   type DPizarra,
   type DPortada,
   type DTexto,
@@ -876,8 +878,55 @@ function Abp({ d, ctx }: { d: DAbp; ctx: ContextoPresentacion }) {
 
 // ---- Montaje ----------------------------------------------------------------
 
+/** Estilo de una caja de texto libre (el mismo en la vista, la impresión y el editor). */
+export function estiloElementoLibre(e: ElementoLibre): CSSProperties {
+  return {
+    ...TEXTO,
+    position: "absolute",
+    left: e.x,
+    top: e.y,
+    width: e.w,
+    height: e.h,
+    boxSizing: "border-box",
+    overflow: "hidden",
+    padding: e.fondo || e.borde ? "8px 14px" : 0,
+    fontSize: e.tamano,
+    lineHeight: 1.2,
+    color: e.color,
+    fontWeight: e.negrita ? 700 : 400,
+    fontStyle: e.cursiva ? "italic" : "normal",
+    textAlign: e.alinear,
+    background: e.fondo || "transparent",
+    border: e.borde ? `4px solid ${e.color}` : "none",
+    whiteSpace: "pre-wrap",
+    overflowWrap: "anywhere",
+  };
+}
+
+function Libre({ d, ctx }: { d: DLibre; ctx: ContextoPresentacion }) {
+  return (
+    <Marco d={d} ctx={ctx} sinCabecera={!d.conTitulo} color={hexTitulo(d.color)}>
+      {null}
+    </Marco>
+  );
+}
+
+function Extras({ extras }: { extras: ElementoLibre[] | undefined }) {
+  return (
+    <>
+      {(extras ?? []).map((e) => (
+        <div key={e.id} style={estiloElementoLibre(e)}>
+          {e.texto}
+        </div>
+      ))}
+    </>
+  );
+}
+
 function Contenido({ d, ctx }: { d: Diapositiva; ctx: ContextoPresentacion }) {
   switch (d.tipo) {
+    case "libre":
+      return <Libre d={d} ctx={ctx} />;
     case "portada":
       return <Portada d={d} ctx={ctx} />;
     case "informe":
@@ -918,6 +967,7 @@ export function Diapositiva1080({ d, ctx }: { d: Diapositiva; ctx: ContextoPrese
       }}
     >
       <Contenido d={d} ctx={ctx} />
+      <Extras extras={d.extras} />
     </div>
   );
 }

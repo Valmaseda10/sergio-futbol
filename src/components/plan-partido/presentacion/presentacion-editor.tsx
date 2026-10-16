@@ -9,15 +9,22 @@ import Link from "next/link";
 import { useLiveQuery } from "dexie-react-hooks";
 import {
   ArrowDown,
+  AlignCenter,
+  AlignLeft,
+  AlignRight,
   ArrowUp,
+  Bold,
   ChevronLeft,
   Copy,
   Download,
+  Italic,
   Pencil,
   Plus,
   Presentation,
   Printer,
+  Square,
   Trash2,
+  Type,
   X,
 } from "lucide-react";
 import { toast } from "sonner";
@@ -37,15 +44,18 @@ import {
   TIPOS_DIAPOSITIVA,
   leerPresentacion,
   nuevaDiapositiva,
+  nuevoElementoLibre,
   resumenDiapositiva,
   type ColorTitulo,
   type Diapositiva,
+  type ElementoLibre,
   type TipoDiapositiva,
 } from "@/lib/presentacion-partido";
 import {
   DiapositivaEscalada,
   type ContextoPresentacion,
 } from "@/components/plan-partido/presentacion/diapositiva-vista";
+import { LienzoEditable } from "@/components/plan-partido/presentacion/lienzo-editable";
 import { HojasImpresion } from "@/components/plan-partido/presentacion/hojas-impresion";
 import { useContextoPresentacion } from "@/components/plan-partido/presentacion/use-contexto-presentacion";
 import { descargarPresentacionPdf } from "@/components/plan-partido/presentacion/presentacion-pdf";
@@ -163,6 +173,31 @@ function FormularioDiapositiva({
 }) {
   const parchar = (p: Record<string, unknown>) => cambiar(p as Partial<Diapositiva>);
   switch (d.tipo) {
+    case "libre":
+      return (
+        <div className="space-y-3">
+          <div className="flex flex-wrap items-center gap-3">
+            <label className="flex items-center gap-2 text-sm">
+              <input
+                type="checkbox"
+                checked={d.conTitulo}
+                onChange={(e) => parchar({ conTitulo: e.target.checked })}
+                className="size-4"
+              />
+              Con título arriba
+            </label>
+          </div>
+          {d.conTitulo && (
+            <div className="grid gap-3 sm:grid-cols-2">
+              <Campo etiqueta="Título" valor={d.titulo} onChange={(v) => parchar({ titulo: v })} />
+              <SelectorColor etiqueta="Color del título" valor={d.color} onChange={(c) => parchar({ color: c })} />
+            </div>
+          )}
+          <p className="text-xs text-muted-foreground">
+            Usa «Añadir texto» o «Añadir recuadro» sobre la diapositiva para escribir y colocar lo que quieras.
+          </p>
+        </div>
+      );
     case "portada":
       return (
         <div className="grid gap-3 sm:grid-cols-2">
@@ -371,6 +406,9 @@ export function PresentacionEditor({ partidoId }: { partidoId: string }) {
   const [indice, setIndice] = useState(0);
   const [dibujando, setDibujando] = useState<{ bloque?: number } | null>(null);
   const [anadiendo, setAnadiendo] = useState(false);
+  const [elementoId, setElementoId] = useState<string | null>(null);
+  const [arrastrando, setArrastrando] = useState<number | null>(null);
+  const [sobre, setSobre] = useState<number | null>(null);
   const [generando, setGenerando] = useState(false);
 
   // Guardado: se guarda poco después de la última edición y al salir.
@@ -474,6 +512,44 @@ export function PresentacionEditor({ partidoId }: { partidoId: string }) {
     setAnadiendo(false);
   }
 
+  function cambiarExtras(f: (extras: ElementoLibre[]) => ElementoLibre[]) {
+    if (!actual) return;
+    cambiarActual({ extras: f(actual.extras ?? []) });
+  }
+
+  function cambiarElemento(id: string, parche: Partial<ElementoLibre>) {
+    cambiarExtras((xs) => xs.map((x) => (x.id === id ? { ...x, ...parche } : x)));
+  }
+
+  function anadirElemento(parche?: Partial<ElementoLibre>) {
+    const nuevo = nuevoElementoLibre(parche);
+    cambiarExtras((xs) => [...xs, nuevo]);
+    setElementoId(nuevo.id);
+  }
+
+  function duplicarElemento(el: ElementoLibre) {
+    const copia = { ...el, id: crypto.randomUUID(), x: el.x + 40, y: el.y + 40 };
+    cambiarExtras((xs) => [...xs, copia]);
+    setElementoId(copia.id);
+  }
+
+  function borrarElemento(id: string) {
+    cambiarExtras((xs) => xs.filter((x) => x.id !== id));
+    setElementoId(null);
+  }
+
+  /** Lleva la diapositiva `desde` a la posición `hasta` (arrastrando en la lista). */
+  function reordenar(desde: number, hasta: number) {
+    if (!diapos || desde === hasta || desde < 0 || hasta < 0 || desde >= diapos.length || hasta >= diapos.length) return;
+    const lista = [...diapos];
+    const [mov] = lista.splice(desde, 1);
+    lista.splice(hasta, 0, mov);
+    guardar(lista);
+    setIndice(hasta);
+  }
+
+  const elemento = actual?.extras?.find((x) => x.id === elementoId) ?? null;
+
   const dibujoActual: Diagrama | null =
     actual?.tipo === "pizarra"
       ? actual.diagrama
@@ -549,13 +625,41 @@ export function PresentacionEditor({ partidoId }: { partidoId: string }) {
               <button
                 key={d.id}
                 type="button"
-                onClick={() => setIndice(k)}
+                draggable
+                onClick={() => {
+                  setIndice(k);
+                  setElementoId(null);
+                }}
+                onDragStart={(e) => {
+                  setArrastrando(k);
+                  e.dataTransfer.effectAllowed = "move";
+                  e.dataTransfer.setData("text/plain", String(k));
+                }}
+                onDragOver={(e) => {
+                  if (arrastrando === null) return;
+                  e.preventDefault();
+                  if (sobre !== k) setSobre(k);
+                }}
+                onDrop={(e) => {
+                  e.preventDefault();
+                  if (arrastrando !== null) reordenar(arrastrando, k);
+                  setArrastrando(null);
+                  setSobre(null);
+                }}
+                onDragEnd={() => {
+                  setArrastrando(null);
+                  setSobre(null);
+                }}
                 className={cn(
-                  "w-36 shrink-0 space-y-0.5 rounded-md border p-1 text-left lg:w-full",
+                  "w-36 shrink-0 cursor-grab space-y-0.5 rounded-md border p-1 text-left lg:w-full",
                   k === i ? "border-primary ring-2 ring-primary/40" : "hover:bg-muted/50",
+                  arrastrando === k && "opacity-40",
+                  sobre === k && arrastrando !== null && arrastrando !== k && "border-dashed border-primary bg-primary/10",
                 )}
               >
-                <DiapositivaEscalada d={d} ctx={ctx} className="rounded-sm border" />
+                <div className="pointer-events-none">
+                  <DiapositivaEscalada d={d} ctx={ctx} className="rounded-sm border" />
+                </div>
                 <p className="truncate px-0.5 text-[11px] text-muted-foreground">
                   {k + 1}. {resumenDiapositiva(d)}
                 </p>
@@ -589,8 +693,157 @@ export function PresentacionEditor({ partidoId }: { partidoId: string }) {
         {actual ? (
           <div className="min-w-0 space-y-3">
             <div className="mx-auto w-full max-w-[960px] overflow-hidden rounded-md border shadow-sm">
-              <DiapositivaEscalada d={actual} ctx={ctx} />
+              <LienzoEditable
+                key={actual.id}
+                d={actual}
+                ctx={ctx}
+                seleccionId={elementoId}
+                onSeleccion={setElementoId}
+                onCambiarElemento={cambiarElemento}
+              />
             </div>
+            <div className="mx-auto flex w-full max-w-[960px] flex-wrap items-center gap-1.5">
+              <Button type="button" size="sm" variant="outline" onClick={() => anadirElemento()}>
+                <Type className="size-4" />
+                Añadir texto
+              </Button>
+              <Button
+                type="button"
+                size="sm"
+                variant="outline"
+                onClick={() => anadirElemento({ texto: "", fondo: "#ffff00", w: 500, h: 200, borde: true })}
+              >
+                <Square className="size-4" />
+                Añadir recuadro
+              </Button>
+              <span className="text-xs text-muted-foreground">
+                Toca una caja para moverla; el cuadrado azul la agranda; doble toque para escribir.
+              </span>
+            </div>
+            {elemento && (
+              <div className="mx-auto w-full max-w-[960px] space-y-3 rounded-md border border-primary/40 bg-primary/5 p-3">
+                <div className="flex items-center justify-between gap-2">
+                  <p className="text-sm font-medium">Caja de texto</p>
+                  <div className="flex gap-1">
+                    <Button type="button" size="sm" variant="outline" onClick={() => duplicarElemento(elemento)}>
+                      <Copy className="size-4" />
+                      Duplicar
+                    </Button>
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="ghost"
+                      className="text-destructive"
+                      onClick={() => borrarElemento(elemento.id)}
+                    >
+                      <Trash2 className="size-4" />
+                      Quitar
+                    </Button>
+                  </div>
+                </div>
+                <Textarea
+                  value={elemento.texto}
+                  rows={3}
+                  onChange={(e) => cambiarElemento(elemento.id, { texto: e.target.value })}
+                  aria-label="Texto de la caja"
+                />
+                <div className="flex flex-wrap items-center gap-2">
+                  <div className="flex items-center gap-1">
+                    <Button
+                      type="button"
+                      size="icon"
+                      variant="outline"
+                      aria-label="Letra más pequeña"
+                      onClick={() => cambiarElemento(elemento.id, { tamano: Math.max(10, elemento.tamano - 4) })}
+                    >
+                      −
+                    </Button>
+                    <span className="w-14 text-center text-sm tabular-nums">{elemento.tamano}px</span>
+                    <Button
+                      type="button"
+                      size="icon"
+                      variant="outline"
+                      aria-label="Letra más grande"
+                      onClick={() => cambiarElemento(elemento.id, { tamano: Math.min(300, elemento.tamano + 4) })}
+                    >
+                      +
+                    </Button>
+                  </div>
+                  <Button
+                    type="button"
+                    size="icon"
+                    variant={elemento.negrita ? "default" : "outline"}
+                    aria-label="Negrita"
+                    onClick={() => cambiarElemento(elemento.id, { negrita: !elemento.negrita })}
+                  >
+                    <Bold className="size-4" />
+                  </Button>
+                  <Button
+                    type="button"
+                    size="icon"
+                    variant={elemento.cursiva ? "default" : "outline"}
+                    aria-label="Cursiva"
+                    onClick={() => cambiarElemento(elemento.id, { cursiva: !elemento.cursiva })}
+                  >
+                    <Italic className="size-4" />
+                  </Button>
+                  {(
+                    [
+                      ["left", AlignLeft, "Alinear a la izquierda"],
+                      ["center", AlignCenter, "Centrar"],
+                      ["right", AlignRight, "Alinear a la derecha"],
+                    ] as const
+                  ).map(([valor, Icono, etiqueta]) => (
+                    <Button
+                      key={valor}
+                      type="button"
+                      size="icon"
+                      variant={elemento.alinear === valor ? "default" : "outline"}
+                      aria-label={etiqueta}
+                      onClick={() => cambiarElemento(elemento.id, { alinear: valor })}
+                    >
+                      <Icono className="size-4" />
+                    </Button>
+                  ))}
+                  <label className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                    Letra
+                    <input
+                      type="color"
+                      value={elemento.color}
+                      onChange={(e) => cambiarElemento(elemento.id, { color: e.target.value })}
+                      className="h-9 w-10 cursor-pointer rounded-md border bg-background p-0.5"
+                    />
+                  </label>
+                  <label className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                    Fondo
+                    <input
+                      type="color"
+                      value={elemento.fondo || "#ffffff"}
+                      onChange={(e) => cambiarElemento(elemento.id, { fondo: e.target.value })}
+                      className="h-9 w-10 cursor-pointer rounded-md border bg-background p-0.5"
+                    />
+                  </label>
+                  {elemento.fondo && (
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="ghost"
+                      onClick={() => cambiarElemento(elemento.id, { fondo: "" })}
+                    >
+                      Sin fondo
+                    </Button>
+                  )}
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant={elemento.borde ? "default" : "outline"}
+                    onClick={() => cambiarElemento(elemento.id, { borde: !elemento.borde })}
+                  >
+                    Borde
+                  </Button>
+                </div>
+              </div>
+            )}
             <div className="flex flex-wrap items-center gap-1.5">
               <Button type="button" size="sm" variant="outline" disabled={i === 0} onClick={() => mover(-1)}>
                 <ArrowUp className="size-4" />
