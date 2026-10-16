@@ -14,6 +14,9 @@ import {
   type DAbp,
   type DBloques,
   type DInforme,
+  type DRivalOnce,
+  type FichaOnce,
+  fichasDeFichaRival,
   type DRivalGoles,
   type DLibre,
   type ElementoLibre,
@@ -789,25 +792,117 @@ function OnceEnCampo({
   );
 }
 
-function RivalOnce({ d, ctx }: { d: Diapositiva & { tipo: "rival_once" }; ctx: ContextoPresentacion }) {
-  const fichas: FichaCampo[] = [...ctx.onceRival]
-    .sort((a, b) => (a.orden ?? 0) - (b.orden ?? 0))
-    .map((f) => ({
-      top: f.pos_y,
-      left: f.pos_x,
-      numero: f.dorsal != null ? String(f.dorsal) : "",
-      nombre: (f.nombre ?? "").toUpperCase(),
-      suplente: f.suplente,
-    }));
+// Campo horizontal del once del rival: mismo campo verde que las pizarras.
+export const CAMPO_ONCE = { x: 130, y: 222, alto: 700, ancho: Math.round((700 * 520) / 340) };
+
+/** Posición (centro de la ficha) en el lienzo de 1920 x 1080 de un punto en % del campo. */
+export function posicionEnCampo(x: number, y: number): { left: number; top: number } {
+  // El dibujo del campo tiene margen: las líneas van de 20 a 500 (ancho 520) y de 20 a 320 (alto 340).
+  return {
+    left: CAMPO_ONCE.x + CAMPO_ONCE.ancho * (20 / 520 + (x / 100) * (480 / 520)),
+    top: CAMPO_ONCE.y + CAMPO_ONCE.alto * (20 / 340 + (y / 100) * (300 / 340)),
+  };
+}
+
+/** El once que se ve: el puesto a mano o, si no hay, el de la ficha del rival. */
+export function fichasDeOnce(d: DRivalOnce, ctx: ContextoPresentacion): FichaOnce[] {
+  return d.jugadores.length > 0 ? d.jugadores : fichasDeFichaRival(ctx.onceRival);
+}
+
+export function FichaCampo({ f, ancla }: { f: FichaOnce; ancla?: { left: number; top: number } }) {
+  const pos = ancla ?? posicionEnCampo(f.x, f.y);
   return (
-    <OnceEnCampo
-      d={d}
-      ctx={ctx}
-      fichas={fichas}
-      color="#111111"
-      etiqueta="Campograma"
-      vacio="La ficha del rival todavía no tiene su alineación"
-    />
+    <div
+      style={{
+        position: "absolute",
+        left: pos.left,
+        top: pos.top,
+        transform: "translate(-50%, -50%)",
+        display: "flex",
+        flexDirection: "column",
+        alignItems: "center",
+      }}
+    >
+      <div
+        style={{
+          ...TEXTO,
+          width: 62,
+          height: 62,
+          borderRadius: "50%",
+          background: "#111111",
+          border: "4px solid #ffffff",
+          color: "#ffffff",
+          fontWeight: 700,
+          fontSize: 28,
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          boxShadow: "0 2px 6px rgba(0,0,0,0.5)",
+        }}
+      >
+        {f.numero}
+      </div>
+      {f.nombre && (
+        <div
+          style={{
+            ...TEXTO,
+            marginTop: 3,
+            background: "rgba(255,255,255,0.94)",
+            color: "#111111",
+            fontWeight: 700,
+            fontSize: 24,
+            padding: "0 10px",
+            whiteSpace: "nowrap",
+            textTransform: "uppercase",
+          }}
+        >
+          {f.nombre}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function RivalOnce({ d, ctx }: { d: DRivalOnce; ctx: ContextoPresentacion }) {
+  const fichas = fichasDeOnce(d, ctx);
+  const titulares = fichas.filter((f) => !f.suplente);
+  const suplentes = fichas.filter((f) => f.suplente);
+  const columna = CAMPO_ONCE.x + CAMPO_ONCE.ancho + 50;
+  return (
+    <Marco d={d} ctx={ctx}>
+      <div style={{ position: "absolute", left: CAMPO_ONCE.x, top: CAMPO_ONCE.y, width: CAMPO_ONCE.ancho, height: CAMPO_ONCE.alto }}>
+        <DiagramaImg diagrama={diagramaVacio("completo")} alto={CAMPO_ONCE.alto} ancho={CAMPO_ONCE.ancho} />
+      </div>
+      {!d.sinFichas && titulares.map((f) => <FichaCampo key={f.id} f={f} />)}
+      <div style={{ position: "absolute", left: columna, width: 1840 - columna, top: 222, ...TEXTO, color: "#111111" }}>
+        <Etiqueta>{ctx.partido.rival}</Etiqueta>
+        {d.sistema && (
+          <div style={{ ...TITULO, fontSize: 84, color: "#ee1c25", textAlign: "center", marginTop: 14 }}>{d.sistema}</div>
+        )}
+        <div style={{ fontSize: titulares.length + suplentes.length > 15 ? 25 : 30, lineHeight: 1.3, marginTop: 16 }}>
+          {titulares.map((f) => (
+            <div key={f.id} style={{ display: "flex", gap: 12 }}>
+              <span style={{ width: 52, textAlign: "right", fontWeight: 700 }}>{f.numero}</span>
+              <span style={{ textTransform: "uppercase" }}>{f.nombre}</span>
+            </div>
+          ))}
+          {suplentes.length > 0 && (
+            <>
+              <div style={{ fontWeight: 700, color: "#6b7280", fontSize: 22, margin: "16px 0 4px" }}>SUPLENTES</div>
+              {suplentes.map((f) => (
+                <div key={f.id} style={{ display: "flex", gap: 12, color: "#4b5563" }}>
+                  <span style={{ width: 52, textAlign: "right" }}>{f.numero}</span>
+                  <span style={{ textTransform: "uppercase" }}>{f.nombre}</span>
+                </div>
+              ))}
+            </>
+          )}
+          {fichas.length === 0 && (
+            <div style={{ color: "#6b7280" }}>Añade jugadores en el formulario de esta diapositiva.</div>
+          )}
+        </div>
+      </div>
+    </Marco>
   );
 }
 

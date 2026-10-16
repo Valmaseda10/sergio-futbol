@@ -48,16 +48,23 @@ import {
   leerPresentacion,
   nuevaDiapositiva,
   nuevoElementoLibre,
+  fichasDeFichaRival,
+  fichasDeSistema,
+  girarFichas,
   resumenDiapositiva,
   type ColorTitulo,
   type Diapositiva,
+  type DRivalOnce,
   type ElementoLibre,
+  type FichaOnce,
   type TipoDiapositiva,
 } from "@/lib/presentacion-partido";
 import {
   DiapositivaEscalada,
+  fichasDeOnce,
   type ContextoPresentacion,
 } from "@/components/plan-partido/presentacion/diapositiva-vista";
+import { FORMACIONES } from "@/lib/formaciones";
 import { LienzoEditable } from "@/components/plan-partido/presentacion/lienzo-editable";
 import { HojasImpresion } from "@/components/plan-partido/presentacion/hojas-impresion";
 import { useContextoPresentacion } from "@/components/plan-partido/presentacion/use-contexto-presentacion";
@@ -230,6 +237,137 @@ function EditorGoles({ ctx }: { ctx: ContextoPresentacion }) {
             </div>
           );
         })}
+      </div>
+    </div>
+  );
+}
+
+const corto = (nombre: string) => nombre.split(",")[0].trim();
+
+/**
+ * Once del rival sobre el campo: sistema de juego, jugadores (dorsal y nombre, que se pueden elegir
+ * de la plantilla del rival) y su posición, que se cambia arrastrando las fichas sobre la diapositiva.
+ */
+function EditorOnce({
+  d,
+  ctx,
+  parchar,
+}: {
+  d: DRivalOnce;
+  ctx: ContextoPresentacion;
+  parchar: (p: Record<string, unknown>) => void;
+}) {
+  const fichas = fichasDeOnce(d, ctx);
+  const poner = (lista: FichaOnce[]) => parchar({ jugadores: lista });
+  const plantilla = ctx.plantillaRival.filter((j) => j.rol === "jugador");
+  const cambiar = (id: string, p: Partial<FichaOnce>) => poner(fichas.map((f) => (f.id === id ? { ...f, ...p } : f)));
+
+  function cambiarNombre(f: FichaOnce, nombre: string) {
+    const coincidencias = plantilla.filter((j) => corto(j.nombre).toLowerCase() === nombre.trim().toLowerCase());
+    const dorsal = coincidencias.length === 1 ? coincidencias[0].dorsal : null;
+    cambiar(f.id, { nombre, ...(dorsal != null && !f.numero ? { numero: String(dorsal) } : {}) });
+  }
+
+  function anadir(suplente: boolean) {
+    const usados = new Set(fichas.map((f) => f.numero));
+    let n = 1;
+    while (usados.has(String(n))) n++;
+    poner([...fichas, { id: crypto.randomUUID(), x: 50, y: 50, numero: String(n), nombre: "", suplente }]);
+  }
+
+  return (
+    <div className="space-y-3">
+      <div className="grid gap-3 sm:grid-cols-2">
+        <Campo etiqueta="Título" valor={d.titulo} onChange={(v) => parchar({ titulo: v })} />
+        <Campo etiqueta="Sistema de juego" valor={d.sistema} onChange={(v) => parchar({ sistema: v })} placeholder="1-4-3-3" />
+      </div>
+      <div className="space-y-1">
+        <Label>Colocar según el sistema (mantiene los nombres)</Label>
+        <div className="flex flex-wrap gap-1.5">
+          {FORMACIONES.map((f) => (
+            <Button
+              key={f.value}
+              type="button"
+              size="sm"
+              variant={d.sistema === f.value ? "default" : "outline"}
+              onClick={() => parchar({ sistema: f.value, jugadores: fichasDeSistema(f.value, fichas) })}
+            >
+              {f.label}
+            </Button>
+          ))}
+        </div>
+      </div>
+      <div className="flex flex-wrap gap-2">
+        <Button type="button" size="sm" variant="outline" onClick={() => poner(girarFichas(fichas))} disabled={fichas.length === 0}>
+          Girar campo
+        </Button>
+        {ctx.onceRival.length > 0 && (
+          <Button type="button" size="sm" variant="outline" onClick={() => poner(fichasDeFichaRival(ctx.onceRival))}>
+            Cargar el once de la ficha del rival
+          </Button>
+        )}
+        <Button type="button" size="sm" variant="outline" onClick={() => anadir(false)}>
+          <Plus className="size-4" />
+          Añadir jugador
+        </Button>
+        <Button type="button" size="sm" variant="outline" onClick={() => anadir(true)}>
+          <Plus className="size-4" />
+          Añadir suplente
+        </Button>
+      </div>
+      <p className="text-xs text-muted-foreground">
+        Arrastra las fichas sobre el campo de la diapositiva para colocarlas según cómo jueguen. Los suplentes no salen
+        en el campo, solo en la lista.
+      </p>
+      <datalist id="plantilla-rival">
+        {plantilla.map((j) => (
+          <option key={j.id} value={corto(j.nombre)} label={j.nombre} />
+        ))}
+      </datalist>
+      <div className="space-y-1.5">
+        {fichas.map((f) => (
+          <div key={f.id} className="flex items-center gap-1.5">
+            <Input
+              value={f.numero}
+              onChange={(e) => cambiar(f.id, { numero: e.target.value.slice(0, 3) })}
+              inputMode="numeric"
+              aria-label="Dorsal"
+              className="w-16 shrink-0 text-center"
+            />
+            <Input
+              value={f.nombre}
+              list="plantilla-rival"
+              onChange={(e) => cambiarNombre(f, e.target.value)}
+              placeholder="Nombre"
+              aria-label="Nombre del jugador"
+              className="min-w-0 flex-1"
+            />
+            <label className="flex shrink-0 items-center gap-1 text-xs text-muted-foreground">
+              <input
+                type="checkbox"
+                checked={f.suplente}
+                onChange={(e) => cambiar(f.id, { suplente: e.target.checked })}
+                className="size-4"
+              />
+              Supl.
+            </label>
+            <Button
+              type="button"
+              size="icon"
+              variant="ghost"
+              className="shrink-0 text-destructive"
+              aria-label="Quitar jugador"
+              onClick={() => poner(fichas.filter((x) => x.id !== f.id))}
+            >
+              <Trash2 className="size-4" />
+            </Button>
+          </div>
+        ))}
+        {fichas.length === 0 && (
+          <p className="text-sm text-muted-foreground">
+            Todavía no hay jugadores: elige un sistema de arriba para colocar los 11 y escribe sus nombres.
+          </p>
+        )}
       </div>
     </div>
   );
@@ -478,9 +616,10 @@ function FormularioDiapositiva({
           <EditorGoles ctx={ctx} />
         </div>
       );
+    case "rival_once":
+      return <EditorOnce d={d} ctx={ctx} parchar={parchar} />;
     case "nuestro_once":
     case "rival_plantilla":
-    case "rival_once":
       return (
         <div className="space-y-3">
           <Campo etiqueta="Título" valor={d.titulo} onChange={(v) => parchar({ titulo: v })} />
@@ -621,6 +760,11 @@ export function PresentacionEditor({ partidoId }: { partidoId: string }) {
 
   function cambiarElemento(id: string, parche: Partial<ElementoLibre>) {
     cambiarExtras((xs) => xs.map((x) => (x.id === id ? { ...x, ...parche } : x)));
+  }
+
+  function moverFicha(id: string, parche: Partial<FichaOnce>) {
+    if (!ctx || !actual || actual.tipo !== "rival_once") return;
+    cambiarActual({ jugadores: fichasDeOnce(actual, ctx).map((f) => (f.id === id ? { ...f, ...parche } : f)) });
   }
 
   function anadirElemento(parche?: Partial<ElementoLibre>) {
@@ -843,6 +987,7 @@ export function PresentacionEditor({ partidoId }: { partidoId: string }) {
                 seleccionId={elementoId}
                 onSeleccion={setElementoId}
                 onCambiarElemento={cambiarElemento}
+                onMoverFicha={moverFicha}
               />
             </div>
             <div className="mx-auto flex w-full max-w-[960px] flex-wrap items-center gap-1.5">

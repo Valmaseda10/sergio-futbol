@@ -9,6 +9,7 @@ import type { Json } from "@/lib/types/database.types";
 import { clubConfig } from "@/lib/club-config";
 import { temporadaDeFecha } from "@/lib/temporada";
 import type { Diagrama } from "@/lib/ficha-entrenamiento";
+import { FORMACIONES } from "@/lib/formaciones";
 import { fechaHoja } from "@/lib/plan-partido";
 
 export type ColorTitulo = "rojo" | "verde" | "negro";
@@ -157,9 +158,26 @@ export interface DRivalGoles extends Base {
   tabla: boolean;
 }
 
+/** Un jugador del once sobre el campo: posición en % del campo (x hacia la derecha, y hacia abajo). */
+export interface FichaOnce {
+  id: string;
+  x: number;
+  y: number;
+  numero: string;
+  nombre: string;
+  /** Suplente: no sale en el campo, solo en la lista. */
+  suplente: boolean;
+}
+
 export interface DRivalOnce extends Base {
   tipo: "rival_once";
   titulo: string;
+  /** Sistema de juego del rival, p. ej. "1-4-3-3". */
+  sistema: string;
+  /** Jugadores colocados a mano; si está vacío se usa el once de la ficha del rival. */
+  jugadores: FichaOnce[];
+  /** Solo para el editor (no se guarda): no dibuja las fichas, que se pintan encima interactivas. */
+  sinFichas?: boolean;
 }
 
 export interface DNuestroOnce extends Base {
@@ -274,7 +292,7 @@ export function nuevaDiapositiva(tipo: TipoDiapositiva): Diapositiva {
     case "rival_goles":
       return { id, tipo, titulo: "INFORME RIVAL", grafica: true, tabla: true };
     case "rival_once":
-      return { id, tipo, titulo: "INFORME RIVAL" };
+      return { id, tipo, titulo: "INFORME RIVAL", sistema: "", jugadores: [] };
     case "nuestro_once":
       return { id, tipo, titulo: "NUESTRO ONCE" };
     case "abp":
@@ -366,6 +384,17 @@ export function leerPresentacion(json: Json | null | undefined): Diapositiva[] {
         diagrama: b?.diagrama ?? null,
       }));
     }
+    if (mezcla.tipo === "rival_once") {
+      const num = (v: unknown, def: number) => (typeof v === "number" && Number.isFinite(v) ? v : def);
+      mezcla.jugadores = (Array.isArray(mezcla.jugadores) ? mezcla.jugadores : []).map((f) => ({
+        id: typeof f?.id === "string" ? f.id : crypto.randomUUID(),
+        x: Math.min(100, Math.max(0, num(f?.x, 50))),
+        y: Math.min(100, Math.max(0, num(f?.y, 50))),
+        numero: f?.numero == null ? "" : String(f.numero),
+        nombre: f?.nombre ?? "",
+        suplente: !!f?.suplente,
+      }));
+    }
     if (mezcla.tipo === "abp") {
       mezcla.jugadas = Array.isArray(mezcla.jugadas) ? mezcla.jugadas : [];
       mezcla.columnas = Math.min(4, Math.max(1, Number(mezcla.columnas) || 4));
@@ -404,4 +433,46 @@ export function resumenDiapositiva(d: Diapositiva): string {
     case "pizarra":
       return d.pie.split("\n")[0] || d.titulo || "Pizarra";
   }
+}
+
+// ---- Once sobre el campo (diapositiva del once del rival) -----------------------------------
+
+/** Las fichas de un sistema de juego: portero a la izquierda y el ataque hacia la derecha. */
+export function fichasDeSistema(sistema: string, anteriores: FichaOnce[] = []): FichaOnce[] {
+  const f = FORMACIONES.find((x) => x.value === sistema);
+  if (!f) return anteriores;
+  const titulares = anteriores.filter((a) => !a.suplente);
+  const suplentes = anteriores.filter((a) => a.suplente);
+  // Los jugadores que ya había (nombre y dorsal) pasan, por orden, a los huecos del nuevo sistema.
+  const nuevas = f.huecos.map((h, i) => ({
+    id: titulares[i]?.id ?? crypto.randomUUID(),
+    // El campo de las formaciones es vertical (portero abajo): se gira para ir de izquierda a derecha.
+    x: 100 - h.top,
+    y: h.left,
+    numero: titulares[i]?.numero ?? String(i + 1),
+    nombre: titulares[i]?.nombre ?? "",
+    suplente: false,
+  }));
+  return [...nuevas, ...suplentes, ...titulares.slice(f.huecos.length).map((t) => ({ ...t, suplente: true }))];
+}
+
+/** El once guardado en la ficha del rival (campo vertical) pasado al campo horizontal. */
+export function fichasDeFichaRival(
+  filas: { id: string; nombre: string | null; dorsal: number | null; pos_x: number; pos_y: number; orden: number | null; suplente: boolean }[],
+): FichaOnce[] {
+  return [...filas]
+    .sort((a, b) => (a.orden ?? 0) - (b.orden ?? 0))
+    .map((f) => ({
+      id: f.id,
+      x: Math.min(100, Math.max(0, 100 - f.pos_y)),
+      y: Math.min(100, Math.max(0, f.pos_x)),
+      numero: f.dorsal != null ? String(f.dorsal) : "",
+      nombre: (f.nombre ?? "").toUpperCase(),
+      suplente: f.suplente,
+    }));
+}
+
+/** Pone el once mirando al otro lado (el rival ataca hacia la izquierda). */
+export function girarFichas(fichas: FichaOnce[]): FichaOnce[] {
+  return fichas.map((f) => ({ ...f, x: 100 - f.x, y: 100 - f.y }));
 }

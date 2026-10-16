@@ -7,13 +7,17 @@
 
 import { useEffect, useRef, useState } from "react";
 import {
+  CAMPO_ONCE,
   DiapositivaEscalada,
+  FichaCampo,
   estiloElementoLibre,
+  fichasDeOnce,
+  posicionEnCampo,
   ALTO,
   ANCHO,
   type ContextoPresentacion,
 } from "@/components/plan-partido/presentacion/diapositiva-vista";
-import type { Diapositiva, ElementoLibre } from "@/lib/presentacion-partido";
+import type { Diapositiva, ElementoLibre, FichaOnce } from "@/lib/presentacion-partido";
 
 type Gesto = {
   id: string;
@@ -29,18 +33,25 @@ export function LienzoEditable({
   seleccionId,
   onSeleccion,
   onCambiarElemento,
+  onMoverFicha,
 }: {
   d: Diapositiva;
   ctx: ContextoPresentacion;
   seleccionId: string | null;
   onSeleccion: (id: string | null) => void;
   onCambiarElemento: (id: string, parche: Partial<ElementoLibre>) => void;
+  /** Mueve una ficha del once (posición en % del campo). */
+  onMoverFicha?: (id: string, parche: Partial<FichaOnce>) => void;
 }) {
   const contenedor = useRef<HTMLDivElement>(null);
   const [escala, setEscala] = useState(0.5);
   const [gesto, setGesto] = useState<Gesto | null>(null);
   const [temporal, setTemporal] = useState<Partial<ElementoLibre> | null>(null);
   const [editandoId, setEditandoId] = useState<string | null>(null);
+  const [gestoFicha, setGestoFicha] = useState<{ id: string; inicioX: number; inicioY: number; original: FichaOnce } | null>(
+    null,
+  );
+  const [fichaTemp, setFichaTemp] = useState<{ x: number; y: number } | null>(null);
 
   useEffect(() => {
     const el = contenedor.current;
@@ -59,6 +70,20 @@ export function LienzoEditable({
     (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
     setGesto({ id: el.id, modo, inicioX: e.clientX, inicioY: e.clientY, original: el });
     setTemporal(null);
+  }
+
+  function moverGesto(e: React.PointerEvent) {
+    if (gestoFicha) {
+      // De píxeles del lienzo a % del campo (el área de juego es el 92 % del ancho y el 88 % del alto).
+      const dx = ((e.clientX - gestoFicha.inicioX) / escala / (CAMPO_ONCE.ancho * (480 / 520))) * 100;
+      const dy = ((e.clientY - gestoFicha.inicioY) / escala / (CAMPO_ONCE.alto * (300 / 340))) * 100;
+      setFichaTemp({
+        x: Math.round(Math.min(100, Math.max(0, gestoFicha.original.x + dx)) * 10) / 10,
+        y: Math.round(Math.min(100, Math.max(0, gestoFicha.original.y + dy)) * 10) / 10,
+      });
+      return;
+    }
+    mover(e);
   }
 
   function mover(e: React.PointerEvent) {
@@ -81,22 +106,26 @@ export function LienzoEditable({
 
   function soltar() {
     if (gesto && temporal) onCambiarElemento(gesto.id, temporal);
+    if (gestoFicha && fichaTemp) onMoverFicha?.(gestoFicha.id, fichaTemp);
     setGesto(null);
     setTemporal(null);
+    setGestoFicha(null);
+    setFichaTemp(null);
   }
 
   const extras = d.extras ?? [];
+  const fichas = d.tipo === "rival_once" ? fichasDeOnce(d, ctx).filter((f) => !f.suplente) : [];
 
   return (
     <div ref={contenedor} className="relative w-full select-none" style={{ aspectRatio: "16 / 9" }}>
       {/* La diapositiva sin sus cajas: esas se dibujan debajo, interactivas. */}
-      <DiapositivaEscalada d={{ ...d, extras: [] }} ctx={ctx} />
+      <DiapositivaEscalada d={d.tipo === "rival_once" ? { ...d, extras: [], sinFichas: true } : { ...d, extras: [] }} ctx={ctx} />
       <div
         onPointerDown={() => {
           onSeleccion(null);
           setEditandoId(null);
         }}
-        onPointerMove={mover}
+        onPointerMove={moverGesto}
         onPointerUp={soltar}
         onPointerCancel={soltar}
         style={{
@@ -110,6 +139,24 @@ export function LienzoEditable({
           touchAction: "none",
         }}
       >
+        {fichas.map((f) => {
+          const vivo = gestoFicha?.id === f.id && fichaTemp ? { ...f, ...fichaTemp } : f;
+          return (
+            <div
+              key={f.id}
+              onPointerDown={(e) => {
+                e.stopPropagation();
+                onSeleccion(null);
+                (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
+                setGestoFicha({ id: f.id, inicioX: e.clientX, inicioY: e.clientY, original: f });
+                setFichaTemp(null);
+              }}
+              style={{ cursor: "grab" }}
+            >
+              <FichaCampo f={vivo} ancla={posicionEnCampo(vivo.x, vivo.y)} />
+            </div>
+          );
+        })}
         {extras.map((el) => {
           const vivo = gesto?.id === el.id && temporal ? { ...el, ...temporal } : el;
           const elegido = seleccionId === el.id;
