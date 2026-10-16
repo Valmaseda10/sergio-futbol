@@ -14,6 +14,7 @@ import {
   type DAbp,
   type DBloques,
   type DInforme,
+  type DRivalGoles,
   type DLibre,
   type ElementoLibre,
   type DPizarra,
@@ -524,7 +525,9 @@ const TRAMOS: { value: IntervaloGol; label: string }[] = [
   { value: "60+", label: "60-70+ Minutos" },
 ];
 
-function RivalGoles({ d, ctx }: { d: Diapositiva & { tipo: "rival_goles" }; ctx: ContextoPresentacion }) {
+function RivalGoles({ d, ctx }: { d: DRivalGoles; ctx: ContextoPresentacion }) {
+  // Misma fuente que la tabla "Goles del rival por tramos" de la ficha del rival: lo que se cambie
+  // allí (o en el formulario de esta diapositiva) se ve aquí al momento.
   const por = new Map(ctx.golesRival.map((g) => [g.intervalo, g]));
   const datos = TRAMOS.map((t) => ({
     ...t,
@@ -534,7 +537,9 @@ function RivalGoles({ d, ctx }: { d: Diapositiva & { tipo: "rival_goles" }; ctx:
   const totalFavor = datos.reduce((s, x) => s + x.favor, 0);
   const totalContra = datos.reduce((s, x) => s + x.contra, 0);
   const maximo = Math.max(4, ...datos.map((x) => Math.max(x.favor, x.contra)));
-  const W = 1240;
+  const verGrafica = d.grafica !== false;
+  const verTabla = d.tabla !== false;
+  const W = verTabla ? 1130 : 1240;
   const H = 640;
   const izq = 70;
   const abajo = 70;
@@ -544,68 +549,108 @@ function RivalGoles({ d, ctx }: { d: Diapositiva & { tipo: "rival_goles" }; ctx:
   const grupo = ancho / datos.length;
   const barra = grupo * 0.3;
   const y = (v: number) => arriba + alto - (v / maximo) * alto;
+  // Con tabla y sin gráfica la tabla ocupa el centro, grande.
+  const grande = verTabla && !verGrafica;
+  const tamano = grande ? 40 : 26;
   return (
     <Marco d={d} ctx={ctx}>
-      <Etiqueta style={{ position: "absolute", left: 130, width: 360, top: 215 }}>Goles equipo</Etiqueta>
-      <div style={{ position: "absolute", left: 130, width: 360, top: 290, ...TEXTO, color: "#111111" }}>
-        <div style={{ display: "flex", justifyContent: "space-around", fontSize: 26, fontWeight: 700 }}>
+      <div style={{ position: "absolute", left: 130, width: grande ? 1000 : 400, top: 215, ...TEXTO, color: "#111111" }}>
+        <Etiqueta>Goles equipo</Etiqueta>
+        <div style={{ display: "flex", justifyContent: "space-around", fontSize: grande ? 34 : 26, fontWeight: 700, marginTop: 14 }}>
           <span>A FAVOR</span>
           <span>EN CONTRA</span>
         </div>
-        <div style={{ display: "flex", justifyContent: "space-around", fontSize: 120, fontWeight: 700, lineHeight: 1.1 }}>
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "space-around",
+            fontSize: grande ? 150 : 110,
+            fontWeight: 700,
+            lineHeight: 1.05,
+          }}
+        >
           <span style={{ color: "#00a651" }}>{totalFavor}</span>
           <span style={{ color: "#06b6d4" }}>{totalContra}</span>
         </div>
-        <div style={{ fontSize: 24, color: "#6b7280", marginTop: 30 }}>{ctx.partido.rival}</div>
+        {verTabla && (
+          <table style={{ width: "100%", borderCollapse: "collapse", marginTop: 24, fontSize: tamano }}>
+            <thead>
+              <tr style={{ background: AZUL_ETIQUETA, color: "#ffffff" }}>
+                <th style={{ padding: "6px 10px", textAlign: "left" }}>Tramo</th>
+                <th style={{ padding: "6px 10px", textAlign: "center" }}>A favor</th>
+                <th style={{ padding: "6px 10px", textAlign: "center" }}>En contra</th>
+              </tr>
+            </thead>
+            <tbody>
+              {datos.map((x, i) => (
+                <tr key={x.value} style={{ background: i % 2 ? "#f1f5f9" : "#ffffff", borderBottom: "2px solid #e2e8f0" }}>
+                  <td style={{ padding: "6px 10px", fontWeight: 700 }}>{x.label.replace(" Minutos", "'")}</td>
+                  <td style={{ padding: "6px 10px", textAlign: "center", color: "#00a651", fontWeight: 700 }}>{x.favor}</td>
+                  <td style={{ padding: "6px 10px", textAlign: "center", color: "#0891b2", fontWeight: 700 }}>{x.contra}</td>
+                </tr>
+              ))}
+              <tr style={{ background: "#e2e8f0", fontWeight: 700 }}>
+                <td style={{ padding: "6px 10px" }}>Total</td>
+                <td style={{ padding: "6px 10px", textAlign: "center" }}>{totalFavor}</td>
+                <td style={{ padding: "6px 10px", textAlign: "center" }}>{totalContra}</td>
+              </tr>
+            </tbody>
+          </table>
+        )}
+        {!grande && (
+          <div style={{ fontSize: 22, color: "#6b7280", marginTop: 16 }}>{ctx.partido.rival}</div>
+        )}
       </div>
-      <svg
-        width={W}
-        height={H}
-        viewBox={`0 0 ${W} ${H}`}
-        style={{ position: "absolute", left: 560, top: 235, fontFamily: "Arial, Helvetica, sans-serif" }}
-      >
-        <text x={W / 2} y={34} textAnchor="middle" fontSize={34} fontWeight={700} fill="#111111">
-          GOLES POR MINUTOS
-        </text>
-        <rect x={W / 2 - 200} y={56} width={16} height={16} fill="#00a651" />
-        <text x={W / 2 - 176} y={71} fontSize={22} fontWeight={700} fill="#111111">
-          A FAVOR
-        </text>
-        <rect x={W / 2 + 20} y={56} width={16} height={16} fill="#06b6d4" />
-        <text x={W / 2 + 44} y={71} fontSize={22} fontWeight={700} fill="#111111">
-          EN CONTRA
-        </text>
-        {Array.from({ length: maximo + 1 }, (_, v) => (
-          <g key={v}>
-            <line x1={izq} x2={W - 20} y1={y(v)} y2={y(v)} stroke="#d1d5db" strokeWidth={1.5} />
-            <text x={izq - 12} y={y(v) + 8} textAnchor="end" fontSize={22} fill="#374151">
-              {v}
-            </text>
-          </g>
-        ))}
-        {datos.map((x, i) => {
-          const cx = izq + grupo * i + grupo / 2;
-          return (
-            <g key={x.value}>
-              <rect x={cx - barra - 4} y={y(x.favor)} width={barra} height={(x.favor / maximo) * alto} fill="#00a651" />
-              <rect x={cx + 4} y={y(x.contra)} width={barra} height={(x.contra / maximo) * alto} fill="#06b6d4" />
-              {x.favor > 0 && (
-                <text x={cx - barra / 2 - 4} y={y(x.favor) - 8} textAnchor="middle" fontSize={26} fontWeight={700} fill="#111111">
-                  {x.favor}
-                </text>
-              )}
-              {x.contra > 0 && (
-                <text x={cx + barra / 2 + 4} y={y(x.contra) - 8} textAnchor="middle" fontSize={26} fontWeight={700} fill="#111111">
-                  {x.contra}
-                </text>
-              )}
-              <text x={cx} y={H - 30} textAnchor="middle" fontSize={24} fontWeight={700} fill="#111111">
-                {x.label}
+      {verGrafica && (
+        <svg
+          width={W}
+          height={H}
+          viewBox={`0 0 ${W} ${H}`}
+          style={{ position: "absolute", left: verTabla ? 620 : 560, top: 235, fontFamily: "Arial, Helvetica, sans-serif" }}
+        >
+          <text x={W / 2} y={34} textAnchor="middle" fontSize={34} fontWeight={700} fill="#111111">
+            GOLES POR MINUTOS
+          </text>
+          <rect x={W / 2 - 200} y={56} width={16} height={16} fill="#00a651" />
+          <text x={W / 2 - 176} y={71} fontSize={22} fontWeight={700} fill="#111111">
+            A FAVOR
+          </text>
+          <rect x={W / 2 + 20} y={56} width={16} height={16} fill="#06b6d4" />
+          <text x={W / 2 + 44} y={71} fontSize={22} fontWeight={700} fill="#111111">
+            EN CONTRA
+          </text>
+          {Array.from({ length: maximo + 1 }, (_, v) => (
+            <g key={v}>
+              <line x1={izq} x2={W - 20} y1={y(v)} y2={y(v)} stroke="#d1d5db" strokeWidth={1.5} />
+              <text x={izq - 12} y={y(v) + 8} textAnchor="end" fontSize={22} fill="#374151">
+                {v}
               </text>
             </g>
-          );
-        })}
-      </svg>
+          ))}
+          {datos.map((x, i) => {
+            const cx = izq + grupo * i + grupo / 2;
+            return (
+              <g key={x.value}>
+                <rect x={cx - barra - 4} y={y(x.favor)} width={barra} height={(x.favor / maximo) * alto} fill="#00a651" />
+                <rect x={cx + 4} y={y(x.contra)} width={barra} height={(x.contra / maximo) * alto} fill="#06b6d4" />
+                {x.favor > 0 && (
+                  <text x={cx - barra / 2 - 4} y={y(x.favor) - 8} textAnchor="middle" fontSize={26} fontWeight={700} fill="#111111">
+                    {x.favor}
+                  </text>
+                )}
+                {x.contra > 0 && (
+                  <text x={cx + barra / 2 + 4} y={y(x.contra) - 8} textAnchor="middle" fontSize={26} fontWeight={700} fill="#111111">
+                    {x.contra}
+                  </text>
+                )}
+                <text x={cx} y={H - 30} textAnchor="middle" fontSize={verTabla ? 21 : 24} fontWeight={700} fill="#111111">
+                  {x.label}
+                </text>
+              </g>
+            );
+          })}
+        </svg>
+      )}
     </Marco>
   );
 }

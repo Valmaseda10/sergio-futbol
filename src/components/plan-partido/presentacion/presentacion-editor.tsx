@@ -14,9 +14,12 @@ import {
   AlignRight,
   ArrowUp,
   Bold,
+  ChevronDown,
   ChevronLeft,
+  ChevronUp,
   Copy,
   Download,
+  GripVertical,
   Italic,
   Pencil,
   Plus,
@@ -59,6 +62,8 @@ import { LienzoEditable } from "@/components/plan-partido/presentacion/lienzo-ed
 import { HojasImpresion } from "@/components/plan-partido/presentacion/hojas-impresion";
 import { useContextoPresentacion } from "@/components/plan-partido/presentacion/use-contexto-presentacion";
 import { descargarPresentacionPdf } from "@/components/plan-partido/presentacion/presentacion-pdf";
+import { actualizarGolesIntervaloRivalLocal } from "@/app/(app)/rivales/local-actions";
+import type { IntervaloGol } from "@/lib/types/database.types";
 import { fechaHoja } from "@/lib/plan-partido";
 import { cn } from "@/lib/utils";
 
@@ -155,6 +160,77 @@ function BotonDibujo({
           Quitar dibujo
         </Button>
       )}
+    </div>
+  );
+}
+
+const TRAMOS_GOLES: { value: IntervaloGol; label: string }[] = [
+  { value: "0-15", label: "0'-15'" },
+  { value: "15-30", label: "15'-30'" },
+  { value: "30-45", label: "30'-45'" },
+  { value: "45-60", label: "45'-60'" },
+  { value: "60+", label: "60'-70'+" },
+];
+
+/**
+ * Tabla de goles por tramos de la diapositiva: es la misma de la ficha del rival (Rivales →
+ * Goles del rival por tramos). Lo que se escribe aquí se guarda allí y viceversa.
+ */
+function EditorGoles({ ctx }: { ctx: ContextoPresentacion }) {
+  const rival = ctx.rival;
+  if (!rival) {
+    return (
+      <p className="rounded-md border border-dashed p-3 text-sm text-muted-foreground">
+        Este partido no tiene ficha de rival enlazada, así que no hay tabla de goles que sincronizar. Crea la
+        ficha en Rivales y vincúlala en Partidos → editar partido («Vincular con scouting»); los goles aparecerán aquí.
+      </p>
+    );
+  }
+  const por = new Map(ctx.golesRival.map((g) => [g.intervalo, g]));
+  const guardar = (tramo: IntervaloGol, campo: "goles_favor" | "goles_contra", texto: string) => {
+    const n = texto.trim() === "" ? 0 : Math.max(0, Math.floor(Number(texto)));
+    if (Number.isNaN(n)) return;
+    void actualizarGolesIntervaloRivalLocal(rival.id, tramo, { [campo]: n });
+  };
+  return (
+    <div className="space-y-2">
+      <p className="text-xs text-muted-foreground">
+        Es la tabla de goles por tramos de la ficha de {rival.nombre}: se cambia aquí o allí y se actualiza en los dos
+        sitios (también en la gráfica).
+      </p>
+      <div className="grid max-w-sm grid-cols-[1fr_5rem_5rem] items-center gap-x-2 gap-y-1.5 text-sm">
+        <span />
+        <span className="text-center text-xs font-medium text-green-700">A favor</span>
+        <span className="text-center text-xs font-medium text-cyan-700">En contra</span>
+        {TRAMOS_GOLES.map((t) => {
+          const fila = por.get(t.value);
+          return (
+            <div key={t.value} className="contents">
+              <span className="font-medium">{t.label}</span>
+              <Input
+                key={`f-${fila?.goles_favor ?? 0}`}
+                type="number"
+                min={0}
+                inputMode="numeric"
+                defaultValue={fila?.goles_favor ?? 0}
+                onBlur={(e) => guardar(t.value, "goles_favor", e.target.value)}
+                className="text-center"
+                aria-label={`Goles a favor ${t.label}`}
+              />
+              <Input
+                key={`c-${fila?.goles_contra ?? 0}`}
+                type="number"
+                min={0}
+                inputMode="numeric"
+                defaultValue={fila?.goles_contra ?? 0}
+                onBlur={(e) => guardar(t.value, "goles_contra", e.target.value)}
+                className="text-center"
+                aria-label={`Goles en contra ${t.label}`}
+              />
+            </div>
+          );
+        })}
+      </div>
     </div>
   );
 }
@@ -375,9 +451,35 @@ function FormularioDiapositiva({
         </div>
       );
     }
+    case "rival_goles":
+      return (
+        <div className="space-y-3">
+          <Campo etiqueta="Título" valor={d.titulo} onChange={(v) => parchar({ titulo: v })} />
+          <div className="flex flex-wrap gap-4">
+            <label className="flex items-center gap-2 text-sm">
+              <input
+                type="checkbox"
+                checked={d.grafica !== false}
+                onChange={(e) => parchar({ grafica: e.target.checked })}
+                className="size-4"
+              />
+              Gráfica
+            </label>
+            <label className="flex items-center gap-2 text-sm">
+              <input
+                type="checkbox"
+                checked={d.tabla !== false}
+                onChange={(e) => parchar({ tabla: e.target.checked })}
+                className="size-4"
+              />
+              Tabla con totales
+            </label>
+          </div>
+          <EditorGoles ctx={ctx} />
+        </div>
+      );
     case "nuestro_once":
     case "rival_plantilla":
-    case "rival_goles":
     case "rival_once":
       return (
         <div className="space-y-3">
@@ -622,48 +724,89 @@ export function PresentacionEditor({ partidoId }: { partidoId: string }) {
         <div className="space-y-2">
           <div className="flex gap-2 overflow-x-auto pb-1 lg:max-h-[75vh] lg:flex-col lg:overflow-y-auto lg:overflow-x-hidden">
             {diapos.map((d, k) => (
-              <button
+              <div
                 key={d.id}
-                type="button"
-                draggable
-                onClick={() => {
-                  setIndice(k);
-                  setElementoId(null);
-                }}
-                onDragStart={(e) => {
-                  setArrastrando(k);
-                  e.dataTransfer.effectAllowed = "move";
-                  e.dataTransfer.setData("text/plain", String(k));
-                }}
-                onDragOver={(e) => {
-                  if (arrastrando === null) return;
-                  e.preventDefault();
-                  if (sobre !== k) setSobre(k);
-                }}
-                onDrop={(e) => {
-                  e.preventDefault();
-                  if (arrastrando !== null) reordenar(arrastrando, k);
-                  setArrastrando(null);
-                  setSobre(null);
-                }}
-                onDragEnd={() => {
-                  setArrastrando(null);
-                  setSobre(null);
-                }}
+                data-diapo-idx={k}
                 className={cn(
-                  "w-36 shrink-0 cursor-grab space-y-0.5 rounded-md border p-1 text-left lg:w-full",
+                  "relative w-36 shrink-0 rounded-md border lg:w-full",
                   k === i ? "border-primary ring-2 ring-primary/40" : "hover:bg-muted/50",
-                  arrastrando === k && "opacity-40",
+                  arrastrando === k && "opacity-50",
                   sobre === k && arrastrando !== null && arrastrando !== k && "border-dashed border-primary bg-primary/10",
                 )}
               >
-                <div className="pointer-events-none">
-                  <DiapositivaEscalada d={d} ctx={ctx} className="rounded-sm border" />
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIndice(k);
+                    setElementoId(null);
+                  }}
+                  className="block w-full space-y-0.5 p-1 text-left"
+                >
+                  <div className="pointer-events-none">
+                    <DiapositivaEscalada d={d} ctx={ctx} className="rounded-sm border" />
+                  </div>
+                  <p className="truncate px-0.5 text-[11px] text-muted-foreground">
+                    {k + 1}. {resumenDiapositiva(d)}
+                  </p>
+                </button>
+                {/* Mover: agarrar el asa y arrastrar, o las flechas (sirven con el dedo y el ratón). */}
+                <div className="absolute top-1.5 right-1.5 flex flex-col items-center gap-0.5 rounded-md bg-background/90 p-0.5 shadow ring-1 ring-border">
+                  <button
+                    type="button"
+                    aria-label="Subir esta diapositiva"
+                    disabled={k === 0}
+                    onClick={() => reordenar(k, k - 1)}
+                    className="flex size-7 items-center justify-center rounded hover:bg-muted disabled:opacity-30"
+                  >
+                    <ChevronUp className="size-4" />
+                  </button>
+                  <span
+                    role="button"
+                    aria-label="Arrastrar para cambiar de sitio"
+                    title="Arrastra para cambiar de sitio"
+                    onPointerDown={(e) => {
+                      e.preventDefault();
+                      e.currentTarget.setPointerCapture(e.pointerId);
+                      setArrastrando(k);
+                      setSobre(k);
+                    }}
+                    onPointerMove={(e) => {
+                      if (arrastrando !== k) return;
+                      const el = document
+                        .elementsFromPoint(e.clientX, e.clientY)
+                        .find((n) => n instanceof HTMLElement && n.dataset.diapoIdx !== undefined) as
+                        | HTMLElement
+                        | undefined;
+                      if (el) {
+                        const destino = Number(el.dataset.diapoIdx);
+                        if (destino !== sobre) setSobre(destino);
+                      }
+                    }}
+                    onPointerUp={() => {
+                      if (arrastrando !== null && sobre !== null) reordenar(arrastrando, sobre);
+                      setArrastrando(null);
+                      setSobre(null);
+                    }}
+                    onPointerCancel={() => {
+                      setArrastrando(null);
+                      setSobre(null);
+                    }}
+                    style={{ touchAction: "none" }}
+                    className="flex size-7 cursor-grab items-center justify-center rounded hover:bg-muted active:cursor-grabbing"
+                  >
+                    <GripVertical className="size-4" />
+                  </span>
+                  <button
+                    type="button"
+                    aria-label="Bajar esta diapositiva"
+                    disabled={k === diapos.length - 1}
+                    onClick={() => reordenar(k, k + 1)}
+                    className="flex size-7 items-center justify-center rounded hover:bg-muted disabled:opacity-30"
+                  >
+                    <ChevronDown className="size-4" />
+                  </button>
                 </div>
-                <p className="truncate px-0.5 text-[11px] text-muted-foreground">
-                  {k + 1}. {resumenDiapositiva(d)}
-                </p>
-              </button>
+              </div>
             ))}
           </div>
           <div className="relative">

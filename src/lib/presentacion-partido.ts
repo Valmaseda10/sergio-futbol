@@ -151,6 +151,10 @@ export interface DRivalPlantilla extends Base {
 export interface DRivalGoles extends Base {
   tipo: "rival_goles";
   titulo: string;
+  /** Gráfica de barras por tramos (por defecto sí). */
+  grafica: boolean;
+  /** Tabla de goles por tramos con los totales (por defecto sí). */
+  tabla: boolean;
 }
 
 export interface DRivalOnce extends Base {
@@ -268,7 +272,7 @@ export function nuevaDiapositiva(tipo: TipoDiapositiva): Diapositiva {
     case "rival_plantilla":
       return { id, tipo, titulo: "INFORME RIVAL" };
     case "rival_goles":
-      return { id, tipo, titulo: "INFORME RIVAL" };
+      return { id, tipo, titulo: "INFORME RIVAL", grafica: true, tabla: true };
     case "rival_once":
       return { id, tipo, titulo: "INFORME RIVAL" };
     case "nuestro_once":
