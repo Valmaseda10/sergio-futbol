@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useLiveQuery } from "dexie-react-hooks";
-import { ClipboardList, Crosshair } from "lucide-react";
+import { ClipboardList, Crosshair, Presentation } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { localDb } from "@/lib/db/local-db";
 
@@ -13,6 +13,7 @@ export default function PlanPartidoPage() {
     0,
   );
   const hojas = useLiveQuery(() => localDb.hojas_partido.count(), [], 0);
+  const presentaciones = useLiveQuery(() => localDb.presentaciones_partido.count(), [], 0);
 
   return (
     <div className="space-y-4">
@@ -47,6 +48,23 @@ export default function PlanPartidoPage() {
                 </p>
                 <p className="mt-1 text-xs text-muted-foreground">
                   {hojas} {hojas === 1 ? "hoja" : "hojas"}
+                </p>
+              </div>
+            </CardContent>
+          </Card>
+        </Link>
+        <Link href="/plan-partido/presentacion">
+          <Card className="h-full transition-colors hover:bg-muted/50">
+            <CardContent className="flex items-start gap-3 pt-6">
+              <Presentation className="mt-0.5 size-6 shrink-0 text-primary" />
+              <div>
+                <p className="font-semibold">Presentación del partido</p>
+                <p className="text-sm text-muted-foreground">
+                  Diapositivas editables (informe del rival, plan de partido, pizarras y ABP) para
+                  enseñar el día antes en la sesión de vídeo, imprimir o enviar en PDF.
+                </p>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  {presentaciones} {presentaciones === 1 ? "presentación" : "presentaciones"}
                 </p>
               </div>
             </CardContent>

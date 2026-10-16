@@ -1,0 +1,957 @@
+"use client";
+
+// Una diapositiva de la presentación de partido, maquetada en un lienzo fijo de 1920 x 1080 px
+// (16:9) con el fondo del club. `DiapositivaEscalada` la ajusta al ancho que haya (pantalla,
+// miniatura, presentación a pantalla completa) y `DiapositivaPagina` al tamaño del papel.
+
+import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from "react";
+import { CalendarDays, Clock, MapPin, RectangleHorizontal } from "lucide-react";
+import { diagramaASvg, diagramaVacio, type Diagrama } from "@/lib/ficha-entrenamiento";
+import { CampoAbp } from "@/components/plan-partido/jugada-abp-vista";
+import {
+  hexTitulo,
+  pieDiapositiva,
+  type DAbp,
+  type DBloques,
+  type DInforme,
+  type DPizarra,
+  type DPortada,
+  type DTexto,
+  type Diapositiva,
+} from "@/lib/presentacion-partido";
+import { leerDiagramaAbp, leerJugadoresAbp } from "@/lib/plan-partido";
+import type {
+  LocalAlineacion,
+  LocalJugadaAbp,
+  LocalJugador,
+  LocalPartido,
+  LocalRivalAlineacion,
+  LocalRivalGolIntervalo,
+  LocalRivalJugadorDestacado,
+  LocalRivalPlantillaJugador,
+  LocalRivalScouting,
+} from "@/lib/db/local-db";
+import type { IntervaloGol } from "@/lib/types/database.types";
+
+export const ANCHO = 1920;
+export const ALTO = 1080;
+
+/** Lo que las diapositivas automáticas leen de la app. */
+export interface ContextoPresentacion {
+  partido: LocalPartido;
+  rival: LocalRivalScouting | null;
+  plantillaRival: LocalRivalPlantillaJugador[];
+  destacadosRival: LocalRivalJugadorDestacado[];
+  golesRival: LocalRivalGolIntervalo[];
+  onceRival: LocalRivalAlineacion[];
+  nuestraAlineacion: LocalAlineacion[];
+  jugadores: Map<string, LocalJugador>;
+  abp: LocalJugadaAbp[];
+}
+
+const TITULO: CSSProperties = {
+  fontFamily: "var(--font-oswald), Impact, 'Arial Narrow', sans-serif",
+  fontWeight: 700,
+  textTransform: "uppercase",
+  lineHeight: 1,
+};
+const TEXTO: CSSProperties = { fontFamily: "Arial, Helvetica, sans-serif" };
+const AZUL_ETIQUETA = "#5b87a6";
+
+function Cabecera({ titulo, color }: { titulo: string; color?: string }) {
+  return (
+    <>
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img
+        src="/escudo-cultural.png"
+        alt=""
+        style={{ position: "absolute", left: 85, top: 53, width: 107, height: 143, objectFit: "contain" }}
+      />
+      <div
+        style={{
+          ...TITULO,
+          position: "absolute",
+          left: 215,
+          right: 120,
+          top: 66,
+          height: 130,
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          textAlign: "center",
+          fontSize: titulo.length > 26 ? 100 : 124,
+          color: color ?? "#ee1c25",
+        }}
+      >
+        {titulo}
+      </div>
+    </>
+  );
+}
+
+function Etiqueta({ children, style }: { children: ReactNode; style?: CSSProperties }) {
+  return (
+    <div
+      style={{
+        ...TEXTO,
+        background: AZUL_ETIQUETA,
+        color: "#ffffff",
+        fontWeight: 700,
+        fontSize: 30,
+        textAlign: "center",
+        padding: "8px 24px",
+        textTransform: "uppercase",
+        ...style,
+      }}
+    >
+      {children}
+    </div>
+  );
+}
+
+function Marco({
+  d,
+  ctx,
+  sinCabecera = false,
+  color,
+  children,
+}: {
+  d: Diapositiva;
+  ctx: ContextoPresentacion;
+  sinCabecera?: boolean;
+  color?: string;
+  children: ReactNode;
+}) {
+  const titulo = "titulo" in d ? d.titulo : "";
+  return (
+    <>
+      {!sinCabecera && <Cabecera titulo={titulo} color={color} />}
+      {children}
+      <div
+        style={{
+          ...TEXTO,
+          position: "absolute",
+          left: 0,
+          right: 0,
+          top: 1026,
+          height: 54,
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          color: "#ffffff",
+          fontWeight: 700,
+          fontSize: 36,
+        }}
+      >
+        {d.tipo === "portada" ? "" : pieDiapositiva(ctx.partido.fecha)}
+      </div>
+    </>
+  );
+}
+
+function DiagramaImg({
+  diagrama,
+  alto,
+  ancho,
+  estilo,
+}: {
+  diagrama: Diagrama;
+  alto?: number;
+  ancho?: number;
+  estilo?: CSSProperties;
+}) {
+  return (
+    <div
+      className="[&>svg]:block [&>svg]:h-full [&>svg]:w-full"
+      style={{ width: ancho, height: alto, overflow: "hidden", ...estilo }}
+      dangerouslySetInnerHTML={{ __html: diagramaASvg(diagrama) }}
+    />
+  );
+}
+
+function CampoVacio({ alto, ancho, texto }: { alto: number; ancho: number; texto: string }) {
+  return (
+    <div
+      style={{
+        ...TEXTO,
+        width: ancho,
+        height: alto,
+        border: "4px dashed #9ca3af",
+        color: "#6b7280",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        fontSize: 36,
+        textAlign: "center",
+        padding: 40,
+      }}
+    >
+      {texto}
+    </div>
+  );
+}
+
+// ---- Tipos de diapositiva ---------------------------------------------------
+
+function Portada({ d, ctx }: { d: DPortada; ctx: ContextoPresentacion }) {
+  return (
+    <Marco d={d} ctx={ctx} sinCabecera>
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img
+        src="/escudo-cultural.png"
+        alt=""
+        style={{ position: "absolute", left: 200, top: 330, width: 240, height: 320, objectFit: "contain" }}
+      />
+      <div style={{ position: "absolute", left: 520, right: 140, top: 270, textAlign: "center" }}>
+        <div style={{ ...TITULO, fontSize: 250, color: "#111111", lineHeight: 1.05 }}>{d.titulo}</div>
+        <div style={{ ...TITULO, fontSize: 84, color: "#ee1c25", marginTop: 26 }}>{d.subtitulo}</div>
+        <div style={{ ...TEXTO, fontSize: 64, color: "#111111", marginTop: 96, fontWeight: 500 }}>{d.pie}</div>
+      </div>
+    </Marco>
+  );
+}
+
+function Informe({ d, ctx }: { d: DInforme; ctx: ContextoPresentacion }) {
+  const filas: { icono: ReactNode; lineas: string[] }[] = [
+    { icono: <CalendarDays size={96} strokeWidth={1.6} />, lineas: [d.jornada, [d.dia, d.hora].filter(Boolean).join("      ")] },
+    { icono: <MapPin size={96} strokeWidth={1.6} />, lineas: [d.lugar] },
+    { icono: <RectangleHorizontal size={96} strokeWidth={1.6} />, lineas: [d.superficie] },
+    { icono: <Clock size={96} strokeWidth={1.6} />, lineas: [d.citacion ? `CITACIÓN: ${d.citacion}` : ""] },
+  ];
+  return (
+    <Marco d={d} ctx={ctx} color="#111111">
+      <div
+        style={{
+          ...TEXTO,
+          position: "absolute",
+          left: 215,
+          right: 120,
+          top: 222,
+          textAlign: "center",
+          color: "#ee1c25",
+          fontWeight: 700,
+          fontSize: 46,
+          textTransform: "uppercase",
+        }}
+      >
+        {d.competicion}
+      </div>
+      <div style={{ position: "absolute", left: 150, top: 340, width: 1000 }}>
+        {filas.map((f, i) => (
+          <div key={i} style={{ display: "flex", alignItems: "center", gap: 40, minHeight: 150 }}>
+            <div style={{ width: 110, flexShrink: 0, color: "#111111" }}>{f.icono}</div>
+            <div
+              style={{
+                ...TEXTO,
+                flex: 1,
+                textAlign: "center",
+                color: "#ee1c25",
+                fontWeight: 700,
+                fontSize: 46,
+                lineHeight: 1.25,
+                textTransform: "uppercase",
+                whiteSpace: "pre-wrap",
+              }}
+            >
+              {f.lineas.filter(Boolean).join("\n")}
+            </div>
+          </div>
+        ))}
+      </div>
+      <div style={{ position: "absolute", left: 1330, width: 440, top: 300 }}>
+        <Etiqueta>Equipación</Etiqueta>
+        <div
+          style={{
+            ...TEXTO,
+            minHeight: 220,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            textAlign: "center",
+            fontSize: 38,
+            fontWeight: 700,
+            color: "#111111",
+            padding: 20,
+            whiteSpace: "pre-wrap",
+          }}
+        >
+          {d.equipacion}
+        </div>
+        <Etiqueta style={{ marginTop: 40 }}>Árbitros</Etiqueta>
+        <div
+          style={{
+            ...TEXTO,
+            minHeight: 160,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            textAlign: "center",
+            fontSize: 32,
+            color: "#111111",
+            padding: 20,
+            whiteSpace: "pre-wrap",
+          }}
+        >
+          {d.arbitros}
+        </div>
+      </div>
+    </Marco>
+  );
+}
+
+function Texto({ d, ctx }: { d: DTexto; ctx: ContextoPresentacion }) {
+  const lineas = d.texto.split("\n");
+  const n = lineas.length;
+  const fuente = n > 12 ? 34 : n > 9 ? 40 : n > 6 ? 46 : 52;
+  return (
+    <Marco d={d} ctx={ctx} color={hexTitulo(d.color)}>
+      <div
+        style={{
+          ...TEXTO,
+          position: "absolute",
+          left: 150,
+          right: 160,
+          top: 240,
+          bottom: 130,
+          display: "flex",
+          flexDirection: "column",
+          justifyContent: "space-evenly",
+          fontSize: fuente,
+          color: "#111111",
+          lineHeight: 1.25,
+        }}
+      >
+        {lineas.map((l, i) => (
+          <div key={i} style={{ whiteSpace: "pre-wrap", minHeight: fuente }}>
+            {l}
+          </div>
+        ))}
+      </div>
+    </Marco>
+  );
+}
+
+function Pizarra({ d, ctx }: { d: DPizarra; ctx: ContextoPresentacion }) {
+  const lineasPie = d.pie.split("\n").filter((l) => l.trim());
+  const altoPie = lineasPie.length > 1 ? 120 : 70;
+  const alto = 780 - altoPie;
+  const ancho = Math.round((alto * 520) / 340);
+  return (
+    <Marco d={d} ctx={ctx} color={hexTitulo(d.color)}>
+      <div style={{ position: "absolute", left: 0, right: 0, top: 215, display: "flex", justifyContent: "center" }}>
+        <DiagramaImg diagrama={d.diagrama ?? diagramaVacio("completo")} alto={alto} ancho={ancho} />
+      </div>
+      {lineasPie.length > 0 && (
+        <div
+          style={{
+            ...TEXTO,
+            position: "absolute",
+            left: 120,
+            right: 120,
+            top: 215 + alto + 10,
+            textAlign: "center",
+            color: hexTitulo(d.colorPie),
+            fontWeight: 700,
+            fontSize: 32,
+            lineHeight: 1.2,
+            textTransform: "uppercase",
+          }}
+        >
+          {lineasPie.map((l, i) => (
+            <div key={i}>{l}</div>
+          ))}
+        </div>
+      )}
+    </Marco>
+  );
+}
+
+function Bloques({ d, ctx }: { d: DBloques; ctx: ContextoPresentacion }) {
+  const n = Math.max(1, d.bloques.length);
+  const total = 790;
+  const alto = Math.floor(total / n) - 16;
+  return (
+    <Marco d={d} ctx={ctx} color={hexTitulo(d.color)}>
+      <div style={{ position: "absolute", left: 130, right: 140, top: 225, display: "flex", flexDirection: "column", gap: 16 }}>
+        {d.bloques.map((b, i) => {
+          const diagrama = b.diagrama;
+          const anchoDibujo = diagrama ? Math.round((alto * 520) / 340) : 0;
+          return (
+            <div key={i} style={{ display: "flex", gap: 36, height: alto, alignItems: "stretch" }}>
+              {diagrama && <DiagramaImg diagrama={diagrama} alto={alto} ancho={anchoDibujo} estilo={{ flexShrink: 0 }} />}
+              <div style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column" }}>
+                <div
+                  style={{
+                    ...TEXTO,
+                    background: b.color,
+                    color: "#ffffff",
+                    fontWeight: 700,
+                    fontSize: 32,
+                    textAlign: "center",
+                    padding: "6px 20px",
+                    textTransform: "uppercase",
+                    textShadow: "0 0 3px rgba(0,0,0,0.45)",
+                  }}
+                >
+                  {b.titulo}
+                </div>
+                <div
+                  style={{
+                    ...TEXTO,
+                    flex: 1,
+                    fontSize: n > 2 ? 34 : 40,
+                    lineHeight: 1.3,
+                    color: "#111111",
+                    padding: "14px 10px",
+                    whiteSpace: "pre-wrap",
+                    overflow: "hidden",
+                  }}
+                >
+                  {b.texto}
+                </div>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </Marco>
+  );
+}
+
+function RivalPlantilla({ d, ctx }: { d: Diapositiva & { tipo: "rival_plantilla" }; ctx: ContextoPresentacion }) {
+  const jugadores = ctx.plantillaRival
+    .filter((j) => j.rol === "jugador")
+    .sort((a, b) => a.nombre.localeCompare(b.nombre));
+  const cuerpo = ctx.plantillaRival.filter((j) => j.rol !== "jugador");
+  const destacado = new Map<string, "top" | "flojo">();
+  for (const x of ctx.destacadosRival) {
+    if (x.plantilla_id) destacado.set(x.plantilla_id, x.categoria);
+  }
+  const dosColumnas = jugadores.length > 12;
+  const fuente = !dosColumnas ? 38 : jugadores.length > 18 ? 26 : 30;
+  const mitad = Math.ceil(jugadores.length / 2);
+  const columnas = dosColumnas ? [jugadores.slice(0, mitad), jugadores.slice(mitad)] : [jugadores];
+  return (
+    <Marco d={d} ctx={ctx}>
+      <Etiqueta style={{ position: "absolute", left: 130, width: 620, top: 215 }}>
+        {`${ctx.partido.rival} (${jugadores.length})`}
+      </Etiqueta>
+      {jugadores.length === 0 ? (
+        <div style={{ ...TEXTO, position: "absolute", left: 130, top: 330, fontSize: 36, color: "#6b7280" }}>
+          La ficha del rival todavía no tiene plantilla.
+        </div>
+      ) : (
+        <div style={{ position: "absolute", left: 130, top: 290, display: "flex", gap: 30 }}>
+          {columnas.map((col, c) => (
+            <div key={c} style={{ width: dosColumnas ? 600 : 640 }}>
+              {col.map((j) => {
+                const marca = destacado.get(j.id);
+                return (
+                  <div
+                    key={j.id}
+                    style={{
+                      ...TEXTO,
+                      fontSize: fuente,
+                      lineHeight: 1.25,
+                      fontWeight: 700,
+                      color: "#111111",
+                      display: "flex",
+                      alignItems: "baseline",
+                      gap: 10,
+                      marginBottom: 4,
+                    }}
+                  >
+                    <span style={{ width: fuente * 1.3, textAlign: "right", color: "#6b7280", fontWeight: 400 }}>
+                      {j.dorsal ?? ""}
+                    </span>
+                    <span
+                      style={{
+                        background: j.curso === 2 ? "#92d050" : j.curso === 1 ? "#ffff00" : "transparent",
+                        padding: "0 10px",
+                      }}
+                    >
+                      {j.nombre}
+                    </span>
+                    {marca && (
+                      <span style={{ color: marca === "top" ? "#d97706" : "#dc2626", fontSize: fuente * 0.9 }}>
+                        {marca === "top" ? "★" : "▼"}
+                      </span>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          ))}
+        </div>
+      )}
+      <div style={{ ...TEXTO, position: "absolute", left: 1410, top: 290, width: 400, fontSize: 28, color: "#111111" }}>
+        {cuerpo.map((p) => (
+          <div key={p.id} style={{ marginBottom: 14 }}>
+            <div style={{ color: "#6b7280", textTransform: "uppercase", fontSize: 22 }}>{p.rol}</div>
+            <div style={{ fontWeight: 700 }}>{p.nombre}</div>
+          </div>
+        ))}
+        {jugadores.some((j) => j.curso != null) && (
+          <div style={{ marginTop: 40, fontWeight: 700, fontSize: 26 }}>
+            <div style={{ background: "#ffff00", display: "inline-block", padding: "0 10px" }}>JUGADOR PRIMER AÑO</div>
+            <div style={{ background: "#92d050", display: "inline-block", padding: "0 10px", marginTop: 8 }}>
+              JUGADOR SEGUNDO AÑO
+            </div>
+          </div>
+        )}
+        {ctx.destacadosRival.length > 0 && (
+          <div style={{ marginTop: 40, fontSize: 26 }}>
+            <div>
+              <span style={{ color: "#d97706" }}>★</span> Destacado
+            </div>
+            <div>
+              <span style={{ color: "#dc2626" }}>▼</span> Punto débil
+            </div>
+          </div>
+        )}
+      </div>
+    </Marco>
+  );
+}
+
+const TRAMOS: { value: IntervaloGol; label: string }[] = [
+  { value: "0-15", label: "0-15 Minutos" },
+  { value: "15-30", label: "15-30 Minutos" },
+  { value: "30-45", label: "30-45 Minutos" },
+  { value: "45-60", label: "45-60 Minutos" },
+  { value: "60+", label: "60-70+ Minutos" },
+];
+
+function RivalGoles({ d, ctx }: { d: Diapositiva & { tipo: "rival_goles" }; ctx: ContextoPresentacion }) {
+  const por = new Map(ctx.golesRival.map((g) => [g.intervalo, g]));
+  const datos = TRAMOS.map((t) => ({
+    ...t,
+    favor: por.get(t.value)?.goles_favor ?? 0,
+    contra: por.get(t.value)?.goles_contra ?? 0,
+  }));
+  const totalFavor = datos.reduce((s, x) => s + x.favor, 0);
+  const totalContra = datos.reduce((s, x) => s + x.contra, 0);
+  const maximo = Math.max(4, ...datos.map((x) => Math.max(x.favor, x.contra)));
+  const W = 1240;
+  const H = 640;
+  const izq = 70;
+  const abajo = 70;
+  const arriba = 110;
+  const alto = H - abajo - arriba;
+  const ancho = W - izq - 20;
+  const grupo = ancho / datos.length;
+  const barra = grupo * 0.3;
+  const y = (v: number) => arriba + alto - (v / maximo) * alto;
+  return (
+    <Marco d={d} ctx={ctx}>
+      <Etiqueta style={{ position: "absolute", left: 130, width: 360, top: 215 }}>Goles equipo</Etiqueta>
+      <div style={{ position: "absolute", left: 130, width: 360, top: 290, ...TEXTO, color: "#111111" }}>
+        <div style={{ display: "flex", justifyContent: "space-around", fontSize: 26, fontWeight: 700 }}>
+          <span>A FAVOR</span>
+          <span>EN CONTRA</span>
+        </div>
+        <div style={{ display: "flex", justifyContent: "space-around", fontSize: 120, fontWeight: 700, lineHeight: 1.1 }}>
+          <span style={{ color: "#00a651" }}>{totalFavor}</span>
+          <span style={{ color: "#06b6d4" }}>{totalContra}</span>
+        </div>
+        <div style={{ fontSize: 24, color: "#6b7280", marginTop: 30 }}>{ctx.partido.rival}</div>
+      </div>
+      <svg
+        width={W}
+        height={H}
+        viewBox={`0 0 ${W} ${H}`}
+        style={{ position: "absolute", left: 560, top: 235, fontFamily: "Arial, Helvetica, sans-serif" }}
+      >
+        <text x={W / 2} y={34} textAnchor="middle" fontSize={34} fontWeight={700} fill="#111111">
+          GOLES POR MINUTOS
+        </text>
+        <rect x={W / 2 - 200} y={56} width={16} height={16} fill="#00a651" />
+        <text x={W / 2 - 176} y={71} fontSize={22} fontWeight={700} fill="#111111">
+          A FAVOR
+        </text>
+        <rect x={W / 2 + 20} y={56} width={16} height={16} fill="#06b6d4" />
+        <text x={W / 2 + 44} y={71} fontSize={22} fontWeight={700} fill="#111111">
+          EN CONTRA
+        </text>
+        {Array.from({ length: maximo + 1 }, (_, v) => (
+          <g key={v}>
+            <line x1={izq} x2={W - 20} y1={y(v)} y2={y(v)} stroke="#d1d5db" strokeWidth={1.5} />
+            <text x={izq - 12} y={y(v) + 8} textAnchor="end" fontSize={22} fill="#374151">
+              {v}
+            </text>
+          </g>
+        ))}
+        {datos.map((x, i) => {
+          const cx = izq + grupo * i + grupo / 2;
+          return (
+            <g key={x.value}>
+              <rect x={cx - barra - 4} y={y(x.favor)} width={barra} height={(x.favor / maximo) * alto} fill="#00a651" />
+              <rect x={cx + 4} y={y(x.contra)} width={barra} height={(x.contra / maximo) * alto} fill="#06b6d4" />
+              {x.favor > 0 && (
+                <text x={cx - barra / 2 - 4} y={y(x.favor) - 8} textAnchor="middle" fontSize={26} fontWeight={700} fill="#111111">
+                  {x.favor}
+                </text>
+              )}
+              {x.contra > 0 && (
+                <text x={cx + barra / 2 + 4} y={y(x.contra) - 8} textAnchor="middle" fontSize={26} fontWeight={700} fill="#111111">
+                  {x.contra}
+                </text>
+              )}
+              <text x={cx} y={H - 30} textAnchor="middle" fontSize={24} fontWeight={700} fill="#111111">
+                {x.label}
+              </text>
+            </g>
+          );
+        })}
+      </svg>
+    </Marco>
+  );
+}
+
+interface FichaCampo {
+  top: number;
+  left: number;
+  numero: string;
+  nombre: string;
+  suplente: boolean;
+}
+
+function CampoVertical({ fichas, color }: { fichas: FichaCampo[]; color: string }) {
+  const W = 490;
+  const H = 735;
+  return (
+    <div style={{ position: "relative", width: W, height: H, background: "#2f8f3a", border: "4px solid #111111" }}>
+      <svg width={W} height={H} viewBox="0 0 100 150" preserveAspectRatio="none" style={{ position: "absolute", inset: 0 }}>
+        <g fill="none" stroke="#ffffff" strokeOpacity={0.85} strokeWidth={0.5}>
+          <rect x={3} y={3} width={94} height={144} />
+          <line x1={3} y1={75} x2={97} y2={75} />
+          <circle cx={50} cy={75} r={9} />
+          <rect x={22} y={3} width={56} height={22} />
+          <rect x={36} y={3} width={28} height={8} />
+          <rect x={22} y={125} width={56} height={22} />
+          <rect x={36} y={139} width={28} height={8} />
+        </g>
+      </svg>
+      {fichas.map((f, i) => (
+        <div
+          key={i}
+          style={{
+            position: "absolute",
+            top: `${f.top}%`,
+            left: `${f.left}%`,
+            transform: "translate(-50%, -50%)",
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "center",
+          }}
+        >
+          <div
+            style={{
+              ...TEXTO,
+              width: 58,
+              height: 58,
+              borderRadius: "50%",
+              background: f.suplente ? "#6b7280" : color,
+              border: "4px solid #ffffff",
+              color: "#ffffff",
+              fontWeight: 700,
+              fontSize: 26,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+            }}
+          >
+            {f.numero}
+          </div>
+          {f.nombre && (
+            <div
+              style={{
+                ...TEXTO,
+                marginTop: 2,
+                background: "rgba(255,255,255,0.92)",
+                color: "#111111",
+                fontWeight: 700,
+                fontSize: 21,
+                padding: "0 8px",
+                whiteSpace: "nowrap",
+              }}
+            >
+              {f.nombre}
+            </div>
+          )}
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function OnceEnCampo({
+  d,
+  ctx,
+  fichas,
+  color,
+  etiqueta,
+  vacio,
+}: {
+  d: Diapositiva;
+  ctx: ContextoPresentacion;
+  fichas: FichaCampo[];
+  color: string;
+  etiqueta: string;
+  vacio: string;
+}) {
+  const titulares = fichas.filter((f) => !f.suplente);
+  const suplentes = fichas.filter((f) => f.suplente);
+  return (
+    <Marco d={d} ctx={ctx}>
+      <Etiqueta style={{ position: "absolute", left: 130, width: 498, top: 212 }}>{etiqueta}</Etiqueta>
+      <div style={{ position: "absolute", left: 130, top: 270 }}>
+        {fichas.length === 0 ? (
+          <CampoVacio ancho={498} alto={743} texto={vacio} />
+        ) : (
+          <CampoVertical fichas={fichas} color={color} />
+        )}
+      </div>
+      <div style={{ ...TEXTO, position: "absolute", left: 760, top: 270, width: 900, color: "#111111", fontSize: 34 }}>
+        {titulares.length > 0 && (
+          <>
+            <div style={{ fontWeight: 700, color: "#6b7280", fontSize: 26, marginBottom: 8 }}>TITULARES</div>
+            {titulares.map((f, i) => (
+              <div key={i} style={{ lineHeight: 1.3 }}>
+                <span style={{ display: "inline-block", width: 70, textAlign: "right", color: color, fontWeight: 700 }}>
+                  {f.numero}
+                </span>{" "}
+                {f.nombre}
+              </div>
+            ))}
+          </>
+        )}
+        {suplentes.length > 0 && (
+          <>
+            <div style={{ fontWeight: 700, color: "#6b7280", fontSize: 26, margin: "28px 0 8px" }}>SUPLENTES</div>
+            {suplentes.map((f, i) => (
+              <div key={i} style={{ lineHeight: 1.3 }}>
+                <span style={{ display: "inline-block", width: 70, textAlign: "right", color: "#6b7280" }}>{f.numero}</span>{" "}
+                {f.nombre}
+              </div>
+            ))}
+          </>
+        )}
+      </div>
+    </Marco>
+  );
+}
+
+function RivalOnce({ d, ctx }: { d: Diapositiva & { tipo: "rival_once" }; ctx: ContextoPresentacion }) {
+  const fichas: FichaCampo[] = [...ctx.onceRival]
+    .sort((a, b) => (a.orden ?? 0) - (b.orden ?? 0))
+    .map((f) => ({
+      top: f.pos_y,
+      left: f.pos_x,
+      numero: f.dorsal != null ? String(f.dorsal) : "",
+      nombre: (f.nombre ?? "").toUpperCase(),
+      suplente: f.suplente,
+    }));
+  return (
+    <OnceEnCampo
+      d={d}
+      ctx={ctx}
+      fichas={fichas}
+      color="#111111"
+      etiqueta="Campograma"
+      vacio="La ficha del rival todavía no tiene su alineación"
+    />
+  );
+}
+
+function NuestroOnce({ d, ctx }: { d: Diapositiva & { tipo: "nuestro_once" }; ctx: ContextoPresentacion }) {
+  const fichas: FichaCampo[] = ctx.nuestraAlineacion
+    .filter((a) => a.titular && a.pos_x != null && a.pos_y != null)
+    .map((a) => {
+      const j = a.jugador_id ? ctx.jugadores.get(a.jugador_id) : undefined;
+      return {
+        top: a.pos_y as number,
+        left: a.pos_x as number,
+        numero: j?.dorsal != null ? String(j.dorsal) : "",
+        nombre: (j ? j.alias || j.nombre : (a.nombre_libre ?? "")).toUpperCase(),
+        suplente: false,
+      };
+    });
+  return (
+    <OnceEnCampo
+      d={d}
+      ctx={ctx}
+      fichas={fichas}
+      color="#ee1c25"
+      etiqueta="Nuestro once"
+      vacio="Todavía no hay alineación de este partido"
+    />
+  );
+}
+
+const COLOR_ABP: Record<string, string> = { defensivo: "#2bb3a8", ofensivo: "#3b8fdc" };
+
+function Abp({ d, ctx }: { d: DAbp; ctx: ContextoPresentacion }) {
+  const todas = [...ctx.abp].sort((a, b) => a.orden - b.orden || a.created_at.localeCompare(b.created_at));
+  const elegidas = d.jugadas.length > 0 ? todas.filter((j) => d.jugadas.includes(j.id)) : todas;
+  // Primero las defensivas y debajo las ofensivas, como en el PowerPoint.
+  const filas = [
+    elegidas.filter((j) => j.fase === "defensivo"),
+    elegidas.filter((j) => j.fase !== "defensivo"),
+  ].filter((f) => f.length > 0);
+  // Las columnas pedidas, sin pasar de las jugadas que hay en la fila más larga.
+  const columnas = Math.min(Math.min(4, Math.max(1, d.columnas)), Math.max(1, ...filas.map((f) => f.length)));
+  const espacio = 26;
+  const hueco = 18;
+  const cabecera = 42;
+  const anchoUtil = 1640;
+  const altoUtil = 790;
+  const subfilas = filas.reduce((s, f) => s + Math.ceil(f.length / columnas), 0);
+  // Tamaño de cada jugada: lo que quepa a lo ancho y a lo alto.
+  const anchoPorColumna = (anchoUtil - espacio * (columnas - 1)) / columnas;
+  const anchoPorAlto = (((altoUtil - hueco * (subfilas - 1)) / Math.max(1, subfilas)) - cabecera) * (1056 / 723);
+  const anchoCelda = Math.floor(Math.min(anchoPorColumna, anchoPorAlto));
+  return (
+    <Marco d={d} ctx={ctx}>
+      {elegidas.length === 0 ? (
+        <div style={{ position: "absolute", left: 130, top: 300 }}>
+          <CampoVacio ancho={1600} alto={500} texto="Este partido todavía no tiene jugadas de ABP. Créalas en Partidos → ABP." />
+        </div>
+      ) : (
+        <div
+          style={{
+            position: "absolute",
+            left: 140,
+            top: 215,
+            width: anchoUtil,
+            height: altoUtil,
+            display: "flex",
+            flexDirection: "column",
+            justifyContent: "flex-start",
+            alignItems: "center",
+            gap: hueco,
+          }}
+        >
+          {filas.map((fila, i) => (
+            <div
+              key={i}
+              style={{ display: "flex", flexWrap: "wrap", justifyContent: "center", gap: `${hueco}px ${espacio}px` }}
+            >
+              {fila.map((j) => (
+                <div key={j.id} style={{ width: anchoCelda }}>
+                  <div
+                    style={{
+                      ...TEXTO,
+                      background: COLOR_ABP[j.fase] ?? COLOR_ABP.ofensivo,
+                      color: "#ffffff",
+                      fontWeight: 700,
+                      fontSize: 24,
+                      textAlign: "center",
+                      padding: "4px 10px",
+                      textTransform: "uppercase",
+                      whiteSpace: "nowrap",
+                      overflow: "hidden",
+                      textOverflow: "ellipsis",
+                    }}
+                  >
+                    {j.nombre}
+                  </div>
+                  <CampoAbp
+                    diagrama={leerDiagramaAbp(j.diagrama)}
+                    filas={leerJugadoresAbp(j.jugadores)}
+                    jugadores={ctx.jugadores}
+                    tipo={j.tipo}
+                    fase={j.fase}
+                    grande
+                  />
+                </div>
+              ))}
+            </div>
+          ))}
+        </div>
+      )}
+    </Marco>
+  );
+}
+
+// ---- Montaje ----------------------------------------------------------------
+
+function Contenido({ d, ctx }: { d: Diapositiva; ctx: ContextoPresentacion }) {
+  switch (d.tipo) {
+    case "portada":
+      return <Portada d={d} ctx={ctx} />;
+    case "informe":
+      return <Informe d={d} ctx={ctx} />;
+    case "texto":
+      return <Texto d={d} ctx={ctx} />;
+    case "pizarra":
+      return <Pizarra d={d} ctx={ctx} />;
+    case "bloques":
+      return <Bloques d={d} ctx={ctx} />;
+    case "rival_plantilla":
+      return <RivalPlantilla d={d} ctx={ctx} />;
+    case "rival_goles":
+      return <RivalGoles d={d} ctx={ctx} />;
+    case "rival_once":
+      return <RivalOnce d={d} ctx={ctx} />;
+    case "nuestro_once":
+      return <NuestroOnce d={d} ctx={ctx} />;
+    case "abp":
+      return <Abp d={d} ctx={ctx} />;
+  }
+}
+
+/** La diapositiva a su tamaño de diseño (1920 x 1080). */
+export function Diapositiva1080({ d, ctx }: { d: Diapositiva; ctx: ContextoPresentacion }) {
+  return (
+    <div
+      data-diapositiva
+      style={{
+        position: "relative",
+        width: ANCHO,
+        height: ALTO,
+        overflow: "hidden",
+        backgroundColor: "#ffffff",
+        backgroundImage: "url(/presentacion/fondo.png)",
+        backgroundSize: "100% 100%",
+        color: "#111111",
+      }}
+    >
+      <Contenido d={d} ctx={ctx} />
+    </div>
+  );
+}
+
+/** La diapositiva ajustada al ancho de su contenedor (mantiene 16:9). */
+export function DiapositivaEscalada({
+  d,
+  ctx,
+  className,
+}: {
+  d: Diapositiva;
+  ctx: ContextoPresentacion;
+  className?: string;
+}) {
+  const ref = useRef<HTMLDivElement>(null);
+  const [escala, setEscala] = useState(0.3);
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    const medir = () => setEscala(el.clientWidth / ANCHO);
+    medir();
+    const obs = new ResizeObserver(medir);
+    obs.observe(el);
+    return () => obs.disconnect();
+  }, []);
+  return (
+    <div
+      ref={ref}
+      className={className}
+      style={{ position: "relative", width: "100%", aspectRatio: "16 / 9", overflow: "hidden" }}
+    >
+      <div style={{ position: "absolute", left: 0, top: 0, transform: `scale(${escala})`, transformOrigin: "top left" }}>
+        <Diapositiva1080 d={d} ctx={ctx} />
+      </div>
+    </div>
+  );
+}

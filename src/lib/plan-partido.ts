@@ -239,3 +239,16 @@ export function fechaHoja(fecha: string): string {
   const [a, m, d] = fecha.split("-");
   return `${d}/${m}/${a}`;
 }
+
+/**
+ * Cómo se lista un jugador en los desplegables de ABP: "alias apellidos", pero si el alias
+ * ya está en su nombre completo (alias "Barrera" y apellidos "Barrera Fernández") se usa
+ * el nombre completo para no repetirlo.
+ */
+export function etiquetaJugadorAbp(j: { nombre: string; apellidos: string; alias?: string | null }): string {
+  const completo = `${j.nombre} ${j.apellidos}`.trim();
+  const alias = j.alias?.trim();
+  if (!alias) return completo;
+  const norm = (s: string) => s.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+  return norm(completo).includes(norm(alias)) ? completo : `${alias} ${j.apellidos}`.trim();
+}

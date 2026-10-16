@@ -25,6 +25,7 @@ import {
   FASES_ABP,
   leerDiagramaAbp,
   leerJugadoresAbp,
+  etiquetaJugadorAbp,
   rolesPorDefecto,
   type RolesAbp,
   type FaseAbp,
@@ -95,7 +96,7 @@ export function JugadaAbpForm({
     : jugadores;
   const opcionesJugadores = jugadoresDelPartido.map((j) => ({
     id: j.id,
-    nombre: `${j.alias || j.nombre} ${j.apellidos}`,
+    nombre: etiquetaJugadorAbp(j),
   }));
 
   // Con piezas en el dibujo, quién hace qué se elige por piezas (ver AsignarJugadores).

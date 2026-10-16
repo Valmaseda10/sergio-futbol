@@ -5,6 +5,7 @@ import {
   localDb,
   type LocalHojaPartido,
   type LocalJugadaAbp,
+  type LocalPresentacionPartido,
 } from "@/lib/db/local-db";
 import { queueMutation } from "@/lib/db/sync";
 import type { Diagrama } from "@/lib/ficha-entrenamiento";
@@ -24,6 +25,11 @@ import {
   type HojaPartidoDatos,
   type JugadorAbp,
 } from "@/lib/plan-partido";
+import {
+  presentacionAJson,
+  presentacionInicial,
+  type Diapositiva,
+} from "@/lib/presentacion-partido";
 import { DEMARCACION_ORDEN, demarcacionDePosicion } from "@/lib/posiciones";
 import type { Json } from "@/lib/types/database.types";
 import { clubConfig } from "@/lib/club-config";
@@ -266,3 +272,38 @@ export async function crearJugadaAbpParaPartidoLocal(
 }
 
 export { leerHoja };
+
+// ---- Presentación de partido ------------------------------------------------
+
+/** La presentación de un partido; si todavía no existe, se crea con las diapositivas de siempre. */
+export async function obtenerOCrearPresentacionLocal(
+  partidoId: string,
+): Promise<LocalPresentacionPartido | null> {
+  const existente = await localDb.presentaciones_partido
+    .where("partido_id")
+    .equals(partidoId)
+    .first();
+  if (existente) return existente;
+
+  const partido = await localDb.partidos.get(partidoId);
+  if (!partido) return null;
+  const row: LocalPresentacionPartido = {
+    id: crypto.randomUUID(),
+    partido_id: partidoId,
+    diapositivas: presentacionAJson(presentacionInicial(partido)),
+    created_at: new Date().toISOString(),
+  };
+  await localDb.presentaciones_partido.put(row);
+  await queueMutation("presentaciones_partido", "insert", row.id, row);
+  return row;
+}
+
+export async function guardarPresentacionLocal(
+  id: string,
+  diapositivas: Diapositiva[],
+): Promise<SimpleResult> {
+  const patch = { diapositivas: presentacionAJson(diapositivas) };
+  await localDb.presentaciones_partido.update(id, patch);
+  await queueMutation("presentaciones_partido", "update", id, patch);
+  return { success: true };
+}

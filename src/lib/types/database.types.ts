@@ -1137,6 +1137,22 @@ export interface Database {
         Update: Partial<Database["public"]["Tables"]["hojas_partido"]["Insert"]>;
         Relationships: [];
       };
+      presentaciones_partido: {
+        Row: {
+          id: string;
+          partido_id: string;
+          diapositivas: Json;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          partido_id: string;
+          diapositivas?: Json;
+          created_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["presentaciones_partido"]["Insert"]>;
+        Relationships: [];
+      };
       tareas_guardadas: {
         Row: {
           id: string;
