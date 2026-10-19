@@ -91,11 +91,17 @@ export function DocumentosRival({
   tipo,
   descripcion,
   placeholderNombre,
+  sinSubida = false,
+  ocultarSiVacio = false,
 }: {
   rivalId: string;
   tipo: TipoDocumentoRival;
   descripcion: string;
   placeholderNombre: string;
+  /** Sin botón de subir: solo se ven (y se pueden quitar) los archivos que ya hay. */
+  sinSubida?: boolean;
+  /** No pinta nada si no hay documentos. */
+  ocultarSiVacio?: boolean;
 }) {
   const [mostrarForm, setMostrarForm] = useState(false);
   const [nombre, setNombre] = useState("");
@@ -179,23 +185,27 @@ export function DocumentosRival({
     setBorrandoId(null);
   }
 
+  if (ocultarSiVacio && documentos.length === 0) return null;
+
   return (
     <div className="space-y-3">
       <div className="flex items-center justify-between">
         <p className="text-xs text-muted-foreground">{descripcion}</p>
-        <Button
-          type="button"
-          size="sm"
-          variant="outline"
-          className="print:hidden"
-          onClick={() => setMostrarForm((v) => !v)}
-        >
-          <Plus className="size-4" />
-          Subir
-        </Button>
+        {!sinSubida && (
+          <Button
+            type="button"
+            size="sm"
+            variant="outline"
+            className="print:hidden"
+            onClick={() => setMostrarForm((v) => !v)}
+          >
+            <Plus className="size-4" />
+            Subir
+          </Button>
+        )}
       </div>
 
-      {mostrarForm && (
+      {mostrarForm && !sinSubida && (
         <div className="space-y-3 rounded-md border p-3 print:hidden">
           <div className="space-y-1">
             <Label htmlFor={`documento-nombre-${tipo}`} className="text-xs">

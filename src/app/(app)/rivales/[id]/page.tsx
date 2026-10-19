@@ -169,13 +169,15 @@ export default function FichaRivalPage() {
         </CardHeader>
         <CardContent className="space-y-5">
           <HojasPartidoRival rivalId={rival.id} rivalNombre={rival.nombre} />
-          <div className="space-y-2 border-t pt-4">
-            <p className="text-sm font-medium">Subidas a mano</p>
+          {/* Hojas subidas antes como archivo: solo se ven, ya no se suben más (ahora se rellenan en la app). */}
+          <div className="space-y-2 border-t pt-4 empty:hidden">
             <DocumentosRival
               rivalId={rival.id}
               tipo="hoja_partido"
-              descripcion="Hojas de partido y otros documentos de los partidos jugados."
-              placeholderNombre="Ej. Jornada 5 — hoja de partido"
+              descripcion="Archivos antiguos: hojas de partido que se subieron como PDF o PowerPoint."
+              placeholderNombre=""
+              sinSubida
+              ocultarSiVacio
             />
           </div>
         </CardContent>
