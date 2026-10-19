@@ -19,6 +19,12 @@ Equipo propio: C. y D. Leonesa S.A.D. "B" (la app es del Infantil B).
    `replace(r.nombre, '"', '') = v.n`. No incluir a C. y D. Leonesa "B" (nuestros goles por
    minuto salen de los eventos de la app). En el editor SQL, para textos largos usar
    `window.monaco.editor.getModels()[0].setValue(sql)` en vez de escribir tecla a tecla.
+3b. **Resultados de toda la liga** (alimentan Rivales → Clasificación). Con los `partidos` que devuelve el
+   script (`acta, j, fecha, local, visitante, gl, gv`) hacer un `insert into public.liga_partidos
+   (jornada, fecha, local, visitante, goles_local, goles_visitante, acta) values ... on conflict (acta) do
+   update set goles_local = excluded.goles_local, goles_visitante = excluded.goles_visitante, fecha =
+   excluded.fecha`. Los nombres van como en el script (sin comillas: `Atlético Pinilla B`). Si un acta aún
+   no está publicada, no se inserta (la clasificación solo cuenta partidos con acta).
 4. **Resultados propios.** Comprobar en `partidos` que los partidos de liga ya jugados tienen
    `fecha` y `resultado_favor/contra` iguales a los de la federación (en la jornada 4 la fecha del
    Veguellina estaba un día mal). Corregir solo diferencias claras.

@@ -67,7 +67,8 @@
         const marca = autor === '?' ? '?' : propia ? (autor === 'L' ? 'V' : 'L') : autor;
         return { minuto: +m[1], marca, nombre: m[2] };
       }).filter(Boolean);
-      partidos.push({ jornada: j, acta: id, local: local.t, visitante: visitante.t, goles });
+      const f = txt.match(/Jornada \d+ (\d{2})-(\d{2})-(\d{4})/);
+      partidos.push({ jornada: j, acta: id, fecha: f ? `${f[3]}-${f[2]}-${f[1]}` : null, local: local.t, visitante: visitante.t, goles });
     }
     // Si en toda la jornada no hay ninguna acta publicada, las siguientes tampoco.
     if (partidos.length === leidasAntes) break;
@@ -91,7 +92,8 @@
     faltan,
     tramos,
     partidos: partidos.map((p) => ({
-      j: p.jornada, acta: p.acta, local: p.local, visitante: p.visitante,
+      j: p.jornada, acta: p.acta, fecha: p.fecha, local: p.local, visitante: p.visitante,
+      gl: p.goles.filter((g) => g.marca === 'L').length, gv: p.goles.filter((g) => g.marca === 'V').length,
       res: `${p.goles.filter((g) => g.marca === 'L').length}-${p.goles.filter((g) => g.marca === 'V').length}`,
     })),
   });

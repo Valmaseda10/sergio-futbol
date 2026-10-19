@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useLiveQuery } from "dexie-react-hooks";
-import { ChevronRight, Plus } from "lucide-react";
+import { ChevronRight, Plus, Trophy } from "lucide-react";
 import { localDb } from "@/lib/db/local-db";
 import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -45,14 +45,25 @@ export default function RivalesPage() {
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-semibold">Rivales</h1>
-        <Button
-          size="sm"
-          nativeButton={false}
-          render={<Link href="/rivales/nuevo" />}
-        >
-          <Plus className="size-4" />
-          Nuevo
-        </Button>
+        <div className="flex gap-2">
+          <Button
+            size="sm"
+            variant="outline"
+            nativeButton={false}
+            render={<Link href="/rivales/clasificacion" />}
+          >
+            <Trophy className="size-4" />
+            Clasificación
+          </Button>
+          <Button
+            size="sm"
+            nativeButton={false}
+            render={<Link href="/rivales/nuevo" />}
+          >
+            <Plus className="size-4" />
+            Nuevo
+          </Button>
+        </div>
       </div>
 
       {rivales.length === 0 ? (

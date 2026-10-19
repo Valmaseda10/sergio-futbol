@@ -44,6 +44,7 @@ export type LocalTareaGuardada = Tables["tareas_guardadas"]["Row"];
 export type LocalJugadaAbp = Tables["jugadas_abp"]["Row"];
 export type LocalHojaPartido = Tables["hojas_partido"]["Row"];
 export type LocalPresentacionPartido = Tables["presentaciones_partido"]["Row"];
+export type LocalLigaPartido = Tables["liga_partidos"]["Row"];
 export type LocalCampograma = Tables["campogramas"]["Row"];
 export type LocalCampogramaJugador = Tables["campograma_jugadores"]["Row"];
 export type LocalCampogramaRival = Tables["campograma_rivales"]["Row"];
@@ -83,6 +84,7 @@ export const SYNCED_TABLES = [
   "jugadas_abp",
   "hojas_partido",
   "presentaciones_partido",
+  "liga_partidos",
   "campogramas",
   "campograma_jugadores",
   "campograma_rivales",
@@ -156,6 +158,7 @@ class LocalDb extends Dexie {
   jugadas_abp!: Table<LocalJugadaAbp, string>;
   hojas_partido!: Table<LocalHojaPartido, string>;
   presentaciones_partido!: Table<LocalPresentacionPartido, string>;
+  liga_partidos!: Table<LocalLigaPartido, string>;
   campogramas!: Table<LocalCampograma, string>;
   campograma_jugadores!: Table<LocalCampogramaJugador, string>;
   campograma_rivales!: Table<LocalCampogramaRival, string>;
@@ -276,6 +279,10 @@ class LocalDb extends Dexie {
 
     this.version(22).stores({
       presentaciones_partido: "id, partido_id",
+    });
+
+    this.version(23).stores({
+      liga_partidos: "id, jornada",
     });
   }
 }

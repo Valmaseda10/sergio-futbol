@@ -1137,6 +1137,32 @@ export interface Database {
         Update: Partial<Database["public"]["Tables"]["hojas_partido"]["Insert"]>;
         Relationships: [];
       };
+      liga_partidos: {
+        Row: {
+          id: string;
+          jornada: number;
+          fecha: string | null;
+          local: string;
+          visitante: string;
+          goles_local: number;
+          goles_visitante: number;
+          acta: string;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          jornada: number;
+          fecha?: string | null;
+          local: string;
+          visitante: string;
+          goles_local: number;
+          goles_visitante: number;
+          acta: string;
+          created_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["liga_partidos"]["Insert"]>;
+        Relationships: [];
+      };
       presentaciones_partido: {
         Row: {
           id: string;
