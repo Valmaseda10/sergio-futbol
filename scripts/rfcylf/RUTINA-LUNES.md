@@ -50,6 +50,11 @@ Equipo propio: C. y D. Leonesa S.A.D. "B" (la app es del Infantil B).
   rfcylf.es devolviera páginas en blanco (bloqueo temporal por exceso). Máximo ~2 peticiones por
   segundo y no escanear ligas enteras de golpe; si las páginas salen en blanco, parar y reintentar
   horas después en vez de insistir.
+- **Páginas vacías no siempre son "acta sin publicar"**: el 19-10-2026, tras leer jornadas 1-5 y
+  24 actas (~40 peticiones a 2 por segundo), `NFG_VisEquipos`, `NFG_VisClasificacion` y varias actas
+  empezaron a devolver 0 bytes. Hacer **primero** lo que necesita la plantilla del próximo rival
+  (`NFG_VisEquipos`) y después el barrido de actas, o espaciar más (1 petición/seg) y dejar las
+  plantillas para otra tanda. Con `fetch` una página bloqueada devuelve cuerpo vacío (status 200).
 - Solo datos públicos de actas y tablas: nombres, dorsales, goles, tarjetas y cambios. Nada más
   sobre los menores.
 - No guardar nada si Supabase pide iniciar sesión: avisar al usuario.
