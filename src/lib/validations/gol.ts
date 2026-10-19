@@ -35,6 +35,7 @@ export const TIPOS_JUEGO_ASOCIATIVO: { value: JuegoAsociativoTipo; label: string
   { value: "tiro_exterior", label: "Tiro exterior" },
   { value: "centro_lateral", label: "Centro lateral" },
   { value: "rechace", label: "Rechace" },
+  { value: "1vs1", label: "1vs1" },
 ];
 
 export const TIPO_JUEGO_ASOCIATIVO_LABEL: Record<JuegoAsociativoTipo, string> =

@@ -36,7 +36,7 @@ export type TipoAbp =
   | "falta_directa"
   | "saque_banda"
   | "penalti";
-export type JuegoAsociativoTipo = "tiro_exterior" | "centro_lateral" | "rechace";
+export type JuegoAsociativoTipo = "tiro_exterior" | "centro_lateral" | "rechace" | "1vs1";
 export type SuperficieGol =
   | "pierna_derecha"
   | "pierna_izquierda"
