@@ -25,8 +25,8 @@
     'C.D. Cuatrovientos',
   ];
   // La web de la federación bloquea (páginas en blanco) si se hacen cientos de peticiones
-  // seguidas: ir despacio, como máximo ~2 por segundo.
-  const pausa = () => new Promise((r) => setTimeout(r, 500));
+  // seguidas: ir despacio, como máximo ~1 por segundo (con 2 por segundo se bloqueó tras ~40).
+  const pausa = () => new Promise((r) => setTimeout(r, 1100));
   const norm = (s) => s.replace(/["“”]/g, '').replace(/\s+/g, ' ').trim();
   const tramo = (m) => (m < 15 ? 0 : m < 30 ? 1 : m < 45 ? 2 : m < 60 ? 3 : 4);
 
@@ -57,7 +57,8 @@
         const a = tr.querySelector('a.img');
         const td = tr.querySelector('td.font_responsive');
         if (!a || !td || !/Gol/i.test(a.getAttribute('title') || '')) return null;
-        const m = norm(td.innerText).match(/^\((\d+)'?\)\s*(.+)$/);
+        // Minuto "(70')" o con tiempo añadido "(70'+3)": cuenta el minuto base.
+        const m = norm(td.innerText).match(/^\((\d+)(?:'?\+\d+)?'?\)\s*(.+)$/);
         if (!m) return null;
         const enL = secLocal.includes(m[2]);
         const enV = secVis.includes(m[2]);

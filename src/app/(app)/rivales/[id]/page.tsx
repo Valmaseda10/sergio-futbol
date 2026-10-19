@@ -17,6 +17,7 @@ import { EquipacionRival } from "@/components/rivales/equipacion-rival";
 import { AlineacionRival } from "@/components/rivales/alineacion-rival";
 import { NotasRival } from "@/components/rivales/notas-rival";
 import { DocumentosRival } from "@/components/rivales/documentos-rival";
+import { HojasPartidoRival } from "@/components/rivales/hojas-partido-rival";
 import { PdfWatermark } from "@/components/branding/pdf-watermark";
 
 function Seccion({ titulo, texto }: { titulo: string; texto: string | null }) {
@@ -166,13 +167,17 @@ export default function FichaRivalPage() {
         <CardHeader>
           <CardTitle className="text-base">Hojas de partido</CardTitle>
         </CardHeader>
-        <CardContent>
-          <DocumentosRival
-            rivalId={rival.id}
-            tipo="hoja_partido"
-            descripcion="Hojas de partido y otros documentos de los partidos jugados."
-            placeholderNombre="Ej. Jornada 5 — hoja de partido"
-          />
+        <CardContent className="space-y-5">
+          <HojasPartidoRival rivalId={rival.id} rivalNombre={rival.nombre} />
+          <div className="space-y-2 border-t pt-4">
+            <p className="text-sm font-medium">Subidas a mano</p>
+            <DocumentosRival
+              rivalId={rival.id}
+              tipo="hoja_partido"
+              descripcion="Hojas de partido y otros documentos de los partidos jugados."
+              placeholderNombre="Ej. Jornada 5 — hoja de partido"
+            />
+          </div>
         </CardContent>
       </Card>
 
