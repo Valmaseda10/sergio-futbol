@@ -7,7 +7,7 @@
 import { useMemo, useState } from "react";
 import Link from "next/link";
 import { useLiveQuery } from "dexie-react-hooks";
-import { ChevronLeft, ExternalLink } from "lucide-react";
+import { ExternalLink } from "lucide-react";
 import { localDb } from "@/lib/db/local-db";
 import { diaSemanaDeFecha } from "@/lib/date";
 import { fechaHoja } from "@/lib/plan-partido";
@@ -30,6 +30,7 @@ import {
 } from "@/lib/clasificacion";
 import { cn } from "@/lib/utils";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { RivalesPestanas } from "@/components/rivales/rivales-pestanas";
 import type { IntervaloGol } from "@/lib/types/database.types";
 import { TRAMOS_GOLES, useGolesPropiosPorTramos } from "@/lib/goles-propios-tramos";
 
@@ -162,15 +163,9 @@ export default function ClasificacionPage() {
 
   return (
     <div className="space-y-4">
-      <div>
-        <Link
-          href="/rivales"
-          className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground"
-        >
-          <ChevronLeft className="size-4" />
-          Rivales
-        </Link>
-        <h1 className="text-2xl font-semibold">Clasificación</h1>
+      <div className="space-y-4">
+        <h1 className="text-2xl font-semibold">Rivales</h1>
+        <RivalesPestanas />
         <p className="text-sm text-muted-foreground">
           1ª Provincial Infantil, grupo León
           {jornadaActual > 0 ? ` · resultados hasta la jornada ${jornadaActual}` : ""}. Toca un equipo para ver sus

@@ -3,10 +3,11 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useLiveQuery } from "dexie-react-hooks";
-import { ChevronRight, Plus, Trophy } from "lucide-react";
+import { ChevronRight, Plus } from "lucide-react";
 import { localDb } from "@/lib/db/local-db";
 import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
+import { RivalesPestanas } from "@/components/rivales/rivales-pestanas";
 
 export default function RivalesPage() {
   const rivales = useLiveQuery(
@@ -45,26 +46,17 @@ export default function RivalesPage() {
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-semibold">Rivales</h1>
-        <div className="flex gap-2">
-          <Button
-            size="sm"
-            variant="outline"
-            nativeButton={false}
-            render={<Link href="/rivales/clasificacion" />}
-          >
-            <Trophy className="size-4" />
-            Clasificación
-          </Button>
-          <Button
-            size="sm"
-            nativeButton={false}
-            render={<Link href="/rivales/nuevo" />}
-          >
-            <Plus className="size-4" />
-            Nuevo
-          </Button>
-        </div>
+        <Button
+          size="sm"
+          nativeButton={false}
+          render={<Link href="/rivales/nuevo" />}
+        >
+          <Plus className="size-4" />
+          Nuevo
+        </Button>
       </div>
+
+      <RivalesPestanas />
 
       {rivales.length === 0 ? (
         <p className="py-8 text-center text-sm text-muted-foreground">
