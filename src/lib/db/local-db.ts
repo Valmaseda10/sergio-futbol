@@ -45,6 +45,7 @@ export type LocalJugadaAbp = Tables["jugadas_abp"]["Row"];
 export type LocalHojaPartido = Tables["hojas_partido"]["Row"];
 export type LocalPresentacionPartido = Tables["presentaciones_partido"]["Row"];
 export type LocalLigaPartido = Tables["liga_partidos"]["Row"];
+export type LocalCompeticionViernes = Tables["competicion_viernes"]["Row"];
 export type LocalCampograma = Tables["campogramas"]["Row"];
 export type LocalCampogramaJugador = Tables["campograma_jugadores"]["Row"];
 export type LocalCampogramaRival = Tables["campograma_rivales"]["Row"];
@@ -85,6 +86,7 @@ export const SYNCED_TABLES = [
   "hojas_partido",
   "presentaciones_partido",
   "liga_partidos",
+  "competicion_viernes",
   "campogramas",
   "campograma_jugadores",
   "campograma_rivales",
@@ -111,6 +113,7 @@ export const CONFLICT_TARGETS: Partial<Record<SyncedTable, string>> = {
   rivales_goles_intervalo: "rival_id,intervalo",
   hojas_partido: "partido_id",
   presentaciones_partido: "partido_id",
+  competicion_viernes: "fecha,ronda,jugador_id,tipo",
 };
 
 export interface OutboxEntry {
@@ -159,6 +162,7 @@ class LocalDb extends Dexie {
   hojas_partido!: Table<LocalHojaPartido, string>;
   presentaciones_partido!: Table<LocalPresentacionPartido, string>;
   liga_partidos!: Table<LocalLigaPartido, string>;
+  competicion_viernes!: Table<LocalCompeticionViernes, string>;
   campogramas!: Table<LocalCampograma, string>;
   campograma_jugadores!: Table<LocalCampogramaJugador, string>;
   campograma_rivales!: Table<LocalCampogramaRival, string>;
@@ -283,6 +287,10 @@ class LocalDb extends Dexie {
 
     this.version(23).stores({
       liga_partidos: "id, jornada",
+    });
+
+    this.version(24).stores({
+      competicion_viernes: "id, fecha",
     });
   }
 }

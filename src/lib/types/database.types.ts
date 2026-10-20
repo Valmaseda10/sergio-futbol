@@ -1137,6 +1137,28 @@ export interface Database {
         Update: Partial<Database["public"]["Tables"]["hojas_partido"]["Insert"]>;
         Relationships: [];
       };
+      competicion_viernes: {
+        Row: {
+          id: string;
+          fecha: string;
+          ronda: number;
+          jugador_id: string;
+          tipo: "pierna_derecha" | "pierna_izquierda" | "penalti";
+          puntos: number;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          fecha: string;
+          ronda: number;
+          jugador_id: string;
+          tipo: "pierna_derecha" | "pierna_izquierda" | "penalti";
+          puntos: number;
+          created_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["competicion_viernes"]["Insert"]>;
+        Relationships: [];
+      };
       liga_partidos: {
         Row: {
           id: string;

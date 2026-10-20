@@ -1,5 +1,6 @@
 import { NormasPanel } from "@/components/inicio/normas-panel";
 import { MultasPorJugador } from "@/components/normas/multas-por-jugador";
+import { CompeticionViernes } from "@/components/normas/competicion-viernes";
 
 export default function NormasPage() {
   return (
@@ -11,6 +12,7 @@ export default function NormasPage() {
       </p>
       <NormasPanel />
       <MultasPorJugador />
+      <CompeticionViernes />
     </div>
   );
 }
