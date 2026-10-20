@@ -11,10 +11,8 @@ import { localDb } from "@/lib/db/local-db";
 import { ponerTiroViernesLocal } from "@/app/(app)/normas/competicion-actions";
 import {
   TIPOS_TIRO,
-  puntosSugeridos,
   resumirViernes,
   ultimoViernes,
-  type PiernaDominante,
   type TipoTiro,
   type TiroViernes,
 } from "@/lib/competicion-viernes";
@@ -52,10 +50,6 @@ export function CompeticionViernes() {
   const [vista, setVista] = useState<Vista>("dia");
   const [rondasExtra, setRondasExtra] = useState(0);
 
-  const dominante = useMemo(
-    () => new Map<string, PiernaDominante>(jugadores.map((j) => [j.id, j.pierna_dominante as PiernaDominante])),
-    [jugadores],
-  );
   const nombreCorto = (id: string) => {
     const j = jugadores.find((x) => x.id === id);
     return j ? j.alias || j.nombre : "—";
@@ -78,24 +72,17 @@ export function CompeticionViernes() {
   const ranking = useMemo(
     () =>
       jugadores
-        .map((j) => resumen.get(j.id) ?? { jugador_id: j.id, puntos: 0, aciertos: 0, intentos: 0, dobles: 0 })
-        .filter((r) => r.intentos > 0)
-        .sort((a, b) => b.puntos - a.puntos || b.aciertos - a.aciertos || a.intentos - b.intentos),
+        .map((j) => resumen.get(j.id) ?? { jugador_id: j.id, puntos: 0, aciertos: 0, dobles: 0 })
+        .filter((r) => r.aciertos > 0)
+        .sort((a, b) => b.puntos - a.puntos || b.aciertos - a.aciertos),
     [jugadores, resumen],
   );
 
-  // Vacía -> metió (1, o 2 si es con la pierna no dominante) -> el otro valor -> falló (0) -> vacía.
-  function siguiente(actual: number | undefined, tipo: TipoTiro, jugadorId: string): number | null {
-    const sugerido = puntosSugeridos(tipo, dominante.get(jugadorId));
-    if (actual === undefined) return sugerido;
-    if (actual === sugerido) return tipo === "penalti" ? 0 : 3 - sugerido;
-    if (actual === 0) return null;
-    return 0;
-  }
-
+  // Vacía (falló) -> 1 punto (pierna dominante) -> 2 puntos (pierna menos dominante) -> vacía.
   function tocar(ronda: number, jugadorId: string, tipo: TipoTiro) {
     const actual = porClave.get(`${ronda}|${jugadorId}|${tipo}`)?.puntos;
-    void ponerTiroViernesLocal(fecha, ronda, jugadorId, tipo, siguiente(actual, tipo, jugadorId));
+    const siguiente = actual === undefined ? 1 : actual === 1 ? 2 : null;
+    void ponerTiroViernesLocal(fecha, ronda, jugadorId, tipo, siguiente);
   }
 
   return (
@@ -103,8 +90,9 @@ export function CompeticionViernes() {
       <CardHeader>
         <CardTitle className="text-base">Competición de los viernes</CardTitle>
         <p className="text-sm text-muted-foreground">
-          Cada ronda, cada jugador tira una falta con la pierna derecha, otra con la izquierda y un penalti. Meter
-          vale 1 punto, fallar 0 y meter con la pierna <strong>no dominante</strong> vale doble.
+          Cada ronda, cada jugador tira una falta desde el perfil derecho, otra desde el perfil izquierdo (mirando a la
+          portería) y un penalti. Si falla, la casilla se deja vacía. Meter con su pierna dominante vale 1 punto y con
+          la <strong>menos dominante</strong>, 2.
         </p>
       </CardHeader>
       <CardContent className="space-y-4">
@@ -177,7 +165,7 @@ export function CompeticionViernes() {
                   <span className="w-5 text-right text-xs tabular-nums text-muted-foreground">{i + 1}</span>
                   <span className="min-w-0 flex-1 truncate font-medium">{nombreCorto(r.jugador_id)}</span>
                   <span className="text-xs text-muted-foreground tabular-nums">
-                    {r.aciertos}/{r.intentos}
+                    {r.aciertos} {r.aciertos === 1 ? "acierto" : "aciertos"}
                     {r.dobles > 0 && ` · ${r.dobles}×2`}
                   </span>
                   <span className="w-8 text-right text-base font-semibold tabular-nums">{r.puntos}</span>
@@ -191,7 +179,8 @@ export function CompeticionViernes() {
         {vista === "dia" && (
           <div className="space-y-2">
             <p className="text-xs text-muted-foreground">
-              Toca una casilla: metió (1 o 2 si es con la pierna no dominante) → el otro valor → falló (0) → vacía (sin tirar). En naranja, los que valen doble.
+              Toca una casilla: 1 punto (metió con su pierna dominante) → 2 puntos (con la menos dominante, en naranja) →
+              vacía (falló). Debajo de cada nombre está su pierna dominante (D = derecha, I = izquierda).
             </p>
             <div className="overflow-x-auto rounded-md border">
               <table className="border-collapse text-center text-xs">
@@ -201,6 +190,9 @@ export function CompeticionViernes() {
                     {jugadores.map((j) => (
                       <th key={j.id} className="min-w-12 p-1.5 font-semibold">
                         {j.alias || j.nombre}
+                        <span className="block text-[10px] font-normal text-muted-foreground">
+                          {j.pierna_dominante === "derecha" ? "D" : j.pierna_dominante === "izquierda" ? "I" : "–"}
+                        </span>
                       </th>
                     ))}
                   </tr>
@@ -228,7 +220,6 @@ export function CompeticionViernes() {
                                 className={cn(
                                   "flex h-9 w-full items-center justify-center text-sm font-semibold tabular-nums",
                                   p === null && "text-transparent hover:bg-muted",
-                                  p === 0 && "bg-red-100 text-red-700 dark:bg-red-950 dark:text-red-300",
                                   p === 1 && "bg-green-100 text-green-800 dark:bg-green-950 dark:text-green-300",
                                   p === 2 && "bg-amber-200 text-amber-900 dark:bg-amber-900 dark:text-amber-100",
                                 )}

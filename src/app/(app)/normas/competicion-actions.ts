@@ -6,8 +6,8 @@ import { queueMutation } from "@/lib/db/sync";
 import type { TipoTiro } from "@/lib/competicion-viernes";
 
 /**
- * Apunta los puntos de un intento (0 = falló, 1 = metió, 2 = metió con la pierna no dominante) o
- * `null` si todavía no ha tirado (borra el intento).
+ * Apunta los puntos de un tiro que ha entrado (1 con su pierna dominante, 2 con la menos dominante)
+ * o `null` si no ha metido (borra el tiro: la casilla vacía es un fallo).
  */
 export async function ponerTiroViernesLocal(
   fecha: string,

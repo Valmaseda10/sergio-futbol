@@ -1143,7 +1143,7 @@ export interface Database {
           fecha: string;
           ronda: number;
           jugador_id: string;
-          tipo: "pierna_derecha" | "pierna_izquierda" | "penalti";
+          tipo: "perfil_derecho" | "perfil_izquierdo" | "penalti";
           puntos: number;
           created_at: string;
         };
@@ -1152,7 +1152,7 @@ export interface Database {
           fecha: string;
           ronda: number;
           jugador_id: string;
-          tipo: "pierna_derecha" | "pierna_izquierda" | "penalti";
+          tipo: "perfil_derecho" | "perfil_izquierdo" | "penalti";
           puntos: number;
           created_at?: string;
         };
