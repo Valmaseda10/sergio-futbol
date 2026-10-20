@@ -30,6 +30,7 @@ import { HorarioSemanalResumen } from "@/components/entrenamientos/horario-seman
 import { RecordatoriosPanel } from "@/components/inicio/recordatorios-panel";
 import { NotasPanel } from "@/components/inicio/notas-panel";
 import { MultasPanel } from "@/components/inicio/multas-panel";
+import { SancionadosRival } from "@/components/rivales/sancionados-rival";
 
 function hoyISO() {
   const now = new Date();
@@ -396,6 +397,9 @@ export function InicioDashboard({
                         Ver scouting del rival →
                       </Link>
                     )}
+                  {ev.tipo === "partido" && ev.id === proximoPartido?.id && proximoPartido.competicion === "liga" && (
+                    <SancionadosRival equipo={proximoPartido.rival} className="mt-2 ml-14" />
+                  )}
                 </li>
               ))}
             </ul>

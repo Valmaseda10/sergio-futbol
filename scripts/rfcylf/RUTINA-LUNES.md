@@ -41,6 +41,11 @@ Equipo propio: C. y D. Leonesa S.A.D. "B" (la app es del Infantil B).
    jugador en el mismo acta pasa a `doble_amarilla` (expulsión):
    `update liga_eventos e set tipo='doble_amarilla' where tipo='amarilla' and exists (select 1 from
    liga_eventos o where o.acta=e.acta and o.jugador=e.jugador and o.tipo='amarilla' and o.minuto<e.minuto)`.
+   Para no teclear las líneas a mano: en la pestaña de rfcylf, `location.href = 'https://supabase.com/robots.txt#' +
+   encodeURIComponent(lineas.join('\n'))`; ya en ese dominio (estática, sin SPA) `localStorage.setItem('ev_pendiente',
+   decodeURIComponent(location.hash.slice(1)))`, y desde la pestaña del editor SQL (mismo origen supabase.com)
+   `localStorage.getItem('ev_pendiente')` y armar la consulta con `setValue`. Luego volver a navegar la pestaña a rfcylf.
+   Minuto `999` = el acta no da minuto → guardar `null`.
    El editor SQL de Supabase avisa de «tabla sin RLS» por el `with`: es falso positivo (la tabla ya tiene
    RLS), elegir «Run without RLS». Hecho hasta ahora: jornada 1, actas 26150963–67 (faltan 26150968–97).
 4. **Resultados propios.** Comprobar en `partidos` que los partidos de liga ya jugados tienen

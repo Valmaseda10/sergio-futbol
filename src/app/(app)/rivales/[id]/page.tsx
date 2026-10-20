@@ -18,6 +18,7 @@ import { AlineacionRival } from "@/components/rivales/alineacion-rival";
 import { NotasRival } from "@/components/rivales/notas-rival";
 import { DocumentosRival } from "@/components/rivales/documentos-rival";
 import { HojasPartidoRival } from "@/components/rivales/hojas-partido-rival";
+import { SancionadosRival } from "@/components/rivales/sancionados-rival";
 import { PdfWatermark } from "@/components/branding/pdf-watermark";
 
 function Seccion({ titulo, texto }: { titulo: string; texto: string | null }) {
@@ -103,6 +104,8 @@ export default function FichaRivalPage() {
           year: "numeric",
         })}
       </p>
+
+      <SancionadosRival equipo={rival.nombre} />
 
       <div className="grid gap-4 sm:grid-cols-3">
         <div className="space-y-4">
