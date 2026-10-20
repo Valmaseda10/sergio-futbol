@@ -154,6 +154,15 @@ export default function ClasificacionPage() {
 
   const otro = comparado && equipo && claveEquipo(comparado) !== claveEquipo(equipo) ? comparado : "";
   const directos = equipo && otro ? caraACara(liga, equipo, otro) : [];
+  // Lo que les queda a los dos: partidos por jornada y dificultad de cada calendario.
+  const calA = useMemo(() => (equipo && otro ? calendarioDe(liga, equipo) : []), [liga, equipo, otro]);
+  const calB = useMemo(() => (equipo && otro ? calendarioDe(liga, otro) : []), [liga, equipo, otro]);
+  const difA = useMemo(() => dificultadCalendario(calA, tablaTotal), [calA, tablaTotal]);
+  const difB = useMemo(() => dificultadCalendario(calB, tablaTotal), [calB, tablaTotal]);
+  const jornadasPendientes = useMemo(
+    () => [...new Set([...calA, ...calB].map((c) => c.jornada))].sort((a, b) => a - b),
+    [calA, calB],
+  );
   const comunes = equipo && otro ? rivalesComunes(liga, equipo, otro) : [];
 
   function ultimo(equipoFila: FilaClasificacion): PartidoDeEquipo | null {
@@ -452,6 +461,100 @@ export default function ClasificacionPage() {
                           </ul>
                         )}
                       </div>
+                      {equipo && jornadasPendientes.length > 0 && (
+                        <div className="space-y-2">
+                          <p className="text-xs text-muted-foreground">Lo que les queda por jugar</p>
+                          <div className="grid gap-2 sm:grid-cols-2">
+                            {[
+                              [equipo, difA, calA],
+                              [otro, difB, calB],
+                            ].map(([nombre, dif, lista]) => {
+                              const d = dif as ReturnType<typeof dificultadCalendario>;
+                              return (
+                                <div key={nombre as string} className="rounded-md border p-2 text-sm">
+                                  <p className="font-medium">{nombreEquipoVisto(nombre as string)}</p>
+                                  <p className="text-xs text-muted-foreground">
+                                    {(lista as unknown[]).length} partidos
+                                    {d && (
+                                      <>
+                                        {" "}
+                                        · rivales a {d.pppRivales.toFixed(2)} pts/partido (puesto medio{" "}
+                                        {d.posicionMedia.toFixed(1)})
+                                      </>
+                                    )}
+                                  </p>
+                                  {d && (
+                                    <p className="text-xs font-medium">
+                                      {d.pppRivales > d.pppLiga + 0.15
+                                        ? "Calendario difícil"
+                                        : d.pppRivales < d.pppLiga - 0.15
+                                          ? "Calendario cómodo"
+                                          : "Calendario normal"}
+                                    </p>
+                                  )}
+                                </div>
+                              );
+                            })}
+                          </div>
+                          <div className="overflow-x-auto rounded-md border">
+                            <table className="w-full text-sm">
+                              <thead>
+                                <tr className="border-b bg-muted/50 text-xs text-muted-foreground">
+                                  <th className="p-1.5 text-left font-medium">Jornada</th>
+                                  <th className="p-1.5 text-left font-medium">{nombreEquipoVisto(equipo).slice(0, 18)}</th>
+                                  <th className="border-l p-1.5 text-left font-medium">{nombreEquipoVisto(otro).slice(0, 18)}</th>
+                                </tr>
+                              </thead>
+                              <tbody>
+                                {jornadasPendientes.map((j) => {
+                                  const a = calA.find((c) => c.jornada === j);
+                                  const b = calB.find((c) => c.jornada === j);
+                                  const fecha = (a ?? b)?.fecha;
+                                  const celda = (c: typeof a, contra: string) => {
+                                    if (!c) return <span className="text-muted-foreground">descansa</span>;
+                                    const entreEllos = claveEquipo(c.rival) === claveEquipo(contra);
+                                    const pos = posiciones.get(claveEquipo(c.rival));
+                                    return (
+                                      <span className={cn(entreEllos && "font-semibold text-primary")}>
+                                        <span className="text-muted-foreground">{c.local ? "vs" : "@"}</span>{" "}
+                                        {entreEllos ? "⚔ " : ""}
+                                        {nombreEquipoVisto(c.rival)}
+                                        {pos != null && (
+                                          <span
+                                            className={cn(
+                                              "ml-1 rounded px-1 text-[11px] font-medium",
+                                              pos <= 4 && !entreEllos ? "bg-red-100 text-red-700" : "text-muted-foreground",
+                                            )}
+                                          >
+                                            {ordinal(pos)}
+                                          </span>
+                                        )}
+                                      </span>
+                                    );
+                                  };
+                                  return (
+                                    <tr key={j} className="border-b last:border-b-0">
+                                      <td className="p-1.5 text-xs whitespace-nowrap">
+                                        J{j}
+                                        {fecha && (
+                                          <span className="ml-1 text-muted-foreground">
+                                            {fechaHoja(fecha).slice(0, 5)}
+                                          </span>
+                                        )}
+                                      </td>
+                                      <td className="p-1.5">{celda(a, otro)}</td>
+                                      <td className="border-l p-1.5">{celda(b, equipo)}</td>
+                                    </tr>
+                                  );
+                                })}
+                              </tbody>
+                            </table>
+                          </div>
+                          <p className="text-[11px] text-muted-foreground">
+                            En rojo, rivales de los 4 primeros puestos. ⚔ marca el partido que se juegan entre ellos.
+                          </p>
+                        </div>
+                      )}
                       {tramosDe(equipo) && tramosDe(otro) && (
                         <div>
                           <p className="mb-1 text-xs text-muted-foreground">Goles por tramos, lado a lado</p>
