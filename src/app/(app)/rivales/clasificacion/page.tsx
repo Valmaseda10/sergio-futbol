@@ -13,12 +13,16 @@ import { diaSemanaDeFecha } from "@/lib/date";
 import { fechaHoja } from "@/lib/plan-partido";
 import {
   calcularClasificacion,
+  calendarioDe,
+  dificultadCalendario,
+  jugado,
   caraACara,
   claveEquipo,
   nombreMostrado,
   ordinal,
   partidosDeEquipo,
   rivalesComunes,
+  type Ambito,
   type FilaClasificacion,
   type PartidoDeEquipo,
   type PartidoLiga,
@@ -112,9 +116,12 @@ export default function ClasificacionPage() {
   );
 
   const liga: PartidoLiga[] = partidos;
-  const tabla = useMemo(() => calcularClasificacion(liga), [liga]);
-  const posiciones = useMemo(() => new Map(tabla.map((f) => [claveEquipo(f.equipo), f.posicion])), [tabla]);
-  const jornadaActual = liga.reduce((m, p) => Math.max(m, p.jornada), 0);
+  const [ambito, setAmbito] = useState<Ambito>("total");
+  // La posición de cada equipo (y la del rival en sus partidos) es siempre la de la tabla total.
+  const tablaTotal = useMemo(() => calcularClasificacion(liga), [liga]);
+  const tabla = useMemo(() => (ambito === "total" ? tablaTotal : calcularClasificacion(liga, ambito)), [liga, ambito, tablaTotal]);
+  const posiciones = useMemo(() => new Map(tablaTotal.map((f) => [claveEquipo(f.equipo), f.posicion])), [tablaTotal]);
+  const jornadaActual = liga.filter(jugado).reduce((m, p) => Math.max(m, p.jornada), 0);
 
   const [elegido, setElegido] = useState<string | null>(null);
   const [comparado, setComparado] = useState<string>("");
@@ -122,11 +129,13 @@ export default function ClasificacionPage() {
   // Por defecto: el próximo rival de liga (si está en la tabla) o el líder.
   const porDefecto = useMemo(() => {
     const k = proximo ? claveEquipo(proximo) : null;
-    return tabla.find((f) => k && claveEquipo(f.equipo) === k)?.equipo ?? tabla[0]?.equipo ?? null;
-  }, [tabla, proximo]);
+    return tablaTotal.find((f) => k && claveEquipo(f.equipo) === k)?.equipo ?? tablaTotal[0]?.equipo ?? null;
+  }, [tablaTotal, proximo]);
   const equipo = elegido ?? porDefecto;
-  const fila = equipo ? tabla.find((f) => claveEquipo(f.equipo) === claveEquipo(equipo)) : undefined;
+  const fila = equipo ? tablaTotal.find((f) => claveEquipo(f.equipo) === claveEquipo(equipo)) : undefined;
   const susPartidos = useMemo(() => (equipo ? partidosDeEquipo(liga, equipo) : []), [liga, equipo]);
+  const porJugar = useMemo(() => (equipo ? calendarioDe(liga, equipo) : []), [liga, equipo]);
+  const dificultad = useMemo(() => dificultadCalendario(porJugar, tablaTotal), [porJugar, tablaTotal]);
 
   const rivalFicha = equipo ? rivales.find((r) => claveEquipo(r.nombre) === claveEquipo(equipo)) : undefined;
 
@@ -169,13 +178,34 @@ export default function ClasificacionPage() {
         </p>
       </div>
 
-      {tabla.length === 0 ? (
+      {tablaTotal.length === 0 ? (
         <p className="rounded-md border border-dashed p-6 text-center text-sm text-muted-foreground">
           Todavía no hay resultados de la liga cargados. Se cargan con la rutina de los lunes (actas de la
           federación).
         </p>
       ) : (
         <>
+          <div className="flex gap-1.5">
+            {(
+              [
+                ["total", "Total"],
+                ["local", "En casa"],
+                ["visitante", "Fuera"],
+              ] as const
+            ).map(([v, etiqueta]) => (
+              <button
+                key={v}
+                type="button"
+                onClick={() => setAmbito(v)}
+                className={cn(
+                  "rounded-md border px-3 py-1.5 text-sm font-medium",
+                  ambito === v ? "border-primary bg-primary/10 text-primary" : "text-muted-foreground",
+                )}
+              >
+                {etiqueta}
+              </button>
+            ))}
+          </div>
           <div className="overflow-x-auto rounded-md border">
             <table className="w-full text-sm">
               <thead>
@@ -190,7 +220,10 @@ export default function ClasificacionPage() {
                   <th className="hidden p-2 text-center font-medium sm:table-cell">GC</th>
                   <th className="p-2 text-center font-medium">DG</th>
                   <th className="p-2 text-center font-semibold">Pts</th>
-                  <th className="p-2 text-center font-medium">Último</th>
+                  <th className="p-2 text-center font-medium" title="Puntos por partido">PPP</th>
+                  <th className="p-2 text-center font-medium" title="Partidos con la portería a cero">P0</th>
+                  <th className="hidden p-2 text-center font-medium sm:table-cell">Forma</th>
+                  <th className="p-2 text-center font-medium sm:hidden">Último</th>
                 </tr>
               </thead>
               <tbody>
@@ -217,7 +250,16 @@ export default function ClasificacionPage() {
                       <td className="hidden p-2 text-center tabular-nums sm:table-cell">{f.gc}</td>
                       <td className="p-2 text-center tabular-nums">{f.dg > 0 ? `+${f.dg}` : f.dg}</td>
                       <td className="p-2 text-center font-semibold tabular-nums">{f.pts}</td>
-                      <td className="p-2">
+                      <td className="p-2 text-center tabular-nums">{f.ppp.toFixed(2)}</td>
+                      <td className="p-2 text-center tabular-nums">{f.cs}</td>
+                      <td className="hidden p-2 sm:table-cell">
+                        <span className="inline-flex justify-center gap-0.5">
+                          {f.forma.map((r, i) => (
+                            <Chip key={i} r={r} />
+                          ))}
+                        </span>
+                      </td>
+                      <td className="p-2 sm:hidden">
                         {u && (
                           <span className="inline-flex items-center justify-center gap-1">
                             <span className="text-xs tabular-nums">
@@ -234,8 +276,9 @@ export default function ClasificacionPage() {
             </table>
           </div>
           <p className="text-xs text-muted-foreground">
-            Ordenada por puntos, diferencia de goles y goles a favor (la federación usa antes el enfrentamiento
-            directo, así que en empates a puntos puede variar).
+            PPP = puntos por partido · P0 = partidos con la portería a cero · Forma = últimos 5 partidos. Ordenada por
+            puntos, diferencia de goles y goles a favor (la federación usa antes el enfrentamiento directo, así que en
+            empates a puntos puede variar).{ambito !== "total" && " Solo cuenta lo jugado " + (ambito === "local" ? "en casa." : "fuera.")}
           </p>
 
           {equipo && fila && (
@@ -244,7 +287,7 @@ export default function ClasificacionPage() {
                 <div>
                   <CardTitle className="text-base">{nombreEquipoVisto(equipo)}</CardTitle>
                   <p className="text-sm text-muted-foreground">
-                    {ordinal(fila.posicion)} de {tabla.length} · {fila.pts} pts · {fila.g}G {fila.e}E {fila.p}P ·{" "}
+                    {ordinal(fila.posicion)} de {tablaTotal.length} · {fila.pts} pts · {fila.g}G {fila.e}E {fila.p}P ·{" "}
                     {fila.gf} GF / {fila.gc} GC
                   </p>
                 </div>
@@ -259,6 +302,22 @@ export default function ClasificacionPage() {
                 )}
               </CardHeader>
               <CardContent className="space-y-5">
+                <div className="grid grid-cols-3 gap-2 sm:grid-cols-6">
+                  {[
+                    ["Pts/partido", fila.ppp.toFixed(2)],
+                    ["Goles a favor/p.", fila.pj ? (fila.gf / fila.pj).toFixed(1) : "–"],
+                    ["Goles en contra/p.", fila.pj ? (fila.gc / fila.pj).toFixed(1) : "–"],
+                    ["Porterías a cero", String(fila.cs)],
+                    ["Sin marcar", String(fila.sg)],
+                    ["Pts últimos 5", String(fila.ptsForma)],
+                  ].map(([etiqueta, valor]) => (
+                    <div key={etiqueta} className="rounded-md border p-2 text-center">
+                      <p className="text-lg font-semibold tabular-nums">{valor}</p>
+                      <p className="text-[11px] leading-tight text-muted-foreground">{etiqueta}</p>
+                    </div>
+                  ))}
+                </div>
+
                 <div>
                   <p className="mb-1 text-xs font-medium text-muted-foreground">Racha</p>
                   <div className="flex gap-1">
@@ -276,6 +335,56 @@ export default function ClasificacionPage() {
                     ))}
                   </ul>
                 </div>
+
+                {porJugar.length > 0 && (
+                  <div>
+                    <p className="mb-1 text-xs font-medium text-muted-foreground">Calendario (lo que le queda)</p>
+                    {dificultad && (
+                      <p className="mb-1 text-xs text-muted-foreground">
+                        {dificultad.partidos} partidos · sus rivales hacen {dificultad.pppRivales.toFixed(2)} pts/partido de
+                        media (la liga, {dificultad.pppLiga.toFixed(2)}) y están de media en el puesto{" "}
+                        {dificultad.posicionMedia.toFixed(1)}:{" "}
+                        <strong>
+                          {dificultad.pppRivales > dificultad.pppLiga + 0.15
+                            ? "calendario difícil"
+                            : dificultad.pppRivales < dificultad.pppLiga - 0.15
+                              ? "calendario cómodo"
+                              : "calendario normal"}
+                        </strong>
+                        .
+                      </p>
+                    )}
+                    <ul className="divide-y">
+                      {porJugar.map((c) => {
+                        const posRival = posiciones.get(claveEquipo(c.rival));
+                        const dificil = posRival != null && posRival <= 4;
+                        return (
+                          <li key={c.id} className="flex items-center gap-2 py-1.5 text-sm">
+                            <span className="w-8 shrink-0 text-xs text-muted-foreground">J{c.jornada}</span>
+                            <span className="min-w-0 flex-1 truncate">
+                              <span className="text-muted-foreground">{c.local ? "vs" : "@"}</span>{" "}
+                              {nombreEquipoVisto(c.rival)}
+                              {posRival != null && (
+                                <span
+                                  className={cn(
+                                    "ml-1 rounded px-1 text-[11px] font-medium",
+                                    dificil ? "bg-red-100 text-red-700" : "text-muted-foreground",
+                                  )}
+                                >
+                                  {ordinal(posRival)}
+                                </span>
+                              )}
+                            </span>
+                            <span className="shrink-0 text-xs text-muted-foreground">
+                              {c.fecha ? `${diaSemanaDeFecha(c.fecha).slice(0, 3)} ${fechaHoja(c.fecha).slice(0, 5)}` : "sin fecha"}
+                              {c.hora ? ` · ${c.hora}` : ""}
+                            </span>
+                          </li>
+                        );
+                      })}
+                    </ul>
+                  </div>
+                )}
 
                 {tramosDe(equipo) && (
                   <div>
@@ -324,7 +433,7 @@ export default function ClasificacionPage() {
                     className="h-9 w-full max-w-xs rounded-md border border-input bg-background px-2 text-sm"
                   >
                     <option value="">Comparar con…</option>
-                    {tabla
+                    {tablaTotal
                       .filter((f) => claveEquipo(f.equipo) !== claveEquipo(equipo))
                       .map((f) => (
                         <option key={f.equipo} value={f.equipo}>

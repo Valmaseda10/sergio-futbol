@@ -1166,9 +1166,10 @@ export interface Database {
           fecha: string | null;
           local: string;
           visitante: string;
-          goles_local: number;
-          goles_visitante: number;
-          acta: string;
+          goles_local: number | null;
+          goles_visitante: number | null;
+          hora: string | null;
+          acta: string | null;
           created_at: string;
         };
         Insert: {
@@ -1177,9 +1178,10 @@ export interface Database {
           fecha?: string | null;
           local: string;
           visitante: string;
-          goles_local: number;
-          goles_visitante: number;
-          acta: string;
+          goles_local?: number | null;
+          goles_visitante?: number | null;
+          hora?: string | null;
+          acta?: string | null;
           created_at?: string;
         };
         Update: Partial<Database["public"]["Tables"]["liga_partidos"]["Insert"]>;
