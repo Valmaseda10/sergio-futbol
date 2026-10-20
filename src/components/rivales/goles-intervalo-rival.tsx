@@ -14,6 +14,7 @@ import { localDb } from "@/lib/db/local-db";
 import { actualizarGolesIntervaloRivalLocal } from "@/app/(app)/rivales/local-actions";
 import type { IntervaloGol } from "@/lib/types/database.types";
 import { capturarComoPng, descargarDataUrl } from "@/lib/capturar-imagen";
+import { TRAMOS_GOLES, useGolesPropiosPorTramos } from "@/lib/goles-propios-tramos";
 import { cn } from "@/lib/utils";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -73,6 +74,10 @@ export function GolesIntervaloRival({
       TRAMOS.map((t) => [t.value, { favor: "", contra: "" }]),
     ) as Record<IntervaloGol, { favor: string; contra: string }>,
   );
+
+  // Lo nuestro con los mismos tramos, para comparar con el rival.
+  const nuestros = useGolesPropiosPorTramos();
+  const indiceTramo = (t: IntervaloGol) => TRAMOS_GOLES.indexOf(t);
 
   const tablaRef = useRef<HTMLDivElement>(null);
   // Mientras se genera la imagen se ocultan los inputs y se enseñan los
@@ -161,6 +166,13 @@ export function GolesIntervaloRival({
                 <th className="p-2 text-center font-medium text-destructive">
                   En contra
                 </th>
+                <th
+                  className="border-l p-2 text-center font-medium"
+                  title="Nuestros goles en partidos de liga, de los eventos de la app"
+                >
+                  Nosotros +
+                </th>
+                <th className="p-2 text-center font-medium">Nosotros −</th>
               </tr>
             </thead>
             <tbody>
@@ -211,6 +223,12 @@ export function GolesIntervaloRival({
                       {porTramo.get(t.value)?.goles_contra ?? 0}
                     </p>
                   </td>
+                  <td className="border-l p-2 text-center tabular-nums text-muted-foreground">
+                    {nuestros.favor[indiceTramo(t.value)]}
+                  </td>
+                  <td className="p-2 text-center tabular-nums text-muted-foreground">
+                    {nuestros.contra[indiceTramo(t.value)]}
+                  </td>
                 </tr>
               ))}
               <tr className="bg-muted/30 font-medium">
@@ -220,6 +238,12 @@ export function GolesIntervaloRival({
                 </td>
                 <td className="p-2 text-center tabular-nums text-destructive">
                   {totalContra}
+                </td>
+                <td className="border-l p-2 text-center tabular-nums text-muted-foreground">
+                  {nuestros.favor.reduce((a, b) => a + b, 0)}
+                </td>
+                <td className="p-2 text-center tabular-nums text-muted-foreground">
+                  {nuestros.contra.reduce((a, b) => a + b, 0)}
                 </td>
               </tr>
             </tbody>

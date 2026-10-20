@@ -27,6 +27,7 @@ import {
 import { cn } from "@/lib/utils";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import type { IntervaloGol } from "@/lib/types/database.types";
+import { TRAMOS_GOLES, useGolesPropiosPorTramos } from "@/lib/goles-propios-tramos";
 
 const TRAMOS: { value: IntervaloGol; label: string }[] = [
   { value: "0-15", label: "0'-15'" },
@@ -99,6 +100,7 @@ export default function ClasificacionPage() {
   const partidos = useLiveQuery(() => localDb.liga_partidos.toArray(), [], []);
   const rivales = useLiveQuery(() => localDb.rivales_scouting.toArray(), [], []);
   const goles = useLiveQuery(() => localDb.rivales_goles_intervalo.toArray(), [], []);
+  const nuestros = useGolesPropiosPorTramos();
   const proximo = useLiveQuery(
     async () => {
       const hoy = hoyIso();
@@ -127,10 +129,18 @@ export default function ClasificacionPage() {
   const susPartidos = useMemo(() => (equipo ? partidosDeEquipo(liga, equipo) : []), [liga, equipo]);
 
   const rivalFicha = equipo ? rivales.find((r) => claveEquipo(r.nombre) === claveEquipo(equipo)) : undefined;
-  const golesRival = useMemo(
-    () => new Map(goles.filter((g) => g.rival_id === rivalFicha?.id).map((g) => [g.intervalo, g])),
-    [goles, rivalFicha],
-  );
+
+  // Goles por tramos de un equipo: los nuestros salen de los eventos de la app y los de los rivales de su ficha.
+  const tramosDe = (nombre: string): { favor: number[]; contra: number[] } | null => {
+    if (esNuestro(nombre)) return { favor: nuestros.favor, contra: nuestros.contra };
+    const ficha = rivales.find((r) => claveEquipo(r.nombre) === claveEquipo(nombre));
+    if (!ficha) return null;
+    const m = new Map(goles.filter((g) => g.rival_id === ficha.id).map((g) => [g.intervalo, g]));
+    return {
+      favor: TRAMOS_GOLES.map((t) => m.get(t)?.goles_favor ?? 0),
+      contra: TRAMOS_GOLES.map((t) => m.get(t)?.goles_contra ?? 0),
+    };
+  };
 
   const otro = comparado && equipo && claveEquipo(comparado) !== claveEquipo(equipo) ? comparado : "";
   const directos = equipo && otro ? caraACara(liga, equipo, otro) : [];
@@ -267,9 +277,11 @@ export default function ClasificacionPage() {
                   </ul>
                 </div>
 
-                {rivalFicha && (
+                {tramosDe(equipo) && (
                   <div>
-                    <p className="mb-1 text-xs font-medium text-muted-foreground">Goles por tramos (ficha del rival)</p>
+                    <p className="mb-1 text-xs font-medium text-muted-foreground">
+                      Goles por tramos {esNuestro(equipo) ? "(tus partidos de liga)" : "(ficha del rival)"}
+                    </p>
                     <table className="text-sm">
                       <thead>
                         <tr className="text-xs text-muted-foreground">
@@ -286,7 +298,7 @@ export default function ClasificacionPage() {
                           <td className="pr-4 text-xs text-green-700">A favor</td>
                           {TRAMOS.map((t) => (
                             <td key={t.value} className="px-2 text-center tabular-nums">
-                              {golesRival.get(t.value)?.goles_favor ?? 0}
+                              {tramosDe(equipo)?.favor[TRAMOS.findIndex((x) => x.value === t.value)] ?? 0}
                             </td>
                           ))}
                         </tr>
@@ -294,7 +306,7 @@ export default function ClasificacionPage() {
                           <td className="pr-4 text-xs text-red-700">En contra</td>
                           {TRAMOS.map((t) => (
                             <td key={t.value} className="px-2 text-center tabular-nums">
-                              {golesRival.get(t.value)?.goles_contra ?? 0}
+                              {tramosDe(equipo)?.contra[TRAMOS.findIndex((x) => x.value === t.value)] ?? 0}
                             </td>
                           ))}
                         </tr>
@@ -336,6 +348,42 @@ export default function ClasificacionPage() {
                           </ul>
                         )}
                       </div>
+                      {tramosDe(equipo) && tramosDe(otro) && (
+                        <div>
+                          <p className="mb-1 text-xs text-muted-foreground">Goles por tramos, lado a lado</p>
+                          <table className="w-full text-sm">
+                            <thead>
+                              <tr className="text-xs text-muted-foreground">
+                                <th className="p-1 text-left font-medium" />
+                                <th className="p-1 text-center font-medium" colSpan={2}>
+                                  {nombreEquipoVisto(equipo).slice(0, 16)}
+                                </th>
+                                <th className="border-l p-1 text-center font-medium" colSpan={2}>
+                                  {nombreEquipoVisto(otro).slice(0, 16)}
+                                </th>
+                              </tr>
+                              <tr className="text-[11px] text-muted-foreground">
+                                <th className="p-1" />
+                                <th className="p-1 text-center font-medium text-green-700">+</th>
+                                <th className="p-1 text-center font-medium text-red-700">−</th>
+                                <th className="border-l p-1 text-center font-medium text-green-700">+</th>
+                                <th className="p-1 text-center font-medium text-red-700">−</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {TRAMOS.map((t, i) => (
+                                <tr key={t.value} className="border-t">
+                                  <td className="p-1 text-xs">{t.label}</td>
+                                  <td className="p-1 text-center tabular-nums">{tramosDe(equipo)?.favor[i]}</td>
+                                  <td className="p-1 text-center tabular-nums">{tramosDe(equipo)?.contra[i]}</td>
+                                  <td className="border-l p-1 text-center tabular-nums">{tramosDe(otro)?.favor[i]}</td>
+                                  <td className="p-1 text-center tabular-nums">{tramosDe(otro)?.contra[i]}</td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
+                      )}
                       {comunes.length > 0 && (
                         <div>
                           <p className="mb-1 text-xs text-muted-foreground">Contra rivales comunes</p>
