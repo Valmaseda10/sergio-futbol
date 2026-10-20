@@ -5,21 +5,23 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { ListChecks, Trophy } from "lucide-react";
+import { ListChecks, Target, Trophy } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const PESTANAS = [
   { href: "/rivales", etiqueta: "Equipos", icono: ListChecks },
   { href: "/rivales/clasificacion", etiqueta: "Clasificación", icono: Trophy },
+  { href: "/rivales/jugadores", etiqueta: "Goleadores", icono: Target },
 ] as const;
 
 export function RivalesPestanas() {
   const ruta = usePathname();
-  const enClasificacion = ruta.startsWith("/rivales/clasificacion");
+  const enOtra = (href: string) => href !== "/rivales" && ruta.startsWith(href);
+  const enSubpagina = PESTANAS.some((p) => enOtra(p.href));
   return (
-    <div className="grid grid-cols-2 gap-2" role="tablist" aria-label="Rivales">
+    <div className="grid grid-cols-3 gap-2" role="tablist" aria-label="Rivales">
       {PESTANAS.map((p) => {
-        const activa = p.href === "/rivales/clasificacion" ? enClasificacion : !enClasificacion;
+        const activa = p.href === "/rivales" ? !enSubpagina : enOtra(p.href);
         return (
           <Link
             key={p.href}

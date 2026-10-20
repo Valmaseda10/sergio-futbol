@@ -618,6 +618,17 @@ function FormularioDiapositiva({
       );
     case "rival_once":
       return <EditorOnce d={d} ctx={ctx} parchar={parchar} />;
+    case "clasificacion":
+    case "rival_forma":
+      return (
+        <div className="space-y-3">
+          <Campo etiqueta="Título" valor={d.titulo} onChange={(v) => parchar({ titulo: v })} />
+          <p className="text-xs text-muted-foreground">
+            Sale sola con los datos de Rivales → Clasificación
+            {d.tipo === "rival_forma" ? " y con las tarjetas y goleadores de las actas del rival." : "."}
+          </p>
+        </div>
+      );
     case "nuestro_once":
     case "rival_plantilla":
       return (

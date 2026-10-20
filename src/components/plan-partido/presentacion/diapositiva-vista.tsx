@@ -13,6 +13,8 @@ import {
   pieDiapositiva,
   type DAbp,
   type DBloques,
+  type DClasificacion,
+  type DRivalForma,
   type DInforme,
   type DRivalOnce,
   type FichaOnce,
@@ -27,6 +29,8 @@ import {
 } from "@/lib/presentacion-partido";
 import { leerDiagramaAbp, leerJugadoresAbp } from "@/lib/plan-partido";
 import type {
+  LocalLigaEvento,
+  LocalLigaPartido,
   LocalAlineacion,
   LocalJugadaAbp,
   LocalJugador,
@@ -38,6 +42,16 @@ import type {
   LocalRivalScouting,
 } from "@/lib/db/local-db";
 import type { IntervaloGol } from "@/lib/types/database.types";
+import {
+  calcularClasificacion,
+  calendarioDe,
+  claveEquipo,
+  dificultadCalendario,
+  nombreMostrado,
+  partidosDeEquipo,
+  type Resultado,
+} from "@/lib/clasificacion";
+import { apercibidos, expulsadosUltimoPartido, goleadores, tarjetas } from "@/lib/liga-jugadores";
 
 export const ANCHO = 1920;
 export const ALTO = 1080;
@@ -53,6 +67,8 @@ export interface ContextoPresentacion {
   nuestraAlineacion: LocalAlineacion[];
   jugadores: Map<string, LocalJugador>;
   abp: LocalJugadaAbp[];
+  ligaPartidos: LocalLigaPartido[];
+  ligaEventos: LocalLigaEvento[];
 }
 
 const TITULO: CSSProperties = {
@@ -1016,6 +1032,241 @@ function Abp({ d, ctx }: { d: DAbp; ctx: ContextoPresentacion }) {
   );
 }
 
+const COLOR_RES: Record<Resultado, string> = { V: "#16a34a", E: "#f59e0b", D: "#dc2626" };
+
+function ChipRes({ r, tam = 34 }: { r: Resultado; tam?: number }) {
+  return (
+    <span
+      style={{
+        ...TEXTO,
+        display: "inline-flex",
+        alignItems: "center",
+        justifyContent: "center",
+        width: tam,
+        height: tam,
+        borderRadius: 6,
+        background: COLOR_RES[r],
+        color: "#ffffff",
+        fontWeight: 700,
+        fontSize: tam * 0.6,
+      }}
+    >
+      {r}
+    </span>
+  );
+}
+
+const nombreVisto = (e: string) => (/leonesa/i.test(e) ? "INFANTIL B" : nombreMostrado(e).toUpperCase());
+
+function ClasificacionDiapo({ d, ctx }: { d: DClasificacion; ctx: ContextoPresentacion }) {
+  const tabla = calcularClasificacion(ctx.ligaPartidos);
+  const rivalKey = claveEquipo(ctx.partido.rival);
+  const jornada = ctx.ligaPartidos
+    .filter((p) => p.goles_local != null && p.goles_visitante != null)
+    .reduce((m, p) => Math.max(m, p.jornada), 0);
+  const alto = Math.min(52, Math.floor(770 / (tabla.length + 1)));
+  const fuente = alto >= 50 ? 30 : 26;
+  return (
+    <Marco d={d} ctx={ctx}>
+      {tabla.length === 0 ? (
+        <div style={{ position: "absolute", left: 130, top: 300 }}>
+          <CampoVacio ancho={1600} alto={400} texto="Todavía no hay resultados de la liga cargados (Rivales → Clasificación)." />
+        </div>
+      ) : (
+        <div style={{ position: "absolute", left: 150, right: 150, top: 215, ...TEXTO, color: "#111111" }}>
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: "70px 1fr 80px 80px 80px 80px 100px 100px 110px 250px",
+              alignItems: "center",
+              height: alto,
+              background: AZUL_ETIQUETA,
+              color: "#ffffff",
+              fontWeight: 700,
+              fontSize: fuente - 4,
+              textAlign: "center",
+            }}
+          >
+            <span>#</span>
+            <span style={{ textAlign: "left" }}>EQUIPO</span>
+            <span>PJ</span>
+            <span>G</span>
+            <span>E</span>
+            <span>P</span>
+            <span>GF-GC</span>
+            <span>DG</span>
+            <span>PTS</span>
+            <span>FORMA</span>
+          </div>
+          {tabla.map((f) => {
+            const somos = /leonesa/i.test(f.equipo);
+            const esRival = claveEquipo(f.equipo) === rivalKey;
+            return (
+              <div
+                key={f.equipo}
+                style={{
+                  display: "grid",
+                  gridTemplateColumns: "70px 1fr 80px 80px 80px 80px 100px 100px 110px 250px",
+                  alignItems: "center",
+                  height: alto,
+                  fontSize: fuente,
+                  textAlign: "center",
+                  fontWeight: somos || esRival ? 700 : 400,
+                  background: somos ? "#fecaca" : esRival ? "#fef08a" : "transparent",
+                  borderBottom: "2px solid #e2e8f0",
+                }}
+              >
+                <span style={{ color: "#6b7280" }}>{f.posicion}</span>
+                <span style={{ textAlign: "left", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                  {nombreVisto(f.equipo)}
+                </span>
+                <span>{f.pj}</span>
+                <span>{f.g}</span>
+                <span>{f.e}</span>
+                <span>{f.p}</span>
+                <span>
+                  {f.gf}-{f.gc}
+                </span>
+                <span>{f.dg > 0 ? `+${f.dg}` : f.dg}</span>
+                <span style={{ fontWeight: 700 }}>{f.pts}</span>
+                <span style={{ display: "flex", justifyContent: "center", gap: 6 }}>
+                  {f.forma.map((r, i) => (
+                    <ChipRes key={i} r={r} tam={alto - 16} />
+                  ))}
+                </span>
+              </div>
+            );
+          })}
+          <div style={{ fontSize: 22, color: "#6b7280", marginTop: 6 }}>
+            Tras la jornada {jornada} · en rojo, nosotros; en amarillo, el rival.
+          </div>
+        </div>
+      )}
+    </Marco>
+  );
+}
+
+function RivalFormaDiapo({ d, ctx }: { d: DRivalForma; ctx: ContextoPresentacion }) {
+  const tabla = calcularClasificacion(ctx.ligaPartidos);
+  const fila = tabla.find((f) => claveEquipo(f.equipo) === claveEquipo(ctx.partido.rival));
+  const equipo = fila?.equipo ?? ctx.partido.rival;
+  const jugados = partidosDeEquipo(ctx.ligaPartidos, equipo);
+  const proximos = calendarioDe(ctx.ligaPartidos, equipo).slice(0, 6);
+  const dif = dificultadCalendario(calendarioDe(ctx.ligaPartidos, equipo), tabla);
+  const posiciones = new Map(tabla.map((f) => [claveEquipo(f.equipo), f.posicion]));
+  const topGoles = goleadores(ctx.ligaEventos, equipo).slice(0, 4);
+  const cards = tarjetas(ctx.ligaEventos, equipo).slice(0, 5);
+  const ultimaJ = jugados.length > 0 ? jugados[jugados.length - 1].jornada : 0;
+  const expulsados = ultimaJ ? expulsadosUltimoPartido(ctx.ligaEventos, equipo, ultimaJ) : [];
+  const aperc = apercibidos(ctx.ligaEventos, equipo);
+  const titulo = { ...d, titulo: d.titulo };
+  return (
+    <Marco d={titulo} ctx={ctx}>
+      {!fila ? (
+        <div style={{ position: "absolute", left: 130, top: 300 }}>
+          <CampoVacio ancho={1600} alto={400} texto="No encuentro al rival en la clasificación de la liga todavía." />
+        </div>
+      ) : (
+        <>
+          <div style={{ position: "absolute", left: 130, top: 215, width: 1660, ...TEXTO }}>
+            <Etiqueta style={{ fontSize: 34 }}>
+              {nombreVisto(equipo)} · {fila.posicion}º · {fila.pts} pts · {fila.g}G {fila.e}E {fila.p}P · {fila.gf}-{fila.gc}
+            </Etiqueta>
+          </div>
+          {/* Últimos partidos */}
+          <div style={{ position: "absolute", left: 130, top: 295, width: 780, ...TEXTO, color: "#111111" }}>
+            <div style={{ fontSize: 28, fontWeight: 700, color: "#6b7280", marginBottom: 6 }}>ÚLTIMOS RESULTADOS</div>
+            {jugados.slice(-5).reverse().map((p) => (
+              <div key={p.id} style={{ display: "flex", alignItems: "center", gap: 14, height: 54, fontSize: 30, borderBottom: "2px solid #e2e8f0" }}>
+                <span style={{ width: 62, color: "#6b7280", fontSize: 24 }}>J{p.jornada}</span>
+                <span style={{ flex: 1, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                  <span style={{ color: "#6b7280" }}>{p.local ? "vs" : "@"}</span> {nombreVisto(p.rival)}
+                  <span style={{ color: "#6b7280", fontSize: 22 }}> ({posiciones.get(claveEquipo(p.rival))}º)</span>
+                </span>
+                <span style={{ fontWeight: 700, width: 90, textAlign: "center" }}>
+                  {p.gf}-{p.gc}
+                </span>
+                <ChipRes r={p.resultado} tam={38} />
+              </div>
+            ))}
+            <div style={{ fontSize: 28, fontWeight: 700, color: "#6b7280", margin: "26px 0 6px" }}>GOLEADORES</div>
+            {topGoles.length === 0 ? (
+              <div style={{ fontSize: 26, color: "#6b7280" }}>Sin datos todavía.</div>
+            ) : (
+              topGoles.map((g) => (
+                <div key={g.jugador} style={{ display: "flex", gap: 14, fontSize: 28, height: 44, alignItems: "center" }}>
+                  <span style={{ flex: 1, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{g.jugador}</span>
+                  <span style={{ fontWeight: 700 }}>{g.goles}</span>
+                </div>
+              ))
+            )}
+          </div>
+          {/* Próximos partidos y tarjetas */}
+          <div style={{ position: "absolute", left: 980, top: 295, width: 810, ...TEXTO, color: "#111111" }}>
+            <div style={{ fontSize: 28, fontWeight: 700, color: "#6b7280", marginBottom: 6 }}>PRÓXIMOS PARTIDOS</div>
+            {proximos.map((c) => {
+              const pos = posiciones.get(claveEquipo(c.rival));
+              return (
+                <div key={c.id} style={{ display: "flex", alignItems: "center", gap: 14, height: 54, fontSize: 30, borderBottom: "2px solid #e2e8f0" }}>
+                  <span style={{ width: 62, color: "#6b7280", fontSize: 24 }}>J{c.jornada}</span>
+                  <span style={{ flex: 1, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                    <span style={{ color: "#6b7280" }}>{c.local ? "vs" : "@"}</span> {nombreVisto(c.rival)}
+                  </span>
+                  {pos != null && (
+                    <span
+                      style={{
+                        fontSize: 26,
+                        fontWeight: 700,
+                        padding: "0 10px",
+                        borderRadius: 6,
+                        background: pos <= 4 ? "#fee2e2" : "transparent",
+                        color: pos <= 4 ? "#b91c1c" : "#6b7280",
+                      }}
+                    >
+                      {pos}º
+                    </span>
+                  )}
+                </div>
+              );
+            })}
+            {dif && (
+              <div style={{ fontSize: 24, color: "#374151", marginTop: 8 }}>
+                Calendario{" "}
+                <strong>
+                  {dif.pppRivales > dif.pppLiga + 0.15 ? "difícil" : dif.pppRivales < dif.pppLiga - 0.15 ? "cómodo" : "normal"}
+                </strong>{" "}
+                ({dif.partidos} partidos, rivales a {dif.pppRivales.toFixed(2)} pts/partido)
+              </div>
+            )}
+            <div style={{ fontSize: 28, fontWeight: 700, color: "#6b7280", margin: "22px 0 6px" }}>TARJETAS</div>
+            {expulsados.length > 0 && (
+              <div style={{ fontSize: 26, background: "#fee2e2", color: "#991b1b", padding: "4px 12px", marginBottom: 6 }}>
+                Expulsado en su último partido: <strong>{expulsados.map((t) => t.jugador).join(", ")}</strong>
+              </div>
+            )}
+            {aperc.length > 0 && (
+              <div style={{ fontSize: 26, background: "#fef3c7", color: "#92400e", padding: "4px 12px", marginBottom: 6 }}>
+                A una amarilla de la sanción: <strong>{aperc.map((t) => t.jugador).join(", ")}</strong>
+              </div>
+            )}
+            {cards.length === 0 ? (
+              <div style={{ fontSize: 26, color: "#6b7280" }}>Sin tarjetas registradas.</div>
+            ) : (
+              <div style={{ fontSize: 26, lineHeight: 1.5 }}>
+                {cards.map((t) => (
+                  <span key={t.jugador} style={{ marginRight: 22, whiteSpace: "nowrap" }}>
+                    {t.jugador} <strong>{t.amarillas > 0 ? `${t.amarillas}🟨` : ""}{t.dobleAmarilla > 0 ? ` ${t.dobleAmarilla}🟨🟨` : ""}{t.rojas > 0 ? ` ${t.rojas}🟥` : ""}</strong>
+                  </span>
+                ))}
+              </div>
+            )}
+          </div>
+        </>
+      )}
+    </Marco>
+  );
+}
+
 // ---- Montaje ----------------------------------------------------------------
 
 /** Estilo de una caja de texto libre (el mismo en la vista, la impresión y el editor). */
@@ -1067,6 +1318,10 @@ function Contenido({ d, ctx }: { d: Diapositiva; ctx: ContextoPresentacion }) {
   switch (d.tipo) {
     case "libre":
       return <Libre d={d} ctx={ctx} />;
+    case "clasificacion":
+      return <ClasificacionDiapo d={d} ctx={ctx} />;
+    case "rival_forma":
+      return <RivalFormaDiapo d={d} ctx={ctx} />;
     case "portada":
       return <Portada d={d} ctx={ctx} />;
     case "informe":

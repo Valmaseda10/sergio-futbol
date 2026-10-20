@@ -21,7 +21,7 @@ export function useContextoPresentacion(partidoId: string): ContextoPresentacion
         (await localDb.rivales_scouting.filter((r) => r.nombre.trim().toLowerCase() === nombre).first()) ?? null;
     }
     const rivalId = rival?.id;
-    const [plantillaRival, destacadosRival, golesRival, onceRival, nuestraAlineacion, jugadores, abp] =
+    const [plantillaRival, destacadosRival, golesRival, onceRival, nuestraAlineacion, jugadores, abp, ligaPartidos, ligaEventos] =
       await Promise.all([
         rivalId ? localDb.rivales_plantilla.where("rival_id").equals(rivalId).toArray() : Promise.resolve([]),
         rivalId
@@ -32,8 +32,10 @@ export function useContextoPresentacion(partidoId: string): ContextoPresentacion
         localDb.alineaciones.where("partido_id").equals(partidoId).toArray(),
         localDb.jugadores.toArray(),
         localDb.jugadas_abp.filter((j) => j.partido_id === partidoId).toArray(),
+        localDb.liga_partidos.toArray(),
+        localDb.liga_eventos.toArray(),
       ]);
-    return { partido, rival, plantillaRival, destacadosRival, golesRival, onceRival, nuestraAlineacion, jugadores, abp };
+    return { partido, rival, plantillaRival, destacadosRival, golesRival, onceRival, nuestraAlineacion, jugadores, abp, ligaPartidos, ligaEventos };
   }, [partidoId]);
 
   return useMemo(
@@ -50,6 +52,8 @@ export function useContextoPresentacion(partidoId: string): ContextoPresentacion
             nuestraAlineacion: datos.nuestraAlineacion,
             jugadores: new Map(datos.jugadores.map((j) => [j.id, j])),
             abp: datos.abp,
+            ligaPartidos: datos.ligaPartidos,
+            ligaEventos: datos.ligaEventos,
           },
     [datos],
   );

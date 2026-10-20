@@ -33,6 +33,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { RivalesPestanas } from "@/components/rivales/rivales-pestanas";
 import type { IntervaloGol } from "@/lib/types/database.types";
 import { TRAMOS_GOLES, useGolesPropiosPorTramos } from "@/lib/goles-propios-tramos";
+import { apercibidos, expulsadosUltimoPartido, goleadores, tarjetas, type EventoLiga } from "@/lib/liga-jugadores";
 
 const TRAMOS: { value: IntervaloGol; label: string }[] = [
   { value: "0-15", label: "0'-15'" },
@@ -106,6 +107,7 @@ export default function ClasificacionPage() {
   const rivales = useLiveQuery(() => localDb.rivales_scouting.toArray(), [], []);
   const goles = useLiveQuery(() => localDb.rivales_goles_intervalo.toArray(), [], []);
   const nuestros = useGolesPropiosPorTramos();
+  const eventosLiga: EventoLiga[] = useLiveQuery(() => localDb.liga_eventos.toArray(), [], []);
   const proximo = useLiveQuery(
     async () => {
       const hoy = hoyIso();
@@ -137,6 +139,14 @@ export default function ClasificacionPage() {
   const susPartidos = useMemo(() => (equipo ? partidosDeEquipo(liga, equipo) : []), [liga, equipo]);
   const porJugar = useMemo(() => (equipo ? calendarioDe(liga, equipo) : []), [liga, equipo]);
   const dificultad = useMemo(() => dificultadCalendario(porJugar, tablaTotal), [porJugar, tablaTotal]);
+  const susGoleadores = useMemo(() => (equipo ? goleadores(eventosLiga, equipo).slice(0, 5) : []), [eventosLiga, equipo]);
+  const susTarjetas = useMemo(() => (equipo ? tarjetas(eventosLiga, equipo).slice(0, 8) : []), [eventosLiga, equipo]);
+  const susApercibidos = useMemo(() => (equipo ? apercibidos(eventosLiga, equipo) : []), [eventosLiga, equipo]);
+  const ultimaJornadaEquipo = susPartidos.length > 0 ? susPartidos[susPartidos.length - 1].jornada : 0;
+  const susExpulsados = useMemo(
+    () => (equipo && ultimaJornadaEquipo ? expulsadosUltimoPartido(eventosLiga, equipo, ultimaJornadaEquipo) : []),
+    [eventosLiga, equipo, ultimaJornadaEquipo],
+  );
 
   const rivalFicha = equipo ? rivales.find((r) => claveEquipo(r.nombre) === claveEquipo(equipo)) : undefined;
 
@@ -339,6 +349,53 @@ export default function ClasificacionPage() {
                     ))}
                   </ul>
                 </div>
+
+                {susGoleadores.length > 0 && (
+                  <div>
+                    <p className="mb-1 text-xs font-medium text-muted-foreground">Goleadores</p>
+                    <ul className="divide-y">
+                      {susGoleadores.map((g) => (
+                        <li key={g.jugador} className="flex items-baseline gap-2 py-1 text-sm">
+                          <span className="min-w-0 flex-1 truncate">{g.jugador}</span>
+                          <span className="text-xs text-muted-foreground tabular-nums">
+                            en {g.partidos} {g.partidos === 1 ? "partido" : "partidos"}
+                            {g.penaltis > 0 && ` · ${g.penaltis} de penalti`}
+                          </span>
+                          <span className="w-6 text-right font-semibold tabular-nums">{g.goles}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+
+                {(susTarjetas.length > 0 || susExpulsados.length > 0) && (
+                  <div className="space-y-1">
+                    <p className="text-xs font-medium text-muted-foreground">Tarjetas</p>
+                    {susExpulsados.length > 0 && (
+                      <p className="rounded-md border border-red-300 bg-red-50 p-2 text-xs text-red-800">
+                        Expulsado en su último partido (puede perderse el siguiente):{" "}
+                        <strong>{susExpulsados.map((t) => t.jugador).join(", ")}</strong>
+                      </p>
+                    )}
+                    {susApercibidos.length > 0 && (
+                      <p className="rounded-md border border-amber-300 bg-amber-50 p-2 text-xs text-amber-900">
+                        A una amarilla de la sanción: <strong>{susApercibidos.map((t) => `${t.jugador} (${t.amarillas})`).join(", ")}</strong>
+                      </p>
+                    )}
+                    <ul className="flex flex-wrap gap-1.5">
+                      {susTarjetas.map((t) => (
+                        <li key={t.jugador} className="rounded-md border px-2 py-1 text-xs">
+                          {t.jugador}
+                          <span className="ml-1 font-semibold">
+                            {t.amarillas > 0 && `${t.amarillas}🟨`}
+                            {t.dobleAmarilla > 0 && ` ${t.dobleAmarilla}🟨🟨`}
+                            {t.rojas > 0 && ` ${t.rojas}🟥`}
+                          </span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
 
                 {porJugar.length > 0 && (
                   <div>

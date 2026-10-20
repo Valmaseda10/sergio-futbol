@@ -169,6 +169,16 @@ export interface FichaOnce {
   suplente: boolean;
 }
 
+export interface DClasificacion extends Base {
+  tipo: "clasificacion";
+  titulo: string;
+}
+
+export interface DRivalForma extends Base {
+  tipo: "rival_forma";
+  titulo: string;
+}
+
 export interface DRivalOnce extends Base {
   tipo: "rival_once";
   titulo: string;
@@ -203,6 +213,8 @@ export interface DLibre extends Base {
 }
 
 export type Diapositiva =
+  | DClasificacion
+  | DRivalForma
   | DLibre
   | DPortada
   | DInforme
@@ -225,6 +237,8 @@ export const TIPOS_DIAPOSITIVA: { value: TipoDiapositiva; label: string; descrip
   { value: "abp", label: "ABP del partido", descripcion: "Las jugadas de balón parado de este partido" },
   { value: "nuestro_once", label: "Nuestro once", descripcion: "Nuestra alineación sobre el campo" },
   { value: "rival_once", label: "Once del rival", descripcion: "La alineación del rival de su ficha" },
+  { value: "clasificacion", label: "Clasificación", descripcion: "La tabla de la liga con tú y el rival resaltados" },
+  { value: "rival_forma", label: "Forma y calendario del rival", descripcion: "Racha, últimos resultados, goleadores, tarjetas y próximos partidos" },
   { value: "rival_plantilla", label: "Plantilla del rival", descripcion: "Jugadores del rival con los destacados" },
   { value: "rival_goles", label: "Goles del rival por tramos", descripcion: "Gráfica de goles a favor y en contra" },
   { value: "informe", label: "Datos del partido", descripcion: "Jornada, día, hora, lugar, citación y árbitros" },
@@ -287,6 +301,10 @@ export function nuevaDiapositiva(tipo: TipoDiapositiva): Diapositiva {
           { titulo: "TRANSICIÓN DEFENSIVA", color: "#ff0000", texto: "", diagrama: null },
         ],
       };
+    case "clasificacion":
+      return { id, tipo, titulo: "CLASIFICACIÓN" };
+    case "rival_forma":
+      return { id, tipo, titulo: "FORMA DEL RIVAL" };
     case "rival_plantilla":
       return { id, tipo, titulo: "INFORME RIVAL" };
     case "rival_goles":
@@ -350,6 +368,8 @@ export function presentacionInicial(p: DatosPartido): Diapositiva[] {
   return [
     portada,
     informe,
+    nuevaDiapositiva("clasificacion"),
+    nuevaDiapositiva("rival_forma"),
     nuevaDiapositiva("rival_plantilla"),
     nuevaDiapositiva("rival_goles"),
     nuevaDiapositiva("rival_once"),
@@ -417,6 +437,10 @@ export function resumenDiapositiva(d: Diapositiva): string {
       return "Portada";
     case "informe":
       return "Datos del partido";
+    case "clasificacion":
+      return "Clasificación";
+    case "rival_forma":
+      return "Forma del rival";
     case "rival_plantilla":
       return "Plantilla del rival";
     case "rival_goles":

@@ -1159,6 +1159,30 @@ export interface Database {
         Update: Partial<Database["public"]["Tables"]["competicion_viernes"]["Insert"]>;
         Relationships: [];
       };
+      liga_eventos: {
+        Row: {
+          id: string;
+          jornada: number;
+          acta: string;
+          equipo: string;
+          jugador: string;
+          tipo: string;
+          minuto: number | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          jornada: number;
+          acta: string;
+          equipo: string;
+          jugador: string;
+          tipo: string;
+          minuto?: number | null;
+          created_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["liga_eventos"]["Insert"]>;
+        Relationships: [];
+      };
       liga_partidos: {
         Row: {
           id: string;
