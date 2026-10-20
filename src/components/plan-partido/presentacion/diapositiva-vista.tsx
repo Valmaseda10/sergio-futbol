@@ -1064,8 +1064,8 @@ function ClasificacionDiapo({ d, ctx }: { d: DClasificacion; ctx: ContextoPresen
   const jornada = ctx.ligaPartidos
     .filter((p) => p.goles_local != null && p.goles_visitante != null)
     .reduce((m, p) => Math.max(m, p.jornada), 0);
-  const alto = Math.min(52, Math.floor(770 / (tabla.length + 1)));
-  const fuente = alto >= 50 ? 30 : 26;
+  const alto = Math.min(50, Math.floor(690 / (tabla.length + 1)));
+  const fuente = alto >= 48 ? 30 : 26;
   return (
     <Marco d={d} ctx={ctx}>
       {tabla.length === 0 ? (

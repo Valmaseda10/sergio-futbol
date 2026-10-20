@@ -29,6 +29,20 @@ Equipo propio: C. y D. Leonesa S.A.D. "B" (la app es del Infantil B).
    `NFG_CmpJornada` (jornadas posteriores a la última con acta): cada fila trae local, fecha, hora y
    visitante, pero **sin acta**; se guardan sin goles (`goles_* = null`, `hora`). Ojo: leer la página con
    `arrayBuffer()` + `TextDecoder('iso-8859-1')` (con `.text()` los acentos salen rotos).
+3c. **Goles y tarjetas (goleadores y sancionados).** Alimentan Rivales → Goleadores y las diapositivas
+   «Clasificación» y «Forma del rival». Mirar qué actas de `liga_partidos.acta` no están aún en
+   `liga_eventos.acta` y leerlas con `extraer-eventos.js` (rellenar `ACTAS`; **máximo ~10 por pasada** y con
+   la pausa del script: es lo que más pronto hace que la federación bloquee la IP; si devuelve 0 bytes,
+   parar y reintentar horas después). Saca líneas `jornada|fin del acta|índice equipo|jugador|tipo|minuto`
+   (índice = posición en `EQUIPOS` del script), por trozos de 19 líneas porque la salida se trunca. Se
+   insertan en `public.liga_eventos (jornada, acta, equipo, jugador, tipo, minuto)` pegando las líneas en
+   `regexp_split_to_table($$...$$, E'\n')` + `string_to_array(l, '|')` y un `values` índice→nombre del
+   equipo (acta = `'261509' || fin`), con `on conflict do nothing`. Después, la segunda amarilla de un
+   jugador en el mismo acta pasa a `doble_amarilla` (expulsión):
+   `update liga_eventos e set tipo='doble_amarilla' where tipo='amarilla' and exists (select 1 from
+   liga_eventos o where o.acta=e.acta and o.jugador=e.jugador and o.tipo='amarilla' and o.minuto<e.minuto)`.
+   El editor SQL de Supabase avisa de «tabla sin RLS» por el `with`: es falso positivo (la tabla ya tiene
+   RLS), elegir «Run without RLS». Hecho hasta ahora: jornada 1, actas 26150963–67 (faltan 26150968–97).
 4. **Resultados propios.** Comprobar en `partidos` que los partidos de liga ya jugados tienen
    `fecha` y `resultado_favor/contra` iguales a los de la federación (en la jornada 4 la fecha del
    Veguellina estaba un día mal). Corregir solo diferencias claras.
