@@ -59,6 +59,15 @@ Equipo propio: C. y D. Leonesa S.A.D. "B" (la app es del Infantil B).
      en formato **"Apellidos, Nombre"** (con tildes), dorsal de las actas y `rol` jugador;
      además el técnico (`entrenador`) y el delegado (`delegado`). `curso` y la temporada anterior
      no salen de la web pública: dejarlos vacíos salvo que los dé el entrenador.
+   - `curso` (1 = 1º año de infantil, 2 = 2º año) y temporada anterior: se deducen de las actas de 2025-26
+     (`CodTemporada=21`). Equipos del club en `NFG_VerClub?codigo_club=<n>` (enlace desde la ficha del equipo);
+     el grupo de cada equipo en 2025-26 sale de `NFG_VisCompeticiones_Equipo?codequipo=<cod>&codtemporada=22`
+     (segundo enlace `codcompeticion`/`codgrupo`). Quien jugó en el Infantil del club (A o B) la temporada
+     pasada es de 2º año; quien jugó en Alevín, de 1º. Se leen los titulares y suplentes de las actas del
+     club en cada grupo (con jornadas alternas basta para quien juega a menudo; 1 petición cada 2,5 s en un
+     bucle en segundo plano, sin bloqueo) y se cruzan por palabras del nombre sin tildes. Sin encontrar =
+     dejar vacío. Cuidado: hay nombres solo con nombre de pila («Iker», «Hugo») que no se pueden asignar.
+     Hecho: Virgen del Camino (octubre 2026).
    - `rivales_jugadores_destacados`: los jugadores `top` (goleadores, los que deciden) con
      `plantilla_id` enlazado y una nota corta en mayúsculas con goles, titularidad y tarjetas.
    - Equipación en `rivales_scouting` (`color_camiseta`, `color_pantalon`, `color_medias`) a partir
