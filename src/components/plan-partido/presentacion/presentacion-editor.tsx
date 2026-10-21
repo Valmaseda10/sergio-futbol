@@ -66,6 +66,7 @@ import {
 } from "@/components/plan-partido/presentacion/diapositiva-vista";
 import { FORMACIONES } from "@/lib/formaciones";
 import { LienzoEditable } from "@/components/plan-partido/presentacion/lienzo-editable";
+import { CopiarDiapositivas } from "@/components/plan-partido/presentacion/copiar-diapositivas";
 import { HojasImpresion } from "@/components/plan-partido/presentacion/hojas-impresion";
 import { useContextoPresentacion } from "@/components/plan-partido/presentacion/use-contexto-presentacion";
 import { descargarPresentacionPdf } from "@/components/plan-partido/presentacion/presentacion-pdf";
@@ -658,6 +659,7 @@ export function PresentacionEditor({ partidoId }: { partidoId: string }) {
   const [indice, setIndice] = useState(0);
   const [dibujando, setDibujando] = useState<{ bloque?: number } | null>(null);
   const [anadiendo, setAnadiendo] = useState(false);
+  const [copiando, setCopiando] = useState(false);
   const [elementoId, setElementoId] = useState<string | null>(null);
   const [arrastrando, setArrastrando] = useState<number | null>(null);
   const [sobre, setSobre] = useState<number | null>(null);
@@ -762,6 +764,16 @@ export function PresentacionEditor({ partidoId }: { partidoId: string }) {
     guardar(lista);
     setIndice(i + 1);
     setAnadiendo(false);
+  }
+
+  function insertarCopias(copias: Diapositiva[]) {
+    if (!diapos) return;
+    const lista = [...diapos];
+    lista.splice(i + 1, 0, ...copias);
+    guardar(lista);
+    setIndice(i + 1);
+    setCopiando(false);
+    toast.success(`${copias.length} ${copias.length === 1 ? "diapositiva copiada" : "diapositivas copiadas"}`);
   }
 
   function cambiarExtras(f: (extras: ElementoLibre[]) => ElementoLibre[]) {
@@ -964,8 +976,40 @@ export function PresentacionEditor({ partidoId }: { partidoId: string }) {
               </div>
             ))}
           </div>
-          <div className="relative">
-            <Button type="button" size="sm" variant="outline" className="w-full" onClick={() => setAnadiendo((v) => !v)}>
+          <div className="relative space-y-1.5">
+            <Button
+              type="button"
+              size="sm"
+              variant="outline"
+              className="w-full"
+              onClick={() => {
+                setCopiando((v) => !v);
+                setAnadiendo(false);
+              }}
+            >
+              <Copy className="size-4" />
+              Copiar de otro partido
+            </Button>
+            {copiando && (
+              <div className="z-20 lg:absolute lg:bottom-full lg:left-0 lg:mb-1 lg:w-80">
+                <CopiarDiapositivas
+                  partidoId={partidoId}
+                  rival={partido.rival}
+                  onCopiar={insertarCopias}
+                  onCerrar={() => setCopiando(false)}
+                />
+              </div>
+            )}
+            <Button
+              type="button"
+              size="sm"
+              variant="outline"
+              className="w-full"
+              onClick={() => {
+                setAnadiendo((v) => !v);
+                setCopiando(false);
+              }}
+            >
               <Plus className="size-4" />
               Añadir diapositiva
             </Button>

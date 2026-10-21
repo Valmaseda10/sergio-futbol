@@ -459,6 +459,28 @@ export function resumenDiapositiva(d: Diapositiva): string {
   }
 }
 
+// ---- Copiar diapositivas de la presentación de otro partido -----------------------------------
+
+/**
+ * Diapositivas del plan de partido que suelen repetirse de un partido a otro: las pizarras «PLAN PARTIDO –
+ * FASE DEF / OFE» y el texto con RIVAL / FASE DEF / FASE OFE / NOSOTROS.
+ */
+export function esDiapositivaDePlan(d: Diapositiva): boolean {
+  if (d.tipo === "pizarra") return /plan partido|fase (def|ofe)/i.test(d.titulo);
+  if (d.tipo === "texto") return /fase (def|ofe)/i.test(d.texto);
+  return false;
+}
+
+/** Copia independiente de una diapositiva (ids nuevos) para otro partido; el renglón «RIVAL:» pasa al rival actual. */
+export function copiarDiapositivaA(d: Diapositiva, rival: string): Diapositiva {
+  const copia = JSON.parse(JSON.stringify(d)) as Diapositiva;
+  copia.id = crypto.randomUUID();
+  copia.extras = (copia.extras ?? []).map((x) => ({ ...x, id: crypto.randomUUID() }));
+  if (copia.tipo === "rival_once") copia.jugadores = copia.jugadores.map((f) => ({ ...f, id: crypto.randomUUID() }));
+  if (copia.tipo === "texto") copia.texto = copia.texto.replace(/^RIVAL:.*$/m, `RIVAL: ${rival.toUpperCase()}`);
+  return copia;
+}
+
 // ---- Once sobre el campo (diapositiva del once del rival) -----------------------------------
 
 /** Las fichas de un sistema de juego: portero a la izquierda y el ataque hacia la derecha. */
