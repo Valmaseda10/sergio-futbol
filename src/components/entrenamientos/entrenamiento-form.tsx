@@ -54,6 +54,7 @@ import {
   leerDatosTarea,
   nombreSugerido,
   type DatosTareaGuardada,
+  agruparPorCategoria,
 } from "@/lib/tareas-guardadas";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -1333,7 +1334,17 @@ export function EntrenamientoForm({
                 &quot;Guardar tarea&quot;.
               </p>
             ) : (
-              tareasGuardadas.map((t) => {
+              agruparPorCategoria(
+                tareasGuardadas,
+                guardadasPara !== null
+                  ? (getValues(CAMPO_CATEGORIA[CAMPOS_TAREA[guardadasPara]]) as string)
+                  : undefined,
+              ).map((grupo) => (
+                <div key={grupo.categoria || "sin"} className="space-y-1">
+                  <p className="sticky top-0 z-10 bg-popover px-2 pt-1 pb-0.5 text-xs font-semibold tracking-wide text-muted-foreground uppercase">
+                    {grupo.etiqueta} · {grupo.tareas.length}
+                  </p>
+                  {grupo.tareas.map((t) => {
                 const d = leerDatosTarea(t.datos);
                 const resumen = [d.campos._dimension, d.campos._tiempo]
                   .filter(Boolean)
@@ -1370,7 +1381,9 @@ export function EntrenamientoForm({
                     </Button>
                   </div>
                 );
-              })
+                  })}
+                </div>
+              ))
             )}
           </div>
         </DialogContent>
