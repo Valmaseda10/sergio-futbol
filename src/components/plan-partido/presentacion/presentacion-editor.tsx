@@ -66,6 +66,7 @@ import {
 } from "@/components/plan-partido/presentacion/diapositiva-vista";
 import { FORMACIONES } from "@/lib/formaciones";
 import { LienzoEditable } from "@/components/plan-partido/presentacion/lienzo-editable";
+import { AbpBibliotecaPresentacion } from "@/components/plan-partido/presentacion/abp-biblioteca";
 import { CopiarDiapositivas } from "@/components/plan-partido/presentacion/copiar-diapositivas";
 import { HojasImpresion } from "@/components/plan-partido/presentacion/hojas-impresion";
 import { useContextoPresentacion } from "@/components/plan-partido/presentacion/use-contexto-presentacion";
@@ -557,7 +558,7 @@ function FormularioDiapositiva({
           </div>
           {todas.length === 0 ? (
             <p className="text-sm text-muted-foreground">
-              Este partido todavía no tiene jugadas de ABP. Créalas en la ficha del partido → ABP; aparecerán aquí.
+              Este partido todavía no tiene jugadas de ABP: añádelas desde la biblioteca aquí abajo.
             </p>
           ) : (
             <div className="space-y-1">
@@ -587,6 +588,12 @@ function FormularioDiapositiva({
               </div>
             </div>
           )}
+          <AbpBibliotecaPresentacion
+            partidoId={ctx.partido.id}
+            delPartido={todas}
+            jugadas={d.jugadas}
+            onCambiar={(jugadas) => parchar({ jugadas })}
+          />
         </div>
       );
     }
