@@ -647,9 +647,11 @@ export function EntrenamientoFichaImprimible({
       observaciones: k("_observaciones"),
       campos: k("_rol_campos"),
       paco: k("_rol_paco"),
+      felipe: k("_rol_felipe"),
     };
   });
-  const hayRoles = tareas.some((t) => t.campos || t.paco);
+  const hayRoles = tareas.some((t) => t.campos || t.paco || t.felipe);
+  const hayFelipe = tareas.some((t) => t.felipe);
 
   const tablaPropia = ficha.tabla_objetivos
     ? normalizarObjetivosTabla(ficha.tabla_objetivos)
@@ -793,6 +795,7 @@ export function EntrenamientoFichaImprimible({
                     <div className="p-1.5 text-xs print:p-0.5 print:text-[10.5px] print:leading-tight">
                       <p>Campos: {t.campos}</p>
                       <p>Paco: {t.paco}</p>
+                      {hayFelipe && <p>Felipe: {t.felipe}</p>}
                     </div>
                   </div>
                 ))}

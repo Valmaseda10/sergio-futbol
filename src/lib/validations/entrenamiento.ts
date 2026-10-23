@@ -99,12 +99,16 @@ export const entrenamientoSchema = z.object({
   // "Campos: / Paco:" de la plantilla.
   tarea_1_rol_campos: z.string().trim(),
   tarea_1_rol_paco: z.string().trim(),
+  tarea_1_rol_felipe: z.string().trim(),
   tarea_2_rol_campos: z.string().trim(),
   tarea_2_rol_paco: z.string().trim(),
+  tarea_2_rol_felipe: z.string().trim(),
   tarea_3_rol_campos: z.string().trim(),
   tarea_3_rol_paco: z.string().trim(),
+  tarea_3_rol_felipe: z.string().trim(),
   tarea_4_rol_campos: z.string().trim(),
   tarea_4_rol_paco: z.string().trim(),
+  tarea_4_rol_felipe: z.string().trim(),
   // Trabajo extra que no forma parte de ninguna de las 4 tareas con
   // diagrama (p.ej. un repaso de ABP al final de la sesión): se describe a
   // mano en "notas", pero necesita categoría y minutos propios para contar
@@ -177,12 +181,16 @@ export const ENTRENAMIENTO_FORM_DEFAULTS: EntrenamientoFormValues = {
   tarea_4_observaciones: "",
   tarea_1_rol_campos: "",
   tarea_1_rol_paco: "",
+  tarea_1_rol_felipe: "",
   tarea_2_rol_campos: "",
   tarea_2_rol_paco: "",
+  tarea_2_rol_felipe: "",
   tarea_3_rol_campos: "",
   tarea_3_rol_paco: "",
+  tarea_3_rol_felipe: "",
   tarea_4_rol_campos: "",
   tarea_4_rol_paco: "",
+  tarea_4_rol_felipe: "",
   extra_categoria: "",
   extra_minutos: "",
   notas: "",
@@ -208,6 +216,7 @@ function tareaInsert(
   observaciones: string,
   rolCampos: string,
   rolPaco: string,
+  rolFelipe: string,
 ) {
   const limpio = texto.trim();
   return {
@@ -228,6 +237,7 @@ function tareaInsert(
     observaciones: observaciones || null,
     rolCampos: rolCampos || null,
     rolPaco: rolPaco || null,
+    rolFelipe: rolFelipe || null,
   };
 }
 
@@ -247,6 +257,7 @@ export function toEntrenamientoInsert(values: EntrenamientoFormValues) {
     values.tarea_1_observaciones,
     values.tarea_1_rol_campos,
     values.tarea_1_rol_paco,
+    values.tarea_1_rol_felipe,
   );
   const t2 = tareaInsert(
     values.tarea_2,
@@ -263,6 +274,7 @@ export function toEntrenamientoInsert(values: EntrenamientoFormValues) {
     values.tarea_2_observaciones,
     values.tarea_2_rol_campos,
     values.tarea_2_rol_paco,
+    values.tarea_2_rol_felipe,
   );
   const t3 = tareaInsert(
     values.tarea_3,
@@ -279,6 +291,7 @@ export function toEntrenamientoInsert(values: EntrenamientoFormValues) {
     values.tarea_3_observaciones,
     values.tarea_3_rol_campos,
     values.tarea_3_rol_paco,
+    values.tarea_3_rol_felipe,
   );
   const t4 = tareaInsert(
     values.tarea_4,
@@ -295,6 +308,7 @@ export function toEntrenamientoInsert(values: EntrenamientoFormValues) {
     values.tarea_4_observaciones,
     values.tarea_4_rol_campos,
     values.tarea_4_rol_paco,
+    values.tarea_4_rol_felipe,
   );
   return {
     fecha: values.fecha,
@@ -357,12 +371,16 @@ export function toEntrenamientoInsert(values: EntrenamientoFormValues) {
     tarea_4_observaciones: t4.observaciones,
     tarea_1_rol_campos: t1.rolCampos,
     tarea_1_rol_paco: t1.rolPaco,
+    tarea_1_rol_felipe: t1.rolFelipe,
     tarea_2_rol_campos: t2.rolCampos,
     tarea_2_rol_paco: t2.rolPaco,
+    tarea_2_rol_felipe: t2.rolFelipe,
     tarea_3_rol_campos: t3.rolCampos,
     tarea_3_rol_paco: t3.rolPaco,
+    tarea_3_rol_felipe: t3.rolFelipe,
     tarea_4_rol_campos: t4.rolCampos,
     tarea_4_rol_paco: t4.rolPaco,
+    tarea_4_rol_felipe: t4.rolFelipe,
     extra_categoria: (values.extra_categoria || null) as CategoriaTarea | null,
     extra_minutos:
       values.extra_minutos !== "" ? Number(values.extra_minutos) : null,
@@ -442,12 +460,16 @@ export function entrenamientoFormDataToValues(
     tarea_4_observaciones: String(formData.get("tarea_4_observaciones") ?? ""),
     tarea_1_rol_campos: String(formData.get("tarea_1_rol_campos") ?? ""),
     tarea_1_rol_paco: String(formData.get("tarea_1_rol_paco") ?? ""),
+    tarea_1_rol_felipe: String(formData.get("tarea_1_rol_felipe") ?? ""),
     tarea_2_rol_campos: String(formData.get("tarea_2_rol_campos") ?? ""),
     tarea_2_rol_paco: String(formData.get("tarea_2_rol_paco") ?? ""),
+    tarea_2_rol_felipe: String(formData.get("tarea_2_rol_felipe") ?? ""),
     tarea_3_rol_campos: String(formData.get("tarea_3_rol_campos") ?? ""),
     tarea_3_rol_paco: String(formData.get("tarea_3_rol_paco") ?? ""),
+    tarea_3_rol_felipe: String(formData.get("tarea_3_rol_felipe") ?? ""),
     tarea_4_rol_campos: String(formData.get("tarea_4_rol_campos") ?? ""),
     tarea_4_rol_paco: String(formData.get("tarea_4_rol_paco") ?? ""),
+    tarea_4_rol_felipe: String(formData.get("tarea_4_rol_felipe") ?? ""),
     extra_categoria: String(formData.get("extra_categoria") ?? ""),
     extra_minutos: String(formData.get("extra_minutos") ?? ""),
     notas: String(formData.get("notas") ?? ""),
