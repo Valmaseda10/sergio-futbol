@@ -84,6 +84,29 @@ export function AccionesPdf({
     }
   }
 
+  // En iPad/iPhone con la app instalada en la pantalla de inicio, window.print() no hace nada: se
+  // genera el PDF y se abre el menú de compartir, que trae "Imprimir" (AirPrint). En el resto
+  // (ordenador, Safari normal) se usa el diálogo de impresión del navegador.
+  async function imprimir() {
+    const esIos =
+      /iPad|iPhone|iPod/.test(navigator.userAgent) ||
+      (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+    const instalada =
+      (navigator as Navigator & { standalone?: boolean }).standalone === true ||
+      window.matchMedia("(display-mode: standalone)").matches;
+    if (!(esIos && instalada)) {
+      window.print();
+      return;
+    }
+    if (puedeCompartir) {
+      toast.message("Preparando el PDF: en el menú que se abre, elige «Imprimir»");
+      await compartir();
+    } else {
+      await descargar();
+      toast.message("PDF descargado: ábrelo y elige «Imprimir»");
+    }
+  }
+
   return (
     <div className="flex flex-wrap justify-end gap-2 print:hidden">
       <Button
@@ -108,7 +131,7 @@ export function AccionesPdf({
           <span className={texto}>Compartir</span>
         </Button>
       )}
-      <Button type="button" size="sm" variant="ghost" onClick={() => window.print()}>
+      <Button type="button" size="sm" variant="ghost" onClick={() => void imprimir()}>
         <Printer className="size-4" />
         <span className={texto}>Imprimir</span>
       </Button>
