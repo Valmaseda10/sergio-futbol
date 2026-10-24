@@ -401,6 +401,16 @@ export function HojaPartido({
           </div>
         </div>
       </div>
+
+      {/* Siempre a mano mientras se rellena: la hoja es larga y los botones de arriba quedan lejos. */}
+      <div className="fixed right-3 bottom-[calc(4.75rem+env(safe-area-inset-bottom))] z-30 rounded-lg border bg-background/95 p-1.5 shadow-lg backdrop-blur md:bottom-4 print:hidden">
+        <AccionesPdf
+          contenedorRef={contenedorRef}
+          nombreArchivo={nombreArchivo}
+          clave={JSON.stringify(datos)}
+          compacta
+        />
+      </div>
     </div>
   );
 }

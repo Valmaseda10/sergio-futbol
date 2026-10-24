@@ -14,6 +14,7 @@ export function AccionesPdf({
   nombreArchivo,
   deshabilitado = false,
   clave,
+  compacta = false,
 }: {
   contenedorRef: RefObject<HTMLElement | null>;
   /** Con la extensión, p. ej. "Hoja de partido J3 03-10-2026.pdf". */
@@ -21,7 +22,10 @@ export function AccionesPdf({
   deshabilitado?: boolean;
   /** Cualquier valor que cambie cuando cambia el contenido: descarta el PDF ya generado. */
   clave?: unknown;
+  /** Solo iconos (los textos quedan para lectores de pantalla): para botones flotantes. */
+  compacta?: boolean;
 }) {
+  const texto = compacta ? "sr-only" : undefined;
   const [generando, setGenerando] = useState(false);
   // El PDF ya generado se guarda: en iPad/iPhone compartir solo funciona justo
   // tras tocar el botón, y generar tarda unos segundos.
@@ -90,7 +94,7 @@ export function AccionesPdf({
         onClick={descargar}
       >
         <Download className="size-4" />
-        {generando ? "Generando…" : "Descargar PDF"}
+        <span className={texto}>{generando ? "Generando…" : "Descargar PDF"}</span>
       </Button>
       {puedeCompartir && (
         <Button
@@ -101,12 +105,12 @@ export function AccionesPdf({
           onClick={compartir}
         >
           <Share2 className="size-4" />
-          Compartir
+          <span className={texto}>Compartir</span>
         </Button>
       )}
       <Button type="button" size="sm" variant="ghost" onClick={() => window.print()}>
         <Printer className="size-4" />
-        Imprimir
+        <span className={texto}>Imprimir</span>
       </Button>
     </div>
   );
