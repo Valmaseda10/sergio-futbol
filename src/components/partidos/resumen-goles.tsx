@@ -57,7 +57,7 @@ export function ResumenGoles({ partidoId }: { partidoId: string }) {
                 return (
                   <li key={e.id} className="truncate text-muted-foreground">
                     {e.minuto != null ? `${e.minuto}' ` : ""}
-                    {jugador ? nombreMostrado(jugador) : "?"}
+                    {jugador ? nombreMostrado(jugador) : e.tipo_gol === "propia_puerta" ? "Rival" : "?"}
                     {e.tipo_gol && (
                       <span className="text-xs"> · {TIPO_GOL_LABEL[e.tipo_gol]}</span>
                     )}

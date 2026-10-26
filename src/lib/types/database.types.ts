@@ -29,7 +29,8 @@ export type TipoGol =
   | "centro_lateral"
   | "error_propio"
   | "abp"
-  | "situacion_1v1";
+  | "situacion_1v1"
+  | "propia_puerta";
 export type TipoAbp =
   | "corner"
   | "falta_lateral"

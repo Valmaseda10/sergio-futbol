@@ -175,7 +175,9 @@ export function EventosList({
   const jugadoresPorId = new Map(convocados.map((j) => [j.id, j]));
 
   const esGol = tipo === "gol" || tipo === "autogol";
-  const jugadorRequerido = tipo !== "gol" || aFavor;
+  // Gol del rival en su propia puerta: cuenta a favor pero no tiene goleador nuestro ni asistencia.
+  const esPropiaPuertaRival = tipo === "gol" && aFavor && tipoGol === "propia_puerta";
+  const jugadorRequerido = tipo !== "gol" || (aFavor && !esPropiaPuertaRival);
   const esPenalti = tipoGol === "abp" && abpTipo === "penalti";
   // "De dónde ha venido" (tiro exterior/centro lateral/rechace) es
   // independiente del "Cómo ha sido" principal: sale para cualquier gol, no
@@ -249,7 +251,7 @@ export function EventosList({
     }
 
     toast.success("Evento añadido");
-    if (tipo === "gol" && aFavor) {
+    if (tipo === "gol" && aFavor && !esPropiaPuertaRival) {
       setPedirAsistencia({ minuto, goleadorId: jugadorId });
       setAsistenteId("");
     }
@@ -336,6 +338,7 @@ export function EventosList({
                 onClick={() => {
                   setAFavor(false);
                   setJugadorId("");
+                  if (tipoGol === "propia_puerta") setTipoGol("");
                 }}
                 className={cn(
                   "rounded-md border py-2 text-sm font-medium",
@@ -374,7 +377,9 @@ export function EventosList({
             </div>
           ) : (
             <p className="text-xs text-muted-foreground">
-              Gol del rival: no hace falta seleccionar jugador propio.
+              {esPropiaPuertaRival
+                ? "Gol en propia puerta del rival: cuenta a favor y no hace falta seleccionar jugador."
+                : "Gol del rival: no hace falta seleccionar jugador propio."}
             </p>
           )}
 
@@ -397,7 +402,9 @@ export function EventosList({
                     </SelectValue>
                   </SelectTrigger>
                   <SelectContent>
-                    {TIPOS_GOL.map((t) => (
+                    {TIPOS_GOL.filter(
+                      (t) => t.value !== "propia_puerta" || (tipo === "gol" && aFavor),
+                    ).map((t) => (
                       <SelectItem key={t.value} value={t.value}>
                         {t.label}
                       </SelectItem>

@@ -13,6 +13,8 @@ export const TIPOS_GOL: { value: TipoGol; label: string }[] = [
   { value: "error_propio", label: "Error jugador" },
   { value: "abp", label: "ABP" },
   { value: "situacion_1v1", label: "Situación 1vs1" },
+  // Solo para goles a favor: lo marca un jugador del rival en su propia portería (no hay goleador nuestro).
+  { value: "propia_puerta", label: "En propia puerta (rival)" },
 ];
 
 export const TIPO_GOL_LABEL: Record<TipoGol, string> = Object.fromEntries(
