@@ -12,6 +12,10 @@ Equipo propio: C. y D. Leonesa S.A.D. "B" (la app es del Infantil B).
 2. **Clasificación de control.** En `NFG_VisClasificacion?cod_primaria=1000120&codjornada=<n>&codcompeticion=24219028&codgrupo=24219030`
    pulsar "Tabla Detallada" (`VerDetalle()`) para ver GF/GC oficiales por equipo y comprobar que
    los goles sumados salen parecidos (las actas que no están publicadas explican las diferencias).
+3. **(Atajo desde la J6)** Con `liga_eventos` al día, los tramos se pueden **recalcular en SQL** sin releer la liga: goles de
+   `liga_eventos` (tipos `gol`, `gol_penalti`, `gol_propia`; la propia cuenta para el rival) unidos a `liga_partidos` por `acta`,
+   en tramos `<15, <30, <45, <60, 60+`, y `insert ... on conflict (rival_id, intervalo) do update` en `rivales_goles_intervalo`.
+   Con las jornadas 1-5 salió idéntico a lo que había (0 diferencias). Totales por equipo = GF/GC de la clasificación oficial.
 3. **Actualizar los tramos de los 13 rivales** en Supabase (proyecto `xpwwhtekqduvtspieoag`), tabla
    `rivales_goles_intervalo` (`rival_id, intervalo, goles_favor, goles_contra`; intervalos
    `0-15, 15-30, 30-45, 45-60, 60+`). Se hace con un `insert ... on conflict (rival_id, intervalo)
@@ -47,7 +51,11 @@ Equipo propio: C. y D. Leonesa S.A.D. "B" (la app es del Infantil B).
    `localStorage.getItem('ev_pendiente')` y armar la consulta con `setValue`. Luego volver a navegar la pestaña a rfcylf.
    Minuto `999` = el acta no da minuto → guardar `null`.
    El editor SQL de Supabase avisa de «tabla sin RLS» por el `with`: es falso positivo (la tabla ya tiene
-   RLS), elegir «Run without RLS». Hecho hasta ahora: jornada 1, actas 26150963–67 (faltan 26150968–97).
+   RLS), elegir «Run without RLS». Hecho hasta ahora: jornadas 1 a 6 (actas 26150963–26151004).
+   **Ojo con el prefijo del acta**: las líneas llevan solo los 2 últimos dígitos y el SQL pone `'261509' || fin`, que
+   solo vale hasta el 26150999. Desde el 26151000 el prefijo es `'261510'` (el 26-10-2026 las de la J6 00-04 se
+   guardaron mal y hubo que corregirlas). Mejor comprobar siempre después que no hay eventos huérfanos:
+   `select count(*) from liga_eventos e where not exists (select 1 from liga_partidos p where p.acta = e.acta)` = 0.
 4. **Resultados propios.** Comprobar en `partidos` que los partidos de liga ya jugados tienen
    `fecha` y `resultado_favor/contra` iguales a los de la federación (en la jornada 4 la fecha del
    Veguellina estaba un día mal). Corregir solo diferencias claras.
