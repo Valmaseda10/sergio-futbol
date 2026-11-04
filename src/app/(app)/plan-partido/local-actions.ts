@@ -33,6 +33,7 @@ import {
 import { DEMARCACION_ORDEN, demarcacionDePosicion } from "@/lib/posiciones";
 import type { Json } from "@/lib/types/database.types";
 import { clubConfig } from "@/lib/club-config";
+import { claveEquipo } from "@/lib/clasificacion";
 
 type SimpleResult = { error: string } | { success: true };
 type ActionResult = { error: string } | { success: true; id: string };
@@ -126,6 +127,30 @@ const nombreCorto = (j: { alias: string | null; nombre: string }) =>
   (j.alias || j.nombre).toUpperCase();
 
 /**
+ * Jornada de liga de un partido, sacada del calendario de la liga (`liga_partidos`):
+ * el partido de nuestro equipo contra ese rival, mejor si además coincide la fecha.
+ * Vacío si no es de liga o no se encuentra.
+ */
+async function jornadaDelPartido(partido: {
+  rival: string;
+  fecha: string;
+  competicion: string | null;
+}): Promise<string> {
+  if (partido.competicion && partido.competicion !== "liga") return "";
+  const propio = (n: string) => claveEquipo(n).includes("leonesa");
+  const rivalKey = claveEquipo(partido.rival);
+  const liga = await localDb.liga_partidos.toArray();
+  const delRival = liga.filter((p) => {
+    if (propio(p.local) === propio(p.visitante)) return false;
+    const otro = claveEquipo(propio(p.local) ? p.visitante : p.local);
+    return otro === rivalKey || otro.includes(rivalKey) || rivalKey.includes(otro);
+  });
+  const mismaFecha = delRival.filter((p) => p.fecha === partido.fecha);
+  const elegido = mismaFecha.length === 1 ? mismaFecha[0] : delRival.length === 1 ? delRival[0] : null;
+  return elegido ? String(elegido.jornada) : "";
+}
+
+/**
  * Hoja nueva de un partido, ya con la cabecera y — si hay — la alineación y
  * los suplentes que ya se hayan puesto en la sección Partidos.
  */
@@ -137,6 +162,7 @@ async function hojaInicial(partidoId: string): Promise<HojaPartidoDatos> {
     hoja.cabecera.hora = (partido.hora ?? "").slice(0, 5);
     hoja.cabecera.rival = partido.rival.toUpperCase();
     hoja.cabecera.lugar = (partido.lugar ?? "").toUpperCase();
+    hoja.cabecera.jornada = await jornadaDelPartido(partido);
   }
 
   const [alineacion, convocatoria, jugadores] = await Promise.all([
@@ -191,7 +217,17 @@ export async function obtenerOCrearHojaLocal(
     .where("partido_id")
     .equals(partidoId)
     .first();
-  if (existente) return existente;
+  if (existente) {
+    // Las hojas ya creadas sin jornada la reciben del calendario (si no la escribieron a mano).
+    const datos = leerHoja(existente.datos);
+    const partido = datos.cabecera.jornada.trim() ? null : await localDb.partidos.get(partidoId);
+    const jornada = partido ? await jornadaDelPartido(partido) : "";
+    if (!jornada) return existente;
+    const nuevos = { ...datos, cabecera: { ...datos.cabecera, jornada } };
+    const actualizada = { ...existente, datos: hojaAJson(nuevos) };
+    await guardarHojaLocal(existente.id, nuevos);
+    return actualizada;
+  }
 
   const row: LocalHojaPartido = {
     id: crypto.randomUUID(),

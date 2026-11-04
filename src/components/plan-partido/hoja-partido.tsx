@@ -184,14 +184,18 @@ function CampoCentral() {
 // ---- Hoja completa -----------------------------------------------------------
 
 const CAMPOS_CABECERA: { clave: keyof CabeceraHoja; etiqueta: string; ancho: string }[] = [
-  { clave: "dia", etiqueta: "Día", ancho: "1.05fr" },
-  { clave: "jornada", etiqueta: "Jornada", ancho: "0.8fr" },
-  { clave: "hora", etiqueta: "Hora", ancho: "0.6fr" },
-  { clave: "rival", etiqueta: "Rival", ancho: "1.1fr" },
-  { clave: "lugar", etiqueta: "Lugar", ancho: "1fr" },
-  { clave: "observaciones", etiqueta: "Observaciones", ancho: "1.2fr" },
-  { clave: "convocatoria", etiqueta: "Convocatoria", ancho: "1.1fr" },
+  { clave: "dia", etiqueta: "Día", ancho: "0.95fr" },
+  { clave: "jornada", etiqueta: "Jor.", ancho: "0.4fr" },
+  { clave: "hora", etiqueta: "Hora", ancho: "0.55fr" },
+  { clave: "rival", etiqueta: "Rival", ancho: "1.6fr" },
+  { clave: "lugar", etiqueta: "Lugar", ancho: "1.5fr" },
+  { clave: "observaciones", etiqueta: "Observaciones", ancho: "1fr" },
+  { clave: "convocatoria", etiqueta: "Convocatoria", ancho: "1fr" },
 ];
+
+// Rival y lugar son nombres largos ("C.D.F. Peña Elyte "B"", "Campo Municipal …"):
+// se escriben en una celda que crece en vez de cortarse al imprimir.
+const CAMPOS_LARGOS: ReadonlySet<keyof CabeceraHoja> = new Set(["rival", "lugar"]);
 
 const BLOQUES_ANALISIS: {
   izq: keyof AnalisisHoja;
@@ -307,16 +311,27 @@ export function HojaPartido({
             {CAMPOS_CABECERA.map((c) => (
               <div
                 key={c.clave}
-                className={`h-6 border-r last:border-r-0 ${BORDE}`}
+                className={`flex min-h-6 items-center border-r last:border-r-0 ${BORDE}`}
               >
-                <Celda
-                  valor={cab[c.clave]}
-                  etiqueta={c.etiqueta}
-                  className="text-center text-[12px]"
-                  onCambio={(v) =>
-                    cambiar((d) => ({ ...d, cabecera: { ...d.cabecera, [c.clave]: v } }))
-                  }
-                />
+                {CAMPOS_LARGOS.has(c.clave) ? (
+                  <AreaAuto
+                    valor={cab[c.clave]}
+                    etiqueta={c.etiqueta}
+                    className="text-center text-[12px]"
+                    onCambio={(v) =>
+                      cambiar((d) => ({ ...d, cabecera: { ...d.cabecera, [c.clave]: v } }))
+                    }
+                  />
+                ) : (
+                  <Celda
+                    valor={cab[c.clave]}
+                    etiqueta={c.etiqueta}
+                    className="!h-6 text-center text-[12px]"
+                    onCambio={(v) =>
+                      cambiar((d) => ({ ...d, cabecera: { ...d.cabecera, [c.clave]: v } }))
+                    }
+                  />
+                )}
               </div>
             ))}
           </div>
