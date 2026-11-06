@@ -7,7 +7,14 @@
 import type { CSSProperties } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
-import { COLOR_ESTADO_PARTIDO, type EstadoPartido } from "@/lib/plan-partido";
+import type { Diagrama } from "@/lib/ficha-entrenamiento";
+import {
+  COLOR_ESTADO_PARTIDO,
+  COLOR_TITULAR_CON_POSICION,
+  COLOR_TITULAR_SIN_POSICION,
+  type EstadoPartido,
+  type JugadorAbp,
+} from "@/lib/plan-partido";
 import type { PartidoAbp } from "@/lib/use-partido-abp";
 
 export interface OpcionJugador {
@@ -15,11 +22,43 @@ export interface OpcionJugador {
   nombre: string;
 }
 
-/** Subrayado de color de un jugador según su estado en el partido. */
-export function estiloEstado(estado: EstadoPartido | undefined): CSSProperties | undefined {
+/** Jugadores que ya tienen una posición en la jugada (piezas del dibujo y lista numerada). */
+export function idsUsados(
+  diagrama: Diagrama | null | undefined,
+  filas: JugadorAbp[],
+): Set<string> {
+  const ids = new Set<string>();
+  const poner = (id: string | null | undefined) => {
+    if (id) ids.add(id);
+  };
+  filas.forEach((f) => {
+    poner(f.jugador_id);
+    poner(f.jugador2_id);
+  });
+  diagrama?.elementos.forEach((e) => {
+    poner(e.jugador_id);
+    poner(e.jugador2_id);
+  });
+  return ids;
+}
+
+/**
+ * Subrayado de color de un jugador según su estado en el partido. Los titulares salen en
+ * verde claro si ya tienen posición en la jugada (`usado`) y en verde oscuro si aún no.
+ */
+export function estiloEstado(
+  estado: EstadoPartido | undefined,
+  usado?: boolean,
+): CSSProperties | undefined {
   if (!estado) return undefined;
-  const color = COLOR_ESTADO_PARTIDO[estado];
+  const color =
+    estado === "titular" && usado !== undefined
+      ? usado
+        ? COLOR_TITULAR_CON_POSICION
+        : COLOR_TITULAR_SIN_POSICION
+      : COLOR_ESTADO_PARTIDO[estado];
   return {
+    ...(estado === "titular" && usado === false ? { fontWeight: 700 } : null),
     color,
     textDecoration: "underline",
     textDecorationColor: color,
@@ -37,12 +76,20 @@ function fecha(iso: string): string {
 export function OpcionesJugador({
   jugadores,
   estados,
+  usados,
 }: {
   jugadores: OpcionJugador[];
   estados?: Map<string, EstadoPartido>;
+  /** Si se pasa, marca con ✓ y en verde claro a los que ya tienen posición en la jugada. */
+  usados?: Set<string>;
 }) {
   const opcion = (j: OpcionJugador) => (
-    <option key={j.id} value={j.id} style={estiloEstado(estados?.get(j.id))}>
+    <option
+      key={j.id}
+      value={j.id}
+      style={estiloEstado(estados?.get(j.id), usados ? usados.has(j.id) : undefined)}
+    >
+      {usados?.has(j.id) ? "✓ " : ""}
       {j.nombre}
     </option>
   );
@@ -51,7 +98,7 @@ export function OpcionesJugador({
     jugadores.filter((j) => estados.get(j.id) === estado);
   return (
     <>
-      <optgroup label="Titulares (verde)">{de("titular").map(opcion)}</optgroup>
+      <optgroup label={usados ? "Titulares (claro: ya colocado · oscuro: sin posición)" : "Titulares (verde)"}>{de("titular").map(opcion)}</optgroup>
       <optgroup label="Suplentes (rojo)">{de("suplente").map(opcion)}</optgroup>
       <optgroup label="Resto de la plantilla">{de(undefined).map(opcion)}</optgroup>
     </>

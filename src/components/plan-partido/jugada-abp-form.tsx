@@ -15,6 +15,7 @@ import type { Diagrama } from "@/lib/ficha-entrenamiento";
 import { AsignarJugadores } from "@/components/plan-partido/asignar-jugadores";
 import {
   estiloEstado,
+  idsUsados,
   OpcionesJugador,
   SincronizarPartido,
 } from "@/components/plan-partido/sincronizar-partido";
@@ -98,6 +99,7 @@ export function JugadaAbpForm({
     id: j.id,
     nombre: etiquetaJugadorAbp(j),
   }));
+  const usados = idsUsados(diagrama, filas);
 
   // Con piezas en el dibujo, quién hace qué se elige por piezas (ver AsignarJugadores).
   const hayPiezas = !!diagrama?.elementos.some(
@@ -268,11 +270,11 @@ export function JugadaAbpForm({
                     editarFila(i, { jugador_id: e.target.value || null })
                   }
                   className="h-9 min-w-0 flex-1 rounded-md border border-input bg-background px-2 text-sm font-medium"
-                  style={f.jugador_id ? estiloEstado(sync.estados.get(f.jugador_id)) : undefined}
+                  style={f.jugador_id ? estiloEstado(sync.estados.get(f.jugador_id), usados.has(f.jugador_id)) : undefined}
                   aria-label="Jugador"
                 >
                   <option value={sinJugador}>— Escribir a mano —</option>
-                  <OpcionesJugador jugadores={opcionesJugadores} estados={sync.estados} />
+                  <OpcionesJugador jugadores={opcionesJugadores} estados={sync.estados} usados={usados} />
                 </select>
                 {!f.jugador_id && (
                   <Input
@@ -344,6 +346,7 @@ export function JugadaAbpForm({
             pierna_dominante: j.pierna_dominante,
           }))}
           estados={sync.estados}
+          usadosExtra={idsUsados(null, filas)}
           inicial={diagrama}
           onCerrar={() => setDibujando(false)}
           onGuardar={(d) => {

@@ -46,7 +46,7 @@ import {
   type TipoElemento,
 } from "@/lib/ficha-entrenamiento";
 import { COLOR_ESTADO_PARTIDO, type EstadoPartido } from "@/lib/plan-partido";
-import { OpcionesJugador } from "@/components/plan-partido/sincronizar-partido";
+import { idsUsados, OpcionesJugador } from "@/components/plan-partido/sincronizar-partido";
 
 type Herramienta = "mover" | TipoElemento;
 
@@ -150,6 +150,7 @@ export function DiagramaEditor({
   camisetas,
   jugadores = [],
   estados,
+  usadosExtra,
   inicial,
   onCerrar,
   onGuardar,
@@ -164,6 +165,8 @@ export function DiagramaEditor({
   jugadores?: { id: string; nombre: string; pierna_dominante?: string | null }[];
   /** Titulares (verde) y suplentes (rojo) de un partido: raya bajo sus nombres y desplegable agrupado. */
   estados?: Map<string, EstadoPartido>;
+  /** Jugadores que ya tienen posición fuera del dibujo (la lista numerada de la jugada). */
+  usadosExtra?: Set<string>;
   inicial: Diagrama | null;
   onCerrar: () => void;
   onGuardar: (diagrama: Diagrama, png: File) => void;
@@ -198,6 +201,11 @@ export function DiagramaEditor({
   );
   const { ancho: ANCHO, alto: ALTO, k: K } = dimensionesCampo(diagrama.campo);
 
+  // Solo en las jugadas de ABP: quién ya tiene posición (en el dibujo o en la lista numerada).
+  const usados = useMemo(
+    () => (usadosExtra ? new Set([...usadosExtra, ...idsUsados(diagrama, [])]) : undefined),
+    [usadosExtra, diagrama],
+  );
   const subrayados = useMemo(
     () =>
       estados
@@ -607,7 +615,7 @@ export function DiagramaEditor({
                     className="h-8 rounded-md border border-input bg-background px-2 text-sm"
                   >
                     <option value="">— Sin elegir / escribir a mano —</option>
-                    <OpcionesJugador jugadores={jugadores} estados={estados} />
+                    <OpcionesJugador jugadores={jugadores} estados={estados} usados={usados} />
                   </select>
                 </div>
                 {!seleccionado.jugador_id && (
@@ -644,7 +652,7 @@ export function DiagramaEditor({
                         className="h-8 rounded-md border border-input bg-background px-2 text-sm"
                       >
                         <option value="">— Ninguno / escribir a mano —</option>
-                        <OpcionesJugador jugadores={jugadores} estados={estados} />
+                        <OpcionesJugador jugadores={jugadores} estados={estados} usados={usados} />
                       </select>
                     </div>
                     {!seleccionado.jugador2_id && (

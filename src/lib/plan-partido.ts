@@ -39,6 +39,11 @@ export const COLOR_ESTADO_PARTIDO: Record<EstadoPartido, string> = {
   suplente: "#dc2626",
 };
 
+// En los desplegables de jugadores de una jugada, los titulares se distinguen según
+// tengan ya una posición en ella (verde claro) o todavía no (verde oscuro).
+export const COLOR_TITULAR_CON_POSICION = "#4ade80";
+export const COLOR_TITULAR_SIN_POSICION = "#166534";
+
 // Grupos de piezas de una jugada por color de camiseta.
 export type ClasePieza = "rojo" | "azul" | "portero";
 

@@ -20,7 +20,7 @@ import {
   type JugadorAbp,
   type RolesAbp,
 } from "@/lib/plan-partido";
-import { estiloEstado, OpcionesJugador } from "@/components/plan-partido/sincronizar-partido";
+import { estiloEstado, idsUsados, OpcionesJugador } from "@/components/plan-partido/sincronizar-partido";
 
 interface Opcion {
   id: string;
@@ -40,12 +40,14 @@ function Selector({
   onChange,
   etiqueta,
   estados,
+  usados,
 }: {
   valor: string | null | undefined;
   opciones: Opcion[];
   onChange: (id: string | null) => void;
   etiqueta: string;
   estados?: Map<string, EstadoPartido>;
+  usados?: Set<string>;
 }) {
   return (
     <select
@@ -53,10 +55,10 @@ function Selector({
       onChange={(e) => onChange(e.target.value || null)}
       aria-label={etiqueta}
       className="h-9 min-w-0 flex-1 rounded-md border border-input bg-background px-2 text-sm font-medium"
-      style={valor ? estiloEstado(estados?.get(valor)) : undefined}
+      style={valor ? estiloEstado(estados?.get(valor), usados ? usados.has(valor) : undefined) : undefined}
     >
       <option value="">— Sin elegir —</option>
-      <OpcionesJugador jugadores={opciones} estados={estados} />
+      <OpcionesJugador jugadores={opciones} estados={estados} usados={usados} />
     </select>
   );
 }
@@ -94,6 +96,8 @@ export function AsignarJugadores({
   ].filter((g) => g.piezas.length > 0);
 
   if (grupos.length === 0) return null;
+
+  const usados = idsUsados(diagrama, filas);
 
   function elegirPieza(pieza: ElementoDiagrama, id: string | null) {
     if (pieza.etiqueta && clasePieza(pieza.color) === "rojo") {
@@ -225,6 +229,7 @@ export function AsignarJugadores({
                       onChange={(id) => elegirPieza(pieza, id)}
                       etiqueta={`Jugador de la pieza ${pieza.etiqueta ?? i + 1}`}
                       estados={estados}
+                      usados={usados}
                     />
                     <Button
                       type="button"
@@ -252,6 +257,7 @@ export function AsignarJugadores({
                             : `Segundo jugador de la pieza ${pieza.etiqueta ?? i + 1}`
                         }
                         estados={estados}
+                        usados={usados}
                       />
                     </div>
                   )}
