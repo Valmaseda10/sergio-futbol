@@ -314,15 +314,19 @@ export interface Database {
           tarea_1_rol_campos: string | null;
           tarea_1_rol_paco: string | null;
           tarea_1_rol_felipe: string | null;
+          tarea_1_rol_edu: string | null;
           tarea_2_rol_campos: string | null;
           tarea_2_rol_paco: string | null;
           tarea_2_rol_felipe: string | null;
+          tarea_2_rol_edu: string | null;
           tarea_3_rol_campos: string | null;
           tarea_3_rol_paco: string | null;
           tarea_3_rol_felipe: string | null;
+          tarea_3_rol_edu: string | null;
           tarea_4_rol_campos: string | null;
           tarea_4_rol_paco: string | null;
           tarea_4_rol_felipe: string | null;
+          tarea_4_rol_edu: string | null;
           // Trabajo extra que no forma parte de ninguna de las 4 tareas con
           // diagrama (p.ej. un repaso de ABP al final de la sesión): se
           // describe a mano en "notas", pero necesita categoría y minutos
@@ -403,15 +407,19 @@ export interface Database {
           tarea_1_rol_campos?: string | null;
           tarea_1_rol_paco?: string | null;
           tarea_1_rol_felipe?: string | null;
+          tarea_1_rol_edu?: string | null;
           tarea_2_rol_campos?: string | null;
           tarea_2_rol_paco?: string | null;
           tarea_2_rol_felipe?: string | null;
+          tarea_2_rol_edu?: string | null;
           tarea_3_rol_campos?: string | null;
           tarea_3_rol_paco?: string | null;
           tarea_3_rol_felipe?: string | null;
+          tarea_3_rol_edu?: string | null;
           tarea_4_rol_campos?: string | null;
           tarea_4_rol_paco?: string | null;
           tarea_4_rol_felipe?: string | null;
+          tarea_4_rol_edu?: string | null;
           extra_categoria?: CategoriaTarea | null;
           extra_minutos?: number | null;
           notas?: string | null;

@@ -164,7 +164,7 @@ const CAMPO_OBSERVACIONES = {
 } as const satisfies Record<CampoTarea, keyof EntrenamientoFormValues>;
 
 // Quién de los entrenadores lleva cada tarea, para el apartado "Roles
-// entrenador" (igual que la fila "Campos: / Paco:" de la plantilla, más Felipe).
+// entrenador" (igual que la fila "Campos: / Paco:" de la plantilla, más Felipe y Edu).
 const CAMPO_ROL_CAMPOS = {
   tarea_1: "tarea_1_rol_campos",
   tarea_2: "tarea_2_rol_campos",
@@ -184,6 +184,13 @@ const CAMPO_ROL_FELIPE = {
   tarea_2: "tarea_2_rol_felipe",
   tarea_3: "tarea_3_rol_felipe",
   tarea_4: "tarea_4_rol_felipe",
+} as const satisfies Record<CampoTarea, keyof EntrenamientoFormValues>;
+
+const CAMPO_ROL_EDU = {
+  tarea_1: "tarea_1_rol_edu",
+  tarea_2: "tarea_2_rol_edu",
+  tarea_3: "tarea_3_rol_edu",
+  tarea_4: "tarea_4_rol_edu",
 } as const satisfies Record<CampoTarea, keyof EntrenamientoFormValues>;
 
 function FieldError({ message }: { message?: string }) {
@@ -901,8 +908,8 @@ export function EntrenamientoForm({
           </p>
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
             {CAMPOS_TAREA.map((campo, i) => (
-              <div key={campo} className="grid grid-cols-3 gap-2 rounded-md border p-2">
-                <p className="col-span-3 text-xs font-medium text-muted-foreground">
+              <div key={campo} className="grid grid-cols-2 gap-2 rounded-md border p-2 sm:grid-cols-4">
+                <p className="col-span-full text-xs font-medium text-muted-foreground">
                   Tarea {i + 1}
                 </p>
                 <div className="space-y-1">
@@ -931,6 +938,15 @@ export function EntrenamientoForm({
                     Felipe
                   </Label>
                   <Input id={CAMPO_ROL_FELIPE[campo]} {...register(CAMPO_ROL_FELIPE[campo])} />
+                </div>
+                <div className="space-y-1">
+                  <Label
+                    htmlFor={CAMPO_ROL_EDU[campo]}
+                    className="text-xs text-muted-foreground"
+                  >
+                    Edu
+                  </Label>
+                  <Input id={CAMPO_ROL_EDU[campo]} {...register(CAMPO_ROL_EDU[campo])} />
                 </div>
               </div>
             ))}
