@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useLiveQuery } from "dexie-react-hooks";
 import { toast } from "sonner";
-import { Share2 } from "lucide-react";
+import { CheckCheck, Share2 } from "lucide-react";
 import { toggleConvocadoLocal } from "@/app/(app)/partidos/local-actions";
 import { localDb } from "@/lib/db/local-db";
 import { createClient } from "@/lib/supabase/client";
@@ -70,6 +70,7 @@ export function ConvocatoriaList({
   jugadores: Jugador[];
 }) {
   const [pendiente, setPendiente] = useState<string | null>(null);
+  const [todosPendiente, setTodosPendiente] = useState(false);
   const [fotoUrls, setFotoUrls] = useState<Record<string, string>>({});
 
   const convocatorias = useLiveQuery(
@@ -181,6 +182,17 @@ export function ConvocatoriaList({
     setPendiente(null);
   }
 
+  // Todos de golpe (o quitarlos todos si ya lo están): solo los que faltan/sobran se escriben.
+  async function handleTodos() {
+    const todosMarcados = jugadores.every((j) => convocados.has(j.id));
+    setTodosPendiente(true);
+    for (const j of jugadores) {
+      if (convocados.has(j.id) === !todosMarcados) continue;
+      await toggleConvocadoLocal(partidoId, j.id, !todosMarcados);
+    }
+    setTodosPendiente(false);
+  }
+
   async function handleCompartir() {
     const jugadoresConvocados = jugadores.filter((j) => convocados.has(j.id));
     const texto = construirTextoConvocatoria(partido, jugadoresConvocados);
@@ -204,19 +216,32 @@ export function ConvocatoriaList({
 
   return (
     <div className="space-y-3">
-      <div className="flex items-center justify-between gap-3">
+      <div className="flex flex-wrap items-center justify-between gap-3">
         <p className="text-sm text-muted-foreground">
           {convocados.size} convocado{convocados.size !== 1 ? "s" : ""}
         </p>
-        <Button
-          variant="outline"
-          size="sm"
-          disabled={convocados.size === 0}
-          onClick={handleCompartir}
-        >
-          <Share2 className="size-4" />
-          Compartir
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            disabled={todosPendiente || jugadores.length === 0}
+            onClick={handleTodos}
+          >
+            <CheckCheck className="size-4" />
+            {jugadores.length > 0 && jugadores.every((j) => convocados.has(j.id))
+              ? "Quitar todos"
+              : "Seleccionar todos"}
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            disabled={convocados.size === 0}
+            onClick={handleCompartir}
+          >
+            <Share2 className="size-4" />
+            Compartir
+          </Button>
+        </div>
       </div>
       <ul className="divide-y rounded-md border">
         {jugadores.map((j) => {
