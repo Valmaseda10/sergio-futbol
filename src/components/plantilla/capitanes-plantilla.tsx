@@ -1,16 +1,17 @@
 "use client";
 
-// Plantilla → Capitanes: quién ha sido capitán y en qué partidos (el capitán de cada partido
-// se marca con la "C" de la convocatoria). No confundir con jugadores.es_capitan, que son los
-// capitanes del equipo con las multas dobles.
+// Capitanes: cuántas veces ha sido capitán cada jugador y, al pulsar en uno, en qué partidos. El
+// capitán de cada partido se elige en la ficha del partido o en el modo día de partido (también
+// con la "C" de la convocatoria). No confundir con jugadores.es_capitan, que son los capitanes
+// del equipo con las multas dobles.
 
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useLiveQuery } from "dexie-react-hooks";
-import { ChevronLeft } from "lucide-react";
+import { ChevronDown, ChevronLeft, ChevronRight } from "lucide-react";
 import { localDb, type LocalPartido } from "@/lib/db/local-db";
-import { Badge } from "@/components/ui/badge";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { cn } from "@/lib/utils";
 
 const COMPETICION: Record<string, string> = { liga: "Liga", amistoso: "Amistoso", copa: "Copa" };
 
@@ -29,17 +30,19 @@ function resultado(p: LocalPartido) {
 }
 
 export function CapitanesPlantilla({ hoy }: { hoy: string }) {
+  const router = useRouter();
   const jugadores = useLiveQuery(() => localDb.jugadores.toArray(), [], []);
   const partidos = useLiveQuery(() => localDb.partidos.toArray(), [], []);
+  const [abierto, setAbierto] = useState<string | null>(null);
 
-  const { capitanes, sinCapitan, sinMarcar } = useMemo(() => {
+  const { filas, sinMarcar } = useMemo(() => {
     const porJugador = new Map<string, LocalPartido[]>();
     for (const p of partidos) {
       if (!p.capitan_id) continue;
       porJugador.set(p.capitan_id, [...(porJugador.get(p.capitan_id) ?? []), p]);
     }
-    const capitanes = jugadores
-      .filter((j) => porJugador.has(j.id))
+    const filas = jugadores
+      .filter((j) => j.activo || porJugador.has(j.id))
       .map((j) => ({
         jugador: j,
         partidos: (porJugador.get(j.id) ?? []).sort((a, b) => b.fecha.localeCompare(a.fecha)),
@@ -49,59 +52,77 @@ export function CapitanesPlantilla({ hoy }: { hoy: string }) {
           b.partidos.length - a.partidos.length ||
           a.jugador.apellidos.localeCompare(b.jugador.apellidos),
       );
-    const sinCapitan = jugadores
-      .filter((j) => j.activo && !porJugador.has(j.id))
-      .sort((a, b) => a.apellidos.localeCompare(b.apellidos));
     // Partidos ya jugados en los que todavía no se ha marcado capitán.
     const sinMarcar = partidos.filter((p) => !p.capitan_id && p.fecha <= hoy).length;
-    return { capitanes, sinCapitan, sinMarcar };
+    return { filas, sinMarcar };
   }, [jugadores, partidos, hoy]);
 
   return (
     <div className="space-y-4">
-      <Link
-        href="/plantilla"
+      <button
+        type="button"
+        onClick={() => router.back()}
         className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground"
       >
         <ChevronLeft className="size-4" />
-        Volver a plantilla
-      </Link>
+        Volver
+      </button>
 
       <div>
         <h1 className="text-2xl font-semibold">Capitanes</h1>
         <p className="text-sm text-muted-foreground">
-          En qué partidos ha sido capitán cada jugador. El capitán de cada partido se marca con la
-          «C» en la convocatoria.
+          Las veces que ha sido capitán cada jugador. Pulsa en un jugador para ver en qué partidos.
         </p>
       </div>
 
-      {capitanes.length === 0 ? (
-        <p className="py-8 text-center text-sm text-muted-foreground">
-          Todavía no hay ningún capitán marcado en los partidos.
-        </p>
-      ) : (
-        <div className="space-y-3">
-          {capitanes.map(({ jugador, partidos: lista }) => (
-            <Card key={jugador.id}>
-              <CardHeader className="flex-row items-center justify-between gap-2">
-                <CardTitle className="min-w-0 truncate text-base">
-                  <Link href={`/plantilla/${jugador.id}`} className="hover:underline">
-                    {jugador.alias || `${jugador.nombre} ${jugador.apellidos}`}
-                  </Link>
-                </CardTitle>
-                <Badge>
-                  {lista.length} {lista.length === 1 ? "partido" : "partidos"}
-                </Badge>
-              </CardHeader>
-              <CardContent>
-                <ul className="divide-y text-sm">
+      <ul className="divide-y rounded-md border">
+        {filas.map(({ jugador, partidos: lista }) => {
+          const nombre = jugador.alias || `${jugador.nombre} ${jugador.apellidos}`;
+          const desplegado = abierto === jugador.id;
+          const veces = lista.length;
+          return (
+            <li key={jugador.id}>
+              <button
+                type="button"
+                disabled={veces === 0}
+                aria-expanded={desplegado}
+                onClick={() => setAbierto(desplegado ? null : jugador.id)}
+                className={cn(
+                  "flex w-full items-center gap-3 p-3 text-left",
+                  veces > 0 ? "hover:bg-muted/50" : "cursor-default",
+                )}
+              >
+                <span className="min-w-0 flex-1 truncate text-sm font-medium">
+                  {jugador.dorsal != null ? `${jugador.dorsal} · ` : ""}
+                  {nombre}
+                </span>
+                <span
+                  className={cn(
+                    "font-heading text-lg tabular-nums",
+                    veces === 0 && "text-muted-foreground",
+                  )}
+                >
+                  {veces}
+                </span>
+                <span className="w-12 shrink-0 text-xs text-muted-foreground">
+                  {veces === 1 ? "vez" : "veces"}
+                </span>
+                {veces > 0 &&
+                  (desplegado ? (
+                    <ChevronDown className="size-4 text-muted-foreground" />
+                  ) : (
+                    <ChevronRight className="size-4 text-muted-foreground" />
+                  ))}
+              </button>
+              {desplegado && (
+                <ul className="divide-y border-t bg-muted/30 px-3 text-sm">
                   {lista.map((p) => (
-                    <li key={p.id} className="flex items-center justify-between gap-3 py-1.5">
+                    <li key={p.id} className="flex items-center justify-between gap-3 py-2">
                       <Link href={`/partidos/${p.id}`} className="min-w-0 flex-1 hover:underline">
                         <span className="tabular-nums text-muted-foreground">
                           {fechaCorta(p.fecha)}
                         </span>{" "}
-                        · {p.local_visitante === "local" ? "vs" : "en"} {p.rival}
+                        · {p.local_visitante === "local" ? "vs" : "@"} {p.rival}
                       </Link>
                       <span className="shrink-0 text-xs text-muted-foreground">
                         {COMPETICION[p.competicion] ?? p.competicion}
@@ -110,22 +131,11 @@ export function CapitanesPlantilla({ hoy }: { hoy: string }) {
                     </li>
                   ))}
                 </ul>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
-      )}
-
-      {sinCapitan.length > 0 && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-base">Todavía no han sido capitanes</CardTitle>
-          </CardHeader>
-          <CardContent className="text-sm text-muted-foreground">
-            {sinCapitan.map((j) => j.alias || `${j.nombre} ${j.apellidos}`).join(" · ")}
-          </CardContent>
-        </Card>
-      )}
+              )}
+            </li>
+          );
+        })}
+      </ul>
 
       {sinMarcar > 0 && (
         <p className="text-xs text-muted-foreground">

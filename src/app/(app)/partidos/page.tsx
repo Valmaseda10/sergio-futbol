@@ -140,6 +140,15 @@ export default function PartidosPage() {
           >
             <CalendarRange className="size-4" />
           </Button>
+          <Button
+            size="sm"
+            variant="outline"
+            nativeButton={false}
+            render={<Link href="/plantilla/capitanes" />}
+          >
+            <Crown className="size-4" />
+            Capitanes
+          </Button>
           <Button size="sm" nativeButton={false} render={<Link href="/partidos/nuevo" />}>
             <Plus className="size-4" />
             Nuevo

@@ -16,6 +16,7 @@ import { ConvocatoriaList } from "@/components/partidos/convocatoria-list";
 import { AlineacionCampo } from "@/components/partidos/alineacion-campo";
 import { EventosList } from "@/components/partidos/eventos-list";
 import { AbpPartido } from "@/components/partidos/abp-partido";
+import { CapitanPartido } from "@/components/partidos/capitan-partido";
 
 const VISTAS = [
   { value: "convocatoria", label: "Convocatoria", icon: Users },
@@ -164,6 +165,8 @@ export default function DiaPartidoPage() {
         Volver al partido
       </Link>
       <h1 className="text-2xl font-semibold">Día de partido vs {partido.rival}</h1>
+
+      <CapitanPartido partidoId={id} capitanId={partido.capitan_id ?? null} />
 
       <div className="grid grid-cols-4 gap-2">
         {VISTAS.map((v) => (

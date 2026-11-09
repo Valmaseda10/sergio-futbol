@@ -52,6 +52,7 @@ export default function PlantillaPage() {
             render={<Link href="/plantilla/capitanes" aria-label="Capitanes" title="Capitanes" />}
           >
             <Crown className="size-4" />
+            Capitanes
           </Button>
           <Button
             size="sm"
