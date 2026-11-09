@@ -57,6 +57,7 @@ export async function crearPartidoLocal(
     id,
     ...toPartidoInsert(parsed.data),
     foto_rival_url: null,
+    capitan_id: null,
     created_at: new Date().toISOString(),
   };
 
@@ -169,6 +170,16 @@ export async function eliminarPartidoLocal(id: string): Promise<SimpleResult> {
   return { success: true };
 }
 
+/** Capitán del partido (uno solo); `null` lo quita. */
+export async function marcarCapitanPartidoLocal(
+  partidoId: string,
+  jugadorId: string | null,
+): Promise<SimpleResult> {
+  await localDb.partidos.update(partidoId, { capitan_id: jugadorId });
+  await queueMutation("partidos", "update", partidoId, { capitan_id: jugadorId });
+  return { success: true };
+}
+
 export async function toggleConvocadoLocal(
   partidoId: string,
   jugadorId: string,
@@ -185,6 +196,9 @@ export async function toggleConvocadoLocal(
       await localDb.convocatorias.delete(existente.id);
       await queueMutation("convocatorias", "delete", existente.id);
     }
+    // Quien deja de estar convocado ya no puede ser el capitán del partido.
+    const partido = await localDb.partidos.get(partidoId);
+    if (partido?.capitan_id === jugadorId) await marcarCapitanPartidoLocal(partidoId, null);
     return { success: true };
   }
 

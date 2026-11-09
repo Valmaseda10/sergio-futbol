@@ -4,13 +4,17 @@ import { useEffect, useMemo, useState } from "react";
 import { useLiveQuery } from "dexie-react-hooks";
 import { toast } from "sonner";
 import { CheckCheck, Share2 } from "lucide-react";
-import { toggleConvocadoLocal } from "@/app/(app)/partidos/local-actions";
+import {
+  marcarCapitanPartidoLocal,
+  toggleConvocadoLocal,
+} from "@/app/(app)/partidos/local-actions";
 import { localDb } from "@/lib/db/local-db";
 import { createClient } from "@/lib/supabase/client";
 import { capitalizarPrimera } from "@/lib/date";
 import { JugadorAvatar } from "@/components/plantilla/jugador-avatar";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 
 interface Jugador {
   id: string;
@@ -86,6 +90,11 @@ export function ConvocatoriaList({
   const convocados = useMemo(
     () => new Set(convocatorias.map((c) => c.jugador_id)),
     [convocatorias],
+  );
+  const capitanId = useLiveQuery(
+    () => localDb.partidos.get(partidoId).then((p) => p?.capitan_id ?? null),
+    [partidoId],
+    null,
   );
 
   // Aviso (no exclusión automática: el entrenador decide) de jugadores con
@@ -193,6 +202,11 @@ export function ConvocatoriaList({
     setTodosPendiente(false);
   }
 
+  // Capitán del partido: uno solo, entre los convocados; pulsar al que ya lo es, se lo quita.
+  async function handleCapitan(jugadorId: string) {
+    await marcarCapitanPartidoLocal(partidoId, capitanId === jugadorId ? null : jugadorId);
+  }
+
   async function handleCompartir() {
     const jugadoresConvocados = jugadores.filter((j) => convocados.has(j.id));
     const texto = construirTextoConvocatoria(partido, jugadoresConvocados);
@@ -274,6 +288,26 @@ export function ConvocatoriaList({
                       </span>
                     )}
                 </span>
+                {marcado && (
+                  <button
+                    type="button"
+                    aria-pressed={capitanId === j.id}
+                    aria-label={`Capitán: ${j.alias || j.nombre}`}
+                    title="Capitán de este partido"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      void handleCapitan(j.id);
+                    }}
+                    className={cn(
+                      "flex size-6 shrink-0 items-center justify-center rounded-full border text-xs font-bold",
+                      capitanId === j.id
+                        ? "border-gold bg-gold text-gold-foreground"
+                        : "border-input text-muted-foreground hover:bg-muted",
+                    )}
+                  >
+                    C
+                  </button>
+                )}
                 {j.dorsal != null && (
                   <span className="flex size-6 shrink-0 items-center justify-center rounded-full border-2 border-gold font-heading text-xs tabular-nums">
                     {j.dorsal}

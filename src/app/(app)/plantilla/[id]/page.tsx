@@ -49,6 +49,7 @@ type CategoriaDialogoPartidos =
   | "titular"
   | "suplente"
   | "gol_encajado"
+  | "capitan"
   | TipoEventoConDetalle;
 
 // Un partido con cuántas veces ha pasado ahí ese evento (2 goles en el mismo
@@ -66,6 +67,7 @@ const DIALOGO_PARTIDOS_TITULO: Record<CategoriaDialogoPartidos, string> = {
   gol:"Partidos con gol",
   asistencia: "Partidos con asistencia",
   gol_encajado: "Partidos con gol encajado",
+  capitan: "Partidos como capitán",
   tarjeta_amarilla: "Partidos con tarjeta amarilla",
   tarjeta_roja: "Partidos con tarjeta roja",
 };
@@ -296,6 +298,20 @@ export default function FichaJugadorPage() {
     };
   }, [jugador, partidos, alineaciones, temporada, faseSel]);
 
+  // Partidos en los que ha sido capitán (mismo filtro de temporada/fase).
+  const partidosCapitan = useMemo(() => {
+    if (!jugador) return [];
+    return partidos
+      .filter(
+        (p) =>
+          p.capitan_id === jugador.id &&
+          enTemporada(p.fecha, temporada) &&
+          (faseSel === "todas" || p.fase === faseSel),
+      )
+      .sort((a, b) => b.fecha.localeCompare(a.fecha))
+      .map((partido): PartidoConCantidad => ({ partido, cantidad: 1 }));
+  }, [jugador, partidos, temporada, faseSel]);
+
   // Partidos en los que ha marcado gol/asistencia/tarjeta (dentro del mismo
   // filtro de temporada/fase), con cuántas veces en cada uno — 2 goles en el
   // mismo partido salen como una fila con "×2", no como dos filas iguales.
@@ -410,7 +426,9 @@ export default function FichaJugadorPage() {
                   ? partidosDesconvocado
                   : dialogoPartidos === "gol_encajado"
                     ? partidosConGolEncajado
-                    : dialogoPartidos
+                    : dialogoPartidos === "capitan"
+                      ? partidosCapitan
+                      : dialogoPartidos
                       ? partidosPorEvento[dialogoPartidos]
                       : [],
           },
@@ -573,6 +591,13 @@ export default function FichaJugadorPage() {
                 label="T. rojas"
                 valor={statsTemporada.tarjetasRojas}
                 onClick={() => setDialogoPartidos("tarjeta_roja")}
+              />
+            </div>
+            <div className="grid grid-cols-5 gap-y-3">
+              <TileEstadisticaClicable
+                label="Capitán"
+                valor={partidosCapitan.length}
+                onClick={() => setDialogoPartidos("capitan")}
               />
             </div>
           </CardContent>
