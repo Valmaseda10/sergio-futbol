@@ -1,12 +1,12 @@
 "use client";
 
-// Capitán del partido, en la ficha del partido: se elige entre los convocados (o entre toda la
-// plantilla activa si aún no hay convocatoria). También se puede marcar con la «C» de la lista de
-// convocados. Alimenta Plantilla → Capitanes y la casilla «Capitán» de la ficha del jugador.
+// Capitán del partido, en la ficha del partido y en el modo día de partido: se elige entre los
+// capitanes del equipo (jugadores.es_capitan) que estén convocados, o entre todos ellos si aún no
+// hay convocatoria. También se puede marcar con la «C» de la lista de convocados. Alimenta
+// Partidos → Capitanes.
 
 import { useMemo } from "react";
 import { useLiveQuery } from "dexie-react-hooks";
-import { Crown } from "lucide-react";
 import { marcarCapitanPartidoLocal } from "@/app/(app)/partidos/local-actions";
 import { localDb } from "@/lib/db/local-db";
 
@@ -32,7 +32,7 @@ export function CapitanPartido({
   const opciones = useMemo(() => {
     const ids = new Set(convocados.map((c) => c.jugador_id));
     return jugadores
-      .filter((j) => (ids.size > 0 ? ids.has(j.id) : j.activo) || j.id === capitanId)
+      .filter((j) => (j.es_capitan && j.activo && (ids.size === 0 || ids.has(j.id))) || j.id === capitanId)
       .sort((a, b) => a.apellidos.localeCompare(b.apellidos))
       .map((j) => ({
         id: j.id,
@@ -42,7 +42,6 @@ export function CapitanPartido({
 
   return (
     <div className="flex items-center gap-3 rounded-md border p-3">
-      <Crown className="size-4 shrink-0 text-muted-foreground" />
       <label htmlFor="capitan-partido" className="shrink-0 text-sm font-medium">
         Capitán
       </label>

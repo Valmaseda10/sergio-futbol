@@ -91,6 +91,15 @@ export function ConvocatoriaList({
     () => new Set(convocatorias.map((c) => c.jugador_id)),
     [convocatorias],
   );
+  const idsCapitanes = useLiveQuery(
+    () =>
+      localDb.jugadores
+        .filter((j) => !!j.es_capitan)
+        .toArray()
+        .then((rows) => new Set(rows.map((j) => j.id))),
+    [],
+    new Set<string>(),
+  );
   const capitanId = useLiveQuery(
     () => localDb.partidos.get(partidoId).then((p) => p?.capitan_id ?? null),
     [partidoId],
@@ -288,7 +297,7 @@ export function ConvocatoriaList({
                       </span>
                     )}
                 </span>
-                {marcado && (
+                {marcado && idsCapitanes.has(j.id) && (
                   <button
                     type="button"
                     aria-pressed={capitanId === j.id}

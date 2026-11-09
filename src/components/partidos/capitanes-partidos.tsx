@@ -29,7 +29,7 @@ function resultado(p: LocalPartido) {
     : null;
 }
 
-export function CapitanesPlantilla({ hoy }: { hoy: string }) {
+export function CapitanesPartidos({ hoy }: { hoy: string }) {
   const router = useRouter();
   const jugadores = useLiveQuery(() => localDb.jugadores.toArray(), [], []);
   const partidos = useLiveQuery(() => localDb.partidos.toArray(), [], []);
@@ -42,7 +42,7 @@ export function CapitanesPlantilla({ hoy }: { hoy: string }) {
       porJugador.set(p.capitan_id, [...(porJugador.get(p.capitan_id) ?? []), p]);
     }
     const filas = jugadores
-      .filter((j) => j.activo || porJugador.has(j.id))
+      .filter((j) => (j.es_capitan && j.activo) || porJugador.has(j.id))
       .map((j) => ({
         jugador: j,
         partidos: (porJugador.get(j.id) ?? []).sort((a, b) => b.fecha.localeCompare(a.fecha)),
@@ -71,7 +71,7 @@ export function CapitanesPlantilla({ hoy }: { hoy: string }) {
       <div>
         <h1 className="text-2xl font-semibold">Capitanes</h1>
         <p className="text-sm text-muted-foreground">
-          Las veces que ha sido capitán cada jugador. Pulsa en un jugador para ver en qué partidos.
+          Las veces que ha sido capitán cada uno. Pulsa en un jugador para ver en qué partidos.
         </p>
       </div>
 

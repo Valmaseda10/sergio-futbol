@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useLiveQuery } from "dexie-react-hooks";
-import { Plus, HeartPulse, ArrowLeftRight, GalleryVerticalEnd, Crown } from "lucide-react";
+import { Plus, HeartPulse, ArrowLeftRight, GalleryVerticalEnd } from "lucide-react";
 import { localDb } from "@/lib/db/local-db";
 import { Button } from "@/components/ui/button";
 import { JugadoresList } from "@/components/plantilla/jugadores-list";
@@ -44,15 +44,6 @@ export default function PlantillaPage() {
             render={<Link href="/plantilla/comparar" aria-label="Comparar jugadores" />}
           >
             <ArrowLeftRight className="size-4" />
-          </Button>
-          <Button
-            size="sm"
-            variant="outline"
-            nativeButton={false}
-            render={<Link href="/plantilla/capitanes" aria-label="Capitanes" title="Capitanes" />}
-          >
-            <Crown className="size-4" />
-            Capitanes
           </Button>
           <Button
             size="sm"

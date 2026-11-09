@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useLiveQuery } from "dexie-react-hooks";
-import { Plus, CalendarRange, MapPin, Crown } from "lucide-react";
+import { Plus, CalendarRange, MapPin } from "lucide-react";
 import { localDb, type LocalPartido } from "@/lib/db/local-db";
 import { diaSemanaDeFecha } from "@/lib/date";
 import { marcadorLocalVisitante, resultadoPartido } from "@/lib/estadisticas";
@@ -71,10 +71,7 @@ function Fila({ p }: { p: LocalPartido }) {
             </Badge>
             <span>{diaSemanaDeFecha(p.fecha)}</span>
             {capitan && (
-              <span className="flex items-center gap-1">
-                <Crown className="size-3" />
-                {capitan.alias || capitan.nombre}
-              </span>
+              <span>Capitán: {capitan.alias || capitan.nombre}</span>
             )}
             {p.lugar && (
               <span className="flex items-center gap-1">
@@ -144,9 +141,8 @@ export default function PartidosPage() {
             size="sm"
             variant="outline"
             nativeButton={false}
-            render={<Link href="/plantilla/capitanes" />}
+            render={<Link href="/partidos/capitanes" />}
           >
-            <Crown className="size-4" />
             Capitanes
           </Button>
           <Button size="sm" nativeButton={false} render={<Link href="/partidos/nuevo" />}>

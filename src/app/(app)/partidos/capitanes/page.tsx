@@ -1,6 +1,6 @@
 "use client";
 
-import { CapitanesPlantilla } from "@/components/plantilla/capitanes-plantilla";
+import { CapitanesPartidos } from "@/components/partidos/capitanes-partidos";
 
 function hoyISO() {
   const now = new Date();
@@ -8,5 +8,5 @@ function hoyISO() {
 }
 
 export default function CapitanesPage() {
-  return <CapitanesPlantilla hoy={hoyISO()} />;
+  return <CapitanesPartidos hoy={hoyISO()} />;
 }
