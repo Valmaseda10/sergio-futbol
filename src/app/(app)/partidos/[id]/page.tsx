@@ -30,6 +30,7 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { EliminarPartidoButton } from "@/components/partidos/eliminar-partido-button";
 import { ResumenGoles } from "@/components/partidos/resumen-goles";
+import { CapitanPartido } from "@/components/partidos/capitan-partido";
 import { leerHoja } from "@/lib/plan-partido";
 import { FechaTile } from "@/components/ui/fecha-tile";
 
@@ -325,6 +326,8 @@ export default function FichaPartidoPage() {
         <PlayCircle className="size-4" />
         Modo día de partido
       </Button>
+
+      <CapitanPartido partidoId={id} capitanId={partido.capitan_id ?? null} />
 
       <ul className="divide-y rounded-md border">
         {secciones.map((s) => (
