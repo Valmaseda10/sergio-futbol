@@ -51,11 +51,14 @@ Equipo propio: C. y D. Leonesa S.A.D. "B" (la app es del Infantil B).
    `localStorage.getItem('ev_pendiente')` y armar la consulta con `setValue`. Luego volver a navegar la pestaña a rfcylf.
    Minuto `999` = el acta no da minuto → guardar `null`.
    El editor SQL de Supabase avisa de «tabla sin RLS» por el `with`: es falso positivo (la tabla ya tiene
-   RLS), elegir «Run without RLS». Hecho hasta ahora: jornadas 1 a 6 (actas 26150963–26151004).
+   RLS), elegir «Run without RLS». Hecho hasta ahora: jornadas 1 a 7 (actas 26150963–26151011). El resultado de cada partido sale de contar los goles de sus eventos
+   (la propia puerta cuenta para el rival), no hace falta leer la tabla de la jornada, cuyos marcadores se pintan con JavaScript.
    **Ojo con el prefijo del acta**: las líneas llevan solo los 2 últimos dígitos y el SQL pone `'261509' || fin`, que
    solo vale hasta el 26150999. Desde el 26151000 el prefijo es `'261510'` (el 26-10-2026 las de la J6 00-04 se
    guardaron mal y hubo que corregirlas). Mejor comprobar siempre después que no hay eventos huérfanos:
    `select count(*) from liga_eventos e where not exists (select 1 from liga_partidos p where p.acta = e.acta)` = 0.
+3d. **Calendario de la jornada siguiente.** La federación mueve fechas y horas entre semana (la J7 pasó de "todo el sábado" a sábado/domingo con hora): releer
+   `NFG_CmpJornada` de la jornada que viene y actualizar `liga_partidos.fecha/hora` y, si cambia el día del partido propio, también `partidos.fecha/hora`.
 4. **Resultados propios.** Comprobar en `partidos` que los partidos de liga ya jugados tienen
    `fecha` y `resultado_favor/contra` iguales a los de la federación (en la jornada 4 la fecha del
    Veguellina estaba un día mal). Corregir solo diferencias claras.
