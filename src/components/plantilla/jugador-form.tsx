@@ -59,7 +59,7 @@ export function JugadorForm({
   );
   const [fotoFile, setFotoFile] = useState<File | null>(null);
   // Foto elegida que se está recortando antes de aceptarla.
-  const [fotoPorRecortar, setFotoPorRecortar] = useState<File | null>(null);
+  const [fotoPorRecortar, setFotoPorRecortar] = useState<File | string | null>(null);
 
   const {
     register,
@@ -100,7 +100,7 @@ export function JugadorForm({
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
       {fotoPorRecortar && (
         <RecortarFoto
-          archivo={fotoPorRecortar}
+          fuente={fotoPorRecortar}
           onCancelar={() => setFotoPorRecortar(null)}
           onConfirmar={(recortada) => {
             setFotoFile(recortada);
@@ -127,6 +127,17 @@ export function JugadorForm({
               <Camera className="size-4" />
               {fotoPreview ? "Cambiar foto" : "Añadir foto"}
             </Button>
+            {fotoPreview && (
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                className="ml-2"
+                onClick={() => setFotoPorRecortar(fotoPreview)}
+              >
+                Ajustar encuadre
+              </Button>
+            )}
             <input
               ref={fileInputRef}
               type="file"
