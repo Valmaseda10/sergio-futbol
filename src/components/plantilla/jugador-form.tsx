@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Controller, useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useRouter } from "next/navigation";
@@ -58,6 +58,12 @@ export function JugadorForm({
     jugador?.fotoSignedUrl ?? null,
   );
   const [fotoFile, setFotoFile] = useState<File | null>(null);
+  // La dirección de la foto ya subida llega un momento después de abrir la pantalla.
+  const fotoSubida = jugador?.fotoSignedUrl ?? null;
+  useEffect(() => {
+    if (fotoSubida && !fotoFile) setFotoPreview(fotoSubida);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [fotoSubida]);
   // Foto elegida que se está recortando antes de aceptarla.
   const [fotoPorRecortar, setFotoPorRecortar] = useState<File | string | null>(null);
 
