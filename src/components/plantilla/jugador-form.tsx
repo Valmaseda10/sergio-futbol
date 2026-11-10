@@ -29,6 +29,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Card, CardContent } from "@/components/ui/card";
+import { RecortarFoto } from "@/components/plantilla/recortar-foto";
 
 interface JugadorExistente extends JugadorFormValues {
   id: string;
@@ -57,6 +58,8 @@ export function JugadorForm({
     jugador?.fotoSignedUrl ?? null,
   );
   const [fotoFile, setFotoFile] = useState<File | null>(null);
+  // Foto elegida que se está recortando antes de aceptarla.
+  const [fotoPorRecortar, setFotoPorRecortar] = useState<File | null>(null);
 
   const {
     register,
@@ -73,9 +76,10 @@ export function JugadorForm({
 
   function handleFotoChange(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
+    // Se vacía el input para poder volver a elegir la misma foto si se cancela el recorte.
+    e.target.value = "";
     if (!file) return;
-    setFotoFile(file);
-    setFotoPreview(URL.createObjectURL(file));
+    setFotoPorRecortar(file);
   }
 
   async function onSubmit(values: JugadorFormValues) {
@@ -94,6 +98,17 @@ export function JugadorForm({
 
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+      {fotoPorRecortar && (
+        <RecortarFoto
+          archivo={fotoPorRecortar}
+          onCancelar={() => setFotoPorRecortar(null)}
+          onConfirmar={(recortada) => {
+            setFotoFile(recortada);
+            setFotoPreview(URL.createObjectURL(recortada));
+            setFotoPorRecortar(null);
+          }}
+        />
+      )}
       <Card>
         <CardContent className="flex items-center gap-4 pt-6">
           <JugadorAvatar
@@ -116,7 +131,6 @@ export function JugadorForm({
               ref={fileInputRef}
               type="file"
               accept="image/*"
-              capture="environment"
               className="hidden"
               onChange={handleFotoChange}
             />
