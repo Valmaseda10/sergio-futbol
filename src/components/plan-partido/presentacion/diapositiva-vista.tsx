@@ -544,6 +544,106 @@ const TRAMOS: { value: IntervaloGol; label: string }[] = [
   { value: "60+", label: "60-70+ Minutos" },
 ];
 
+/**
+ * Goles a favor y en contra del rival y de Infantil B jugando de local y de visitante (de los
+ * resultados de la liga cargados). Se resalta el campo de este partido para cada equipo.
+ * `vertical`: una fila por equipo y campo (cuando hay poco ancho); si no, una fila por campo.
+ */
+function GolesLocalVisitante({
+  ctx,
+  ancho,
+  vertical,
+}: {
+  ctx: ContextoPresentacion;
+  ancho: number;
+  vertical?: boolean;
+}) {
+  const enCasa = calcularClasificacion(ctx.ligaPartidos, "local");
+  const fuera = calcularClasificacion(ctx.ligaPartidos, "visitante");
+  const rivalKey = claveEquipo(ctx.partido.rival);
+  const buscar = (lista: typeof enCasa, nuestro: boolean) =>
+    lista.find((f) => (nuestro ? /leonesa/i.test(f.equipo) : claveEquipo(f.equipo) === rivalKey));
+  const nuestroCampo = ctx.partido.local_visitante;
+  const rivalCampo = nuestroCampo === "local" ? "visitante" : "local";
+  const prom = (n: number, pj: number) => (pj > 0 ? (n / pj).toFixed(1).replace(".", ",") : "–");
+  const nombreRival = nombreVisto(ctx.partido.rival);
+  const campos = ["local", "visitante"] as const;
+  const datos = (nuestro: boolean, campo: (typeof campos)[number]) => {
+    const f = buscar(campo === "local" ? enCasa : fuera, nuestro);
+    const pj = f?.pj ?? 0;
+    const gf = f?.gf ?? 0;
+    const gc = f?.gc ?? 0;
+    return [pj, gf, gc, prom(gf, pj), prom(gc, pj)];
+  };
+  const resaltado = (nuestro: boolean, campo: (typeof campos)[number]) =>
+    campo === (nuestro ? nuestroCampo : rivalCampo);
+  const celda = (v: string | number, resaltar: boolean, k: string) => (
+    <span
+      key={k}
+      style={{
+        background: resaltar ? "#fef08a" : "transparent",
+        height: "100%",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        fontWeight: resaltar ? 700 : 400,
+      }}
+    >
+      {v}
+    </span>
+  );
+  const COLS = ["PJ", "GF", "GC", "GF/p", "GC/p"];
+
+  if (vertical) {
+    const filas = [false, true].flatMap((nuestro) => campos.map((campo) => ({ nuestro, campo })));
+    const grid = "1fr repeat(5, 70px)";
+    return (
+      <div style={{ ...TEXTO, width: ancho, color: "#111111" }}>
+        <Etiqueta style={{ fontSize: 24, padding: "4px 12px" }}>Local y visitante</Etiqueta>
+        <div style={{ display: "grid", gridTemplateColumns: grid, height: 36, alignItems: "center", fontWeight: 700, fontSize: 20, textAlign: "center", color: "#6b7280" }}>
+          <span />
+          {COLS.map((c) => (
+            <span key={c}>{c}</span>
+          ))}
+        </div>
+        {filas.map(({ nuestro, campo }) => (
+          <div key={`${nuestro}-${campo}`} style={{ display: "grid", gridTemplateColumns: grid, height: 44, alignItems: "center", fontSize: 24, textAlign: "center", borderBottom: "2px solid #e2e8f0" }}>
+            <span style={{ textAlign: "left", fontWeight: 700, fontSize: 20, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+              {nuestro ? "INFANTIL B" : nombreRival} · {campo === "local" ? "LOCAL" : "VISIT."}
+            </span>
+            {datos(nuestro, campo).map((v, i) => celda(v, resaltado(nuestro, campo), `${i}`))}
+          </div>
+        ))}
+        <div style={{ fontSize: 17, color: "#6b7280", marginTop: 4 }}>En amarillo, el campo de este partido.</div>
+      </div>
+    );
+  }
+
+  const grid = "230px repeat(10, 1fr)";
+  return (
+    <div style={{ ...TEXTO, width: ancho, color: "#111111" }}>
+      <div style={{ display: "grid", gridTemplateColumns: grid, alignItems: "center", height: 36, background: AZUL_ETIQUETA, color: "#ffffff", fontWeight: 700, fontSize: 22, textAlign: "center" }}>
+        <span>GOLES LOCAL / VISITANTE</span>
+        <span style={{ gridColumn: "span 5", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{nombreRival}</span>
+        <span style={{ gridColumn: "span 5" }}>INFANTIL B</span>
+      </div>
+      <div style={{ display: "grid", gridTemplateColumns: grid, height: 28, alignItems: "center", fontWeight: 700, fontSize: 18, textAlign: "center", color: "#6b7280" }}>
+        <span />
+        {[...COLS, ...COLS].map((c, i) => (
+          <span key={i}>{c}</span>
+        ))}
+      </div>
+      {campos.map((campo) => (
+        <div key={campo} style={{ display: "grid", gridTemplateColumns: grid, height: 38, alignItems: "center", fontSize: 24, textAlign: "center", borderBottom: "2px solid #e2e8f0" }}>
+          <span style={{ textAlign: "left", fontWeight: 700, fontSize: 22 }}>{campo === "local" ? "COMO LOCAL" : "COMO VISITANTE"}</span>
+          {datos(false, campo).map((v, i) => celda(v, resaltado(false, campo), `r${i}`))}
+          {datos(true, campo).map((v, i) => celda(v, resaltado(true, campo), `n${i}`))}
+        </div>
+      ))}
+    </div>
+  );
+}
+
 function RivalGoles({ d, ctx }: { d: DRivalGoles; ctx: ContextoPresentacion }) {
   // Misma fuente que la tabla "Goles del rival por tramos" de la ficha del rival: lo que se cambie
   // allí (o en el formulario de esta diapositiva) se ve aquí al momento.
@@ -669,6 +769,15 @@ function RivalGoles({ d, ctx }: { d: DRivalGoles; ctx: ContextoPresentacion }) {
             );
           })}
         </svg>
+      )}
+      {grande ? (
+        <div style={{ position: "absolute", left: 1220, top: 235 }}>
+          <GolesLocalVisitante ctx={ctx} ancho={570} vertical />
+        </div>
+      ) : (
+        <div style={{ position: "absolute", left: 620, top: 878 }}>
+          <GolesLocalVisitante ctx={ctx} ancho={1130} />
+        </div>
       )}
     </Marco>
   );
@@ -1151,11 +1260,7 @@ function RivalFormaDiapo({ d, ctx }: { d: DRivalForma; ctx: ContextoPresentacion
   const fila = tabla.find((f) => claveEquipo(f.equipo) === claveEquipo(ctx.partido.rival));
   const equipo = fila?.equipo ?? ctx.partido.rival;
   const jugados = partidosDeEquipo(ctx.ligaPartidos, equipo);
-  const proximos = calendarioDe(ctx.ligaPartidos, equipo).slice(0, 5);
-  const enCasa = calcularClasificacion(ctx.ligaPartidos, "local");
-  const fuera = calcularClasificacion(ctx.ligaPartidos, "visitante");
-  const filaAmbito = (lista: typeof enCasa, nuestro: boolean) =>
-    lista.find((f) => (nuestro ? /leonesa/i.test(f.equipo) : claveEquipo(f.equipo) === claveEquipo(equipo)));
+  const proximos = calendarioDe(ctx.ligaPartidos, equipo).slice(0, 6);
   const dif = dificultadCalendario(calendarioDe(ctx.ligaPartidos, equipo), tabla);
   const posiciones = new Map(tabla.map((f) => [claveEquipo(f.equipo), f.posicion]));
   const topGoles = goleadores(ctx.ligaEventos, equipo).slice(0, 4);
@@ -1264,68 +1369,6 @@ function RivalFormaDiapo({ d, ctx }: { d: DRivalForma; ctx: ContextoPresentacion
                 ))}
               </div>
             )}
-          </div>
-          {/* Goles a favor y en contra como local y como visitante */}
-          <div style={{ position: "absolute", left: 130, top: 880, width: 1660, ...TEXTO, color: "#111111" }}>
-            <div
-              style={{
-                display: "grid",
-                gridTemplateColumns: "230px repeat(10, 1fr)",
-                alignItems: "center",
-                height: 38,
-                background: AZUL_ETIQUETA,
-                color: "#ffffff",
-                fontWeight: 700,
-                fontSize: 22,
-                textAlign: "center",
-              }}
-            >
-              <span />
-              <span style={{ gridColumn: "span 5" }}>{nombreVisto(equipo)}</span>
-              <span style={{ gridColumn: "span 5" }}>INFANTIL B</span>
-            </div>
-            {(["local", "visitante"] as const).map((ambito) => {
-              const lista = ambito === "local" ? enCasa : fuera;
-              // En este partido el rival juega en el campo contrario al nuestro.
-              const rivalAqui = (ctx.partido.local_visitante === "local" ? "visitante" : "local") === ambito;
-              const nuestroAqui = ctx.partido.local_visitante === ambito;
-              const celdas = (f: ReturnType<typeof filaAmbito>, resaltar: boolean) => {
-                const pj = f?.pj ?? 0;
-                const prom = (n: number) => (pj > 0 ? (n / pj).toFixed(1).replace(".", ",") : "–");
-                return [
-                  ["PJ", pj],
-                  ["G-E-P", f ? `${f.g}-${f.e}-${f.p}` : "–"],
-                  ["GF", f?.gf ?? 0],
-                  ["GC", f?.gc ?? 0],
-                  ["GF/p · GC/p", `${prom(f?.gf ?? 0)} · ${prom(f?.gc ?? 0)}`],
-                ].map(([k, v]) => (
-                  <span key={`${ambito}-${resaltar}-${k}`} style={{ background: resaltar ? "#fef08a" : "transparent", height: "100%", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: resaltar ? 700 : 400 }}>
-                    {v}
-                  </span>
-                ));
-              };
-              return (
-                <div
-                  key={ambito}
-                  style={{
-                    display: "grid",
-                    gridTemplateColumns: "230px repeat(10, 1fr)",
-                    alignItems: "center",
-                    height: 40,
-                    fontSize: 24,
-                    textAlign: "center",
-                    borderBottom: "2px solid #e2e8f0",
-                  }}
-                >
-                  <span style={{ textAlign: "left", fontWeight: 700 }}>{ambito === "local" ? "COMO LOCAL" : "COMO VISITANTE"}</span>
-                  {celdas(filaAmbito(lista, false), rivalAqui)}
-                  {celdas(filaAmbito(lista, true), nuestroAqui)}
-                </div>
-              );
-            })}
-            <div style={{ fontSize: 18, color: "#6b7280" }}>
-              PJ · G-E-P · GF = goles a favor · GC = goles en contra · GF/p y GC/p = por partido. En amarillo, el campo de este partido.
-            </div>
           </div>
         </>
       )}
