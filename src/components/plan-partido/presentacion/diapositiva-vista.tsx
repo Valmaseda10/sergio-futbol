@@ -1151,7 +1151,11 @@ function RivalFormaDiapo({ d, ctx }: { d: DRivalForma; ctx: ContextoPresentacion
   const fila = tabla.find((f) => claveEquipo(f.equipo) === claveEquipo(ctx.partido.rival));
   const equipo = fila?.equipo ?? ctx.partido.rival;
   const jugados = partidosDeEquipo(ctx.ligaPartidos, equipo);
-  const proximos = calendarioDe(ctx.ligaPartidos, equipo).slice(0, 6);
+  const proximos = calendarioDe(ctx.ligaPartidos, equipo).slice(0, 5);
+  const enCasa = calcularClasificacion(ctx.ligaPartidos, "local");
+  const fuera = calcularClasificacion(ctx.ligaPartidos, "visitante");
+  const filaAmbito = (lista: typeof enCasa, nuestro: boolean) =>
+    lista.find((f) => (nuestro ? /leonesa/i.test(f.equipo) : claveEquipo(f.equipo) === claveEquipo(equipo)));
   const dif = dificultadCalendario(calendarioDe(ctx.ligaPartidos, equipo), tabla);
   const posiciones = new Map(tabla.map((f) => [claveEquipo(f.equipo), f.posicion]));
   const topGoles = goleadores(ctx.ligaEventos, equipo).slice(0, 4);
@@ -1260,6 +1264,68 @@ function RivalFormaDiapo({ d, ctx }: { d: DRivalForma; ctx: ContextoPresentacion
                 ))}
               </div>
             )}
+          </div>
+          {/* Goles a favor y en contra como local y como visitante */}
+          <div style={{ position: "absolute", left: 130, top: 880, width: 1660, ...TEXTO, color: "#111111" }}>
+            <div
+              style={{
+                display: "grid",
+                gridTemplateColumns: "230px repeat(10, 1fr)",
+                alignItems: "center",
+                height: 38,
+                background: AZUL_ETIQUETA,
+                color: "#ffffff",
+                fontWeight: 700,
+                fontSize: 22,
+                textAlign: "center",
+              }}
+            >
+              <span />
+              <span style={{ gridColumn: "span 5" }}>{nombreVisto(equipo)}</span>
+              <span style={{ gridColumn: "span 5" }}>INFANTIL B</span>
+            </div>
+            {(["local", "visitante"] as const).map((ambito) => {
+              const lista = ambito === "local" ? enCasa : fuera;
+              // En este partido el rival juega en el campo contrario al nuestro.
+              const rivalAqui = (ctx.partido.local_visitante === "local" ? "visitante" : "local") === ambito;
+              const nuestroAqui = ctx.partido.local_visitante === ambito;
+              const celdas = (f: ReturnType<typeof filaAmbito>, resaltar: boolean) => {
+                const pj = f?.pj ?? 0;
+                const prom = (n: number) => (pj > 0 ? (n / pj).toFixed(1).replace(".", ",") : "–");
+                return [
+                  ["PJ", pj],
+                  ["G-E-P", f ? `${f.g}-${f.e}-${f.p}` : "–"],
+                  ["GF", f?.gf ?? 0],
+                  ["GC", f?.gc ?? 0],
+                  ["GF/p · GC/p", `${prom(f?.gf ?? 0)} · ${prom(f?.gc ?? 0)}`],
+                ].map(([k, v]) => (
+                  <span key={`${ambito}-${resaltar}-${k}`} style={{ background: resaltar ? "#fef08a" : "transparent", height: "100%", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: resaltar ? 700 : 400 }}>
+                    {v}
+                  </span>
+                ));
+              };
+              return (
+                <div
+                  key={ambito}
+                  style={{
+                    display: "grid",
+                    gridTemplateColumns: "230px repeat(10, 1fr)",
+                    alignItems: "center",
+                    height: 40,
+                    fontSize: 24,
+                    textAlign: "center",
+                    borderBottom: "2px solid #e2e8f0",
+                  }}
+                >
+                  <span style={{ textAlign: "left", fontWeight: 700 }}>{ambito === "local" ? "COMO LOCAL" : "COMO VISITANTE"}</span>
+                  {celdas(filaAmbito(lista, false), rivalAqui)}
+                  {celdas(filaAmbito(lista, true), nuestroAqui)}
+                </div>
+              );
+            })}
+            <div style={{ fontSize: 18, color: "#6b7280" }}>
+              PJ · G-E-P · GF = goles a favor · GC = goles en contra · GF/p y GC/p = por partido. En amarillo, el campo de este partido.
+            </div>
           </div>
         </>
       )}
