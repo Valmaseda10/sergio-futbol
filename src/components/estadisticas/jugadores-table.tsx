@@ -20,6 +20,7 @@ const COLUMNAS: { key: Columna; label: string }[] = [
   { key: "suplencias", label: "Suplente" },
   { key: "goles", label: "Goles" },
   { key: "asistencias", label: "Asist." },
+  { key: "golesAsistencias", label: "G+A" },
   { key: "golesEncajados", label: "G. Enc." },
   { key: "tarjetasAmarillas", label: "TA" },
   { key: "tarjetasRojas", label: "TR" },
@@ -94,6 +95,7 @@ export function JugadoresTable({ jugadores }: { jugadores: JugadorStats[] }) {
               <TableCell className="tabular-nums">{j.suplencias}</TableCell>
               <TableCell className="font-heading tabular-nums">{j.goles}</TableCell>
               <TableCell className="tabular-nums">{j.asistencias}</TableCell>
+              <TableCell className="font-heading tabular-nums">{j.golesAsistencias}</TableCell>
               <TableCell className="tabular-nums">{j.golesEncajados}</TableCell>
               <TableCell className="tabular-nums">{j.tarjetasAmarillas}</TableCell>
               <TableCell className="tabular-nums">{j.tarjetasRojas}</TableCell>

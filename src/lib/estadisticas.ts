@@ -92,6 +92,8 @@ export interface JugadorStats {
   suplencias: number;
   goles: number;
   asistencias: number;
+  /** Goles + asistencias. */
+  golesAsistencias: number;
   tarjetasAmarillas: number;
   tarjetasRojas: number;
   golesEncajados: number;
@@ -301,6 +303,9 @@ export function calcularStatsJugadores(
           )
         : null;
 
+    const golesJugador = eventosJugador.filter((e) => e.tipo === "gol").length;
+    const asistenciasJugador = eventosJugador.filter((e) => e.tipo === "asistencia").length;
+
     return {
       id: j.id,
       nombre: j.nombre,
@@ -309,8 +314,9 @@ export function calcularStatsJugadores(
       convocatorias: convocatoriasJugador,
       titularidades,
       suplencias,
-      goles: eventosJugador.filter((e) => e.tipo === "gol").length,
-      asistencias: eventosJugador.filter((e) => e.tipo === "asistencia").length,
+      goles: golesJugador,
+      asistencias: asistenciasJugador,
+      golesAsistencias: golesJugador + asistenciasJugador,
       tarjetasAmarillas: eventosJugador.filter(
         (e) => e.tipo === "tarjeta_amarilla",
       ).length,
