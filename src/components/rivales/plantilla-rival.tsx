@@ -180,8 +180,14 @@ export function PlantillaRival({ rivalId }: { rivalId: string }) {
           </p>
           {(primerAno > 0 || segundoAno > 0) && (
             <p className="mt-1 text-xs font-medium">
-              {jugadores.length} jugadores · {primerAno} de 1er año ·{" "}
-              {segundoAno} de 2º año
+              {jugadores.length} jugadores ·{" "}
+              <span className="rounded-sm bg-[#ffff00] px-1.5 text-black">
+                {primerAno} de 1er año
+              </span>{" "}
+              ·{" "}
+              <span className="rounded-sm bg-[#92d050] px-1.5 text-black">
+                {segundoAno} de 2º año
+              </span>
               {jugadores.length - primerAno - segundoAno > 0 && (
                 <span className="font-normal text-muted-foreground">
                   {" "}
@@ -462,7 +468,15 @@ function PlantillaJugadorRow({
           )}
         >
           {dorsal != null ? `${dorsal} · ` : ""}
-          {nombre}
+          <span
+            className={cn(
+              curso != null && "rounded-sm px-1.5 text-black",
+              curso === 1 && "bg-[#ffff00]",
+              curso === 2 && "bg-[#92d050]",
+            )}
+          >
+            {nombre}
+          </span>
           {curso != null && (
             <span className="ml-2 rounded bg-muted px-1.5 py-0.5 text-[10px] font-normal text-muted-foreground">
               {curso}º año
