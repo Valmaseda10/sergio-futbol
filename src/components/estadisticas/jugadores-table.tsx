@@ -15,6 +15,7 @@ import type { JugadorStats } from "@/lib/estadisticas";
 type Columna = Exclude<keyof JugadorStats, "id" | "nombre" | "apellidos">;
 
 const COLUMNAS: { key: Columna; label: string }[] = [
+  { key: "minutosAprox", label: "Minutos" },
   { key: "convocatorias", label: "Convoc." },
   { key: "titularidades", label: "Titular" },
   { key: "suplencias", label: "Suplente" },
@@ -24,7 +25,6 @@ const COLUMNAS: { key: Columna; label: string }[] = [
   { key: "golesEncajados", label: "G. Enc." },
   { key: "tarjetasAmarillas", label: "TA" },
   { key: "tarjetasRojas", label: "TR" },
-  { key: "minutosAprox", label: "Minutos" },
   { key: "entrenamientosTotales", label: "Entrenos" },
   { key: "entrenamientosAsistidos", label: "Asistió" },
   { key: "entrenamientosPerdidos", label: "Perdió" },
@@ -90,6 +90,7 @@ export function JugadoresTable({ jugadores }: { jugadores: JugadorStats[] }) {
                 {j.dorsal != null ? `${j.dorsal} · ` : ""}
                 {j.nombre} {j.apellidos}
               </TableCell>
+              <TableCell className="tabular-nums">{j.minutosAprox}</TableCell>
               <TableCell className="tabular-nums">{j.convocatorias}</TableCell>
               <TableCell className="tabular-nums">{j.titularidades}</TableCell>
               <TableCell className="tabular-nums">{j.suplencias}</TableCell>
@@ -99,7 +100,6 @@ export function JugadoresTable({ jugadores }: { jugadores: JugadorStats[] }) {
               <TableCell className="tabular-nums">{j.golesEncajados}</TableCell>
               <TableCell className="tabular-nums">{j.tarjetasAmarillas}</TableCell>
               <TableCell className="tabular-nums">{j.tarjetasRojas}</TableCell>
-              <TableCell className="tabular-nums">{j.minutosAprox}</TableCell>
               <TableCell className="tabular-nums">{j.entrenamientosTotales}</TableCell>
               <TableCell className="tabular-nums">{j.entrenamientosAsistidos}</TableCell>
               <TableCell className="tabular-nums">{j.entrenamientosPerdidos}</TableCell>
