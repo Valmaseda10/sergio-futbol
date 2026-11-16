@@ -13,6 +13,7 @@ export const TIPOS_GOL: { value: TipoGol; label: string }[] = [
   { value: "error_propio", label: "Error jugador" },
   { value: "abp", label: "ABP" },
   { value: "situacion_1v1", label: "Situación 1vs1" },
+  { value: "situacion_area", label: "Situación en el área" },
   // Solo para goles a favor: lo marca un jugador del rival en su propia portería (no hay goleador nuestro).
   { value: "propia_puerta", label: "En propia puerta (rival)" },
 ];

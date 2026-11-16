@@ -30,6 +30,7 @@ export type TipoGol =
   | "error_propio"
   | "abp"
   | "situacion_1v1"
+  | "situacion_area"
   | "propia_puerta";
 export type TipoAbp =
   | "corner"
