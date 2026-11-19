@@ -577,7 +577,8 @@ function GolesLocalVisitante({
   };
   const resaltado = (nuestro: boolean, campo: (typeof campos)[number]) =>
     campo === (nuestro ? nuestroCampo : rivalCampo);
-  const celda = (v: string | number, resaltar: boolean, k: string) => (
+  const COLORES_COL = ["#111111", "#00a651", "#0891b2", "#00a651", "#0891b2"];
+  const celda = (v: string | number, resaltar: boolean, k: string, i = 0) => (
     <span
       key={k}
       style={{
@@ -586,7 +587,9 @@ function GolesLocalVisitante({
         display: "flex",
         alignItems: "center",
         justifyContent: "center",
-        fontWeight: resaltar ? 700 : 400,
+        fontWeight: i === 1 || i === 2 || resaltar ? 700 : 400,
+        color: COLORES_COL[i],
+        fontSize: i >= 3 ? "0.85em" : undefined,
       }}
     >
       {v}
@@ -595,7 +598,7 @@ function GolesLocalVisitante({
   const COLS = ["PJ", "GF", "GC", "GF/p", "GC/p"];
 
   if (vertical) {
-    const filas = [false, true].flatMap((nuestro) => campos.map((campo) => ({ nuestro, campo })));
+    const filas = campos.flatMap((campo) => [false, true].map((nuestro) => ({ nuestro, campo })));
     const grid = "1fr repeat(5, 70px)";
     return (
       <div style={{ ...TEXTO, width: ancho, color: "#111111" }}>
@@ -611,7 +614,7 @@ function GolesLocalVisitante({
             <span style={{ textAlign: "left", fontWeight: 700, fontSize: 20, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
               {nuestro ? "INFANTIL B" : nombreRival} · {campo === "local" ? "LOCAL" : "VISIT."}
             </span>
-            {datos(nuestro, campo).map((v, i) => celda(v, resaltado(nuestro, campo), `${i}`))}
+            {datos(nuestro, campo).map((v, i) => celda(v, resaltado(nuestro, campo), `${i}`, i))}
           </div>
         ))}
         <div style={{ fontSize: 17, color: "#6b7280", marginTop: 4 }}>En amarillo, el campo de este partido.</div>
@@ -620,24 +623,38 @@ function GolesLocalVisitante({
   }
 
   const grid = "230px repeat(10, 1fr)";
+  const GRUPOS: { campo: (typeof campos)[number]; titulo: string }[] = [
+    { campo: "local", titulo: "COMO LOCAL" },
+    { campo: "visitante", titulo: "COMO VISITANTE" },
+  ];
+  const equipos = [
+    { nuestro: false, nombre: nombreRival },
+    { nuestro: true, nombre: "INFANTIL B" },
+  ];
   return (
     <div style={{ ...TEXTO, width: ancho, color: "#111111" }}>
-      <div style={{ display: "grid", gridTemplateColumns: grid, alignItems: "center", height: 36, background: AZUL_ETIQUETA, color: "#ffffff", fontWeight: 700, fontSize: 22, textAlign: "center" }}>
-        <span>GOLES LOCAL / VISITANTE</span>
-        <span style={{ gridColumn: "span 5", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{nombreRival}</span>
-        <span style={{ gridColumn: "span 5" }}>INFANTIL B</span>
-      </div>
-      <div style={{ display: "grid", gridTemplateColumns: grid, height: 28, alignItems: "center", fontWeight: 700, fontSize: 18, textAlign: "center", color: "#6b7280" }}>
-        <span />
-        {[...COLS, ...COLS].map((c, i) => (
-          <span key={i}>{c}</span>
+      <div style={{ display: "grid", gridTemplateColumns: grid, alignItems: "center", height: 34, background: AZUL_ETIQUETA, color: "#ffffff", fontWeight: 700, fontSize: 22, textAlign: "center" }}>
+        <span>GOLES</span>
+        {GRUPOS.map((g) => (
+          <span key={g.campo} style={{ gridColumn: "span 5", borderLeft: g.campo === "visitante" ? "3px solid #ffffff" : undefined }}>
+            {g.titulo}
+          </span>
         ))}
       </div>
-      {campos.map((campo) => (
-        <div key={campo} style={{ display: "grid", gridTemplateColumns: grid, height: 38, alignItems: "center", fontSize: 24, textAlign: "center", borderBottom: "2px solid #e2e8f0" }}>
-          <span style={{ textAlign: "left", fontWeight: 700, fontSize: 22 }}>{campo === "local" ? "COMO LOCAL" : "COMO VISITANTE"}</span>
-          {datos(false, campo).map((v, i) => celda(v, resaltado(false, campo), `r${i}`))}
-          {datos(true, campo).map((v, i) => celda(v, resaltado(true, campo), `n${i}`))}
+      <div style={{ display: "grid", gridTemplateColumns: grid, height: 26, alignItems: "center", fontWeight: 700, fontSize: 17, textAlign: "center", color: "#6b7280" }}>
+        <span />
+        {[...COLS, ...COLS].map((c, i) => (
+          <span key={i} style={{ borderLeft: i === 5 ? "3px solid #cbd5e1" : undefined }}>
+            {c === "GF/p" ? "GF/PJ" : c === "GC/p" ? "GC/PJ" : c}
+          </span>
+        ))}
+      </div>
+      {equipos.map((e) => (
+        <div key={e.nombre} style={{ display: "grid", gridTemplateColumns: grid, height: 40, alignItems: "center", fontSize: 26, textAlign: "center", borderBottom: "2px solid #e2e8f0" }}>
+          <span style={{ textAlign: "left", fontWeight: 700, fontSize: 22, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{e.nombre}</span>
+          {GRUPOS.flatMap((g) =>
+            datos(e.nuestro, g.campo).map((v, i) => celda(v, resaltado(e.nuestro, g.campo), `${e.nombre}-${g.campo}-${i}`, i)),
+          )}
         </div>
       ))}
     </div>
