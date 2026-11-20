@@ -1,16 +1,19 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useLiveQuery } from "dexie-react-hooks";
-import { ChevronLeft, Users, LayoutGrid, ListOrdered, Crosshair } from "lucide-react";
+import { ChevronLeft, Users, LayoutGrid, ListOrdered, Crosshair, RefreshCw, FileText } from "lucide-react";
+import { toast } from "sonner";
 import { localDb } from "@/lib/db/local-db";
 import { calcularOnceFinal } from "@/lib/alineacion-final";
 import {
   guardarAlineacionLocal,
   guardarAlineacionFinalLocal,
 } from "@/app/(app)/partidos/local-actions";
+import { sincronizarAlineacionDesdeHojaLocal } from "@/app/(app)/plan-partido/local-actions";
+import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { ConvocatoriaList } from "@/components/partidos/convocatoria-list";
 import { AlineacionCampo } from "@/components/partidos/alineacion-campo";
@@ -27,9 +30,20 @@ const VISTAS = [
 
 type Vista = (typeof VISTAS)[number]["value"];
 
+/** Firma del once que termina: lo guardado a mano o, si no hay, el que se deriva del inicial. */
+function titularesFinalesFirma(
+  finales: { jugador_id: string | null; nombre_libre: string | null; posicion_jugada: string | null; pos_x: number | null; pos_y: number | null }[],
+  firmaInicial: string,
+) {
+  return finales.length > 0
+    ? finales.map((a) => `${a.jugador_id ?? a.nombre_libre}:${a.posicion_jugada}:${a.pos_x}:${a.pos_y}`).sort().join("|")
+    : `derivado:${firmaInicial}`;
+}
+
 export default function DiaPartidoPage() {
   const { id } = useParams<{ id: string }>();
   const [vista, setVista] = useState<Vista>("convocatoria");
+  const [sincronizando, setSincronizando] = useState(false);
 
   // Al volver del editor de una jugada de ABP se abre directamente esa pestaña.
   useEffect(() => {
@@ -89,6 +103,37 @@ export default function DiaPartidoPage() {
     () => localDb.eventos_partido.where("partido_id").equals(id).toArray(),
     [id],
   );
+
+  // Primera vez: si todavía no hay alineación guardada, se toma de la hoja de partido.
+  const yaIntentado = useRef(false);
+  useEffect(() => {
+    if (yaIntentado.current || alineaciones === undefined) return;
+    yaIntentado.current = true;
+    if (alineaciones.length === 0) void sincronizarAlineacionDesdeHojaLocal(id).catch(() => undefined);
+  }, [alineaciones, id]);
+
+  async function sincronizarAhora() {
+    setSincronizando(true);
+    try {
+      const r = await sincronizarAlineacionDesdeHojaLocal(id, { forzar: true });
+      if (r.sinDatos) {
+        toast.error("La hoja de partido no tiene todavía a nadie de nuestro equipo. Escribe los dorsales en la hoja.");
+      } else {
+        toast.success(`Alineación sincronizada: ${r.titulares} titulares y ${r.suplentes} suplentes.`);
+        if (r.sinResolver.length > 0) {
+          toast.warning(`No he encontrado en la plantilla: ${r.sinResolver.join(", ")}.`);
+        }
+      }
+    } finally {
+      setSincronizando(false);
+    }
+  }
+
+  const firmaInicial = (alineaciones ?? [])
+    .map((a) => `${a.jugador_id ?? a.nombre_libre}:${a.posicion_jugada}:${a.pos_x}:${a.pos_y}`)
+    .sort()
+    .join("|");
+  const firmaFinal = titularesFinalesFirma(alineacionesFinales ?? [], firmaInicial);
 
   const jugadoresParaConvocatoria = useMemo(
     () => (jugadoresActivos ?? []).map(({ foto_url, ...j }) => ({ ...j, foto_url })),
@@ -211,8 +256,24 @@ export default function DiaPartidoPage() {
             primero.
           </p>
         ) : (
+          <div className="space-y-4">
+          <div className="flex flex-wrap items-center gap-2 rounded-md border bg-muted/40 px-3 py-2 text-sm">
+            <FileText className="size-4 shrink-0 text-muted-foreground" />
+            <span className="min-w-0 flex-1 text-muted-foreground">
+              La alineación sale de la <strong>hoja de partido</strong>: escribe los dorsales en
+              nuestra columna y aquí se rellena sola.
+            </span>
+            <Link href={`/plan-partido/hoja/${id}`} className="text-primary underline">
+              Abrir hoja
+            </Link>
+            <Button type="button" size="sm" variant="outline" onClick={sincronizarAhora} disabled={sincronizando}>
+              <RefreshCw className={cn("size-4", sincronizando && "animate-spin")} />
+              Sincronizar
+            </Button>
+          </div>
           <div className="grid gap-8 sm:grid-cols-2">
             <AlineacionCampo
+              key={`ini-${firmaInicial}`}
               titulo="Once inicial"
               convocados={convocados}
               titularesIniciales={titularesIniciales}
@@ -221,6 +282,7 @@ export default function DiaPartidoPage() {
               }
             />
             <AlineacionCampo
+              key={`fin-${firmaFinal}`}
               titulo="Once que termina"
               convocados={convocados}
               titularesIniciales={titularesFinales}
@@ -228,6 +290,7 @@ export default function DiaPartidoPage() {
                 guardarAlineacionFinalLocal(id, titulares, suplentesIds)
               }
             />
+          </div>
           </div>
         )}
       </div>

@@ -8,6 +8,11 @@ import {
   type LocalPresentacionPartido,
 } from "@/lib/db/local-db";
 import { queueMutation } from "@/lib/db/sync";
+import {
+  guardarAlineacionLocal,
+  toggleConvocadoLocal,
+} from "@/app/(app)/partidos/local-actions";
+import { colocarTitulares, resolverCelda } from "@/lib/alineacion-desde-hoja";
 import type { Diagrama } from "@/lib/ficha-entrenamiento";
 import {
   alineacionVacia,
@@ -244,10 +249,152 @@ export async function guardarHojaLocal(
   id: string,
   datos: HojaPartidoDatos,
 ): Promise<SimpleResult> {
+  const anterior = await localDb.hojas_partido.get(id);
   const patch = { datos: hojaAJson(datos) };
   await localDb.hojas_partido.update(id, patch);
   await queueMutation("hojas_partido", "update", id, patch);
+
+  // La alineación del día de partido sale de esta hoja: solo se vuelve a
+  // sincronizar si lo que cambia son las casillas de nuestro equipo (así lo
+  // que se retoque a mano en el campo no se pisa al escribir otras cosas).
+  if (anterior) {
+    const lista = (d: HojaPartidoDatos) => {
+      const l = d[d.nuestro_lado];
+      return JSON.stringify([l.titulares, l.suplentes]);
+    };
+    if (lista(leerHoja(anterior.datos)) !== lista(datos)) {
+      try {
+        await sincronizarAlineacionDesdeHojaLocal(anterior.partido_id);
+      } catch {
+        // La hoja ya está guardada; la sincronización se puede repetir a mano.
+      }
+    }
+  }
   return { success: true };
+}
+
+export interface ResultadoSincronizacion {
+  /** La hoja no existe o no tiene todavía a nadie de nuestro equipo. */
+  sinDatos: boolean;
+  /** La alineación guardada ya coincidía con la hoja (no se ha tocado). */
+  sinCambios: boolean;
+  titulares: number;
+  suplentes: number;
+  /** Casillas con un número sin dorsal en la plantilla, o ambiguas. */
+  sinResolver: string[];
+}
+
+/**
+ * Pone la alineación del partido (once inicial, suplentes y convocatoria) según la hoja de
+ * partido: cada casilla de nuestro equipo se identifica por el dorsal (o por el nombre si no
+ * hay número) y los titulares se colocan en el campo según su posición.
+ */
+export async function sincronizarAlineacionDesdeHojaLocal(
+  partidoId: string,
+  opciones: { forzar?: boolean } = {},
+): Promise<ResultadoSincronizacion> {
+  const vacio: ResultadoSincronizacion = {
+    sinDatos: true,
+    sinCambios: false,
+    titulares: 0,
+    suplentes: 0,
+    sinResolver: [],
+  };
+  const fila = await localDb.hojas_partido.where("partido_id").equals(partidoId).first();
+  if (!fila) return vacio;
+  const datos = leerHoja(fila.datos);
+  const lado = datos[datos.nuestro_lado];
+
+  const jugadores = (await localDb.jugadores.toArray())
+    .filter((j) => j.activo)
+    .map((j) => ({
+      id: j.id,
+      nombre: j.nombre,
+      apellidos: j.apellidos,
+      alias: j.alias,
+      dorsal: j.dorsal,
+      posicion: j.posicion,
+    }));
+  const porId = new Map(jugadores.map((j) => [j.id, j]));
+
+  const sinResolver: string[] = [];
+  const idsVistos = new Set<string>();
+  const leer = (textos: string[]) => {
+    const reales: string[] = [];
+    const libres: string[] = [];
+    for (const texto of textos) {
+      const r = resolverCelda(texto, jugadores);
+      if (r.tipo === "jugador") {
+        if (!idsVistos.has(r.id)) {
+          idsVistos.add(r.id);
+          reales.push(r.id);
+        }
+      } else if (r.tipo === "libre") libres.push(r.nombre);
+      else if (r.tipo === "sin_resolver") sinResolver.push(r.texto);
+    }
+    return { reales, libres };
+  };
+  const tit = leer(lado.titulares);
+  const sup = leer(lado.suplentes);
+  if (tit.reales.length + tit.libres.length + sup.reales.length === 0) {
+    return { ...vacio, sinResolver };
+  }
+
+  const resultado: ResultadoSincronizacion = {
+    sinDatos: false,
+    sinCambios: false,
+    titulares: tit.reales.length + tit.libres.length,
+    suplentes: sup.reales.length,
+    sinResolver,
+  };
+
+  // ¿Ya está guardada así? Entonces no se toca (se respetan las posiciones movidas a mano).
+  if (!opciones.forzar) {
+    const existentes = await localDb.alineaciones.where("partido_id").equals(partidoId).toArray();
+    const mismos = (a: string[], b: string[]) =>
+      a.length === b.length && [...a].sort().join("|") === [...b].sort().join("|");
+    const exTit = existentes.filter((a) => a.titular && a.jugador_id).map((a) => a.jugador_id as string);
+    const exSup = existentes.filter((a) => !a.titular && a.jugador_id).map((a) => a.jugador_id as string);
+    const exLibres = existentes
+      .filter((a) => a.titular && !a.jugador_id)
+      .map((a) => (a.nombre_libre ?? "").trim().toLowerCase());
+    if (
+      mismos(exTit, tit.reales) &&
+      mismos(exSup, sup.reales) &&
+      mismos(exLibres, tit.libres.map((n) => n.trim().toLowerCase()))
+    ) {
+      return { ...resultado, sinCambios: true };
+    }
+  }
+
+  // Quien está en la hoja está convocado.
+  const convocados = new Set(
+    (await localDb.convocatorias.where("partido_id").equals(partidoId).toArray())
+      .filter((c) => c.convocado)
+      .map((c) => c.jugador_id),
+  );
+  for (const jugadorId of [...tit.reales, ...sup.reales]) {
+    if (!convocados.has(jugadorId)) await toggleConvocadoLocal(partidoId, jugadorId, true);
+  }
+
+  const aColocar = [
+    ...tit.reales.map((id) => ({ clave: id, posicion: porId.get(id)?.posicion ?? null })),
+    ...tit.libres.map((_, i) => ({ clave: `libre:${i}`, posicion: null as string | null })),
+  ];
+  const { colocados } = colocarTitulares(aColocar);
+  const huecoDe = new Map(colocados.map((c) => [c.clave, c.hueco]));
+  const titulares = [
+    ...tit.reales.map((id) => {
+      const h = huecoDe.get(id);
+      return { jugadorId: id as string | null, nombreLibre: null as string | null, posicion: h?.label ?? "", posX: h?.left, posY: h?.top };
+    }),
+    ...tit.libres.map((nombre, i) => {
+      const h = huecoDe.get(`libre:${i}`);
+      return { jugadorId: null as string | null, nombreLibre: nombre as string | null, posicion: h?.label ?? "", posX: h?.left, posY: h?.top };
+    }),
+  ];
+  await guardarAlineacionLocal(partidoId, titulares, sup.reales);
+  return resultado;
 }
 
 /**
