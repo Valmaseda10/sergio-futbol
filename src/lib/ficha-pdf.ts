@@ -8,6 +8,7 @@
 // app con `@media print` convertido en `@media all`.
 
 import { capturarComoPng } from "@/lib/capturar-imagen";
+import { ajustarHojaParaPagina } from "@/lib/ajustar-hoja";
 
 const ANCHO_HOJA_MM = 198; // A4 (210) menos márgenes de 6 mm, como en @page
 const MARGEN_MM = 6;
@@ -152,6 +153,8 @@ export async function generarPdfFicha(
       doc.body.replaceChildren(contenedor);
       await esperarImagenes(contenedor);
       await doc.fonts.ready;
+      // Las cajas de texto de la hoja de partido se reajustan al ancho del papel y a lo escrito.
+      ajustarHojaParaPagina(copia);
 
       const imagen = await capturarComoPng(contenedor, 2, "jpeg", {
         fontEmbedCSS: await cssFuentes(),

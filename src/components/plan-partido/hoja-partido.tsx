@@ -7,6 +7,7 @@
 
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
+import { ajustarHojaParaPagina } from "@/lib/ajustar-hoja";
 import { PdfWatermark } from "@/components/branding/pdf-watermark";
 import { AccionesPdf } from "@/components/plan-partido/acciones-pdf";
 import { toast } from "sonner";
@@ -34,12 +35,15 @@ function AreaAuto({
   className = "",
   etiqueta,
   llenar = false,
+  ajuste = false,
 }: {
   valor: string;
   onCambio: (v: string) => void;
   className?: string;
   etiqueta: string;
   llenar?: boolean;
+  /** Caja del análisis: al imprimir se reajusta para que todo entre en la página. */
+  ajuste?: boolean;
 }) {
   const ref = useRef<HTMLTextAreaElement>(null);
   useLayoutEffect(() => {
@@ -63,6 +67,8 @@ function AreaAuto({
       value={valor}
       rows={1}
       aria-label={etiqueta}
+      data-llenar={llenar ? "" : undefined}
+      data-ajuste={ajuste ? "" : undefined}
       onChange={(e) => onCambio(e.target.value)}
       className={`block w-full resize-none overflow-hidden bg-transparent px-1.5 py-1 leading-snug outline-none focus:bg-yellow-50 print:focus:bg-transparent ${className}`}
     />
@@ -325,24 +331,27 @@ export function HojaPartido({
     toast.success(`Traído de la ficha del rival: ${nuevos.length} apartado${nuevos.length === 1 ? "" : "s"}.`);
   }
 
-  // Al imprimir desde el navegador, una hoja más alta que el folio (mucho texto escrito) se reduce
-  // para que entre en una sola página.
+  // Al imprimir desde el navegador, cada hoja se ajusta a su texto para que entre en una página.
   useEffect(() => {
     const hojas = () =>
       Array.from(contenedorRef.current?.querySelectorAll<HTMLElement>("[data-hoja-pdf]") ?? []);
-    const MM = 96 / 25.4;
+    let deshacer: (() => void)[] = [];
     function ajustar() {
       for (const el of hojas()) {
-        const antes = { width: el.style.width, zoom: el.style.zoom };
+        const anchoAntes = el.style.width;
         el.style.zoom = "1";
         el.style.width = "198mm";
-        const alto = el.getBoundingClientRect().height / MM;
-        el.style.width = antes.width;
-        el.style.zoom = alto > 283 ? String(283 / alto) : antes.zoom;
+        const r = ajustarHojaParaPagina(el);
+        el.style.width = anchoAntes;
+        if (r.zoom < 1) el.style.zoom = String(r.zoom);
+        deshacer.push(r.restaurar, () => {
+          el.style.zoom = "";
+        });
       }
     }
     function restaurar() {
-      for (const el of hojas()) el.style.zoom = "";
+      deshacer.forEach((fn) => fn());
+      deshacer = [];
     }
     window.addEventListener("beforeprint", ajustar);
     window.addEventListener("afterprint", restaurar);
@@ -494,6 +503,7 @@ export function HojaPartido({
                       onCambio={(v) => cambiar((d) => ({ ...d, titulos: { ...d.titulos, [clave]: v } }))}
                     />
                     <AreaAuto
+                      ajuste
                       valor={datos.analisis[clave]}
                       etiqueta={titulo}
                       className="min-h-[5rem] text-[12px]"
