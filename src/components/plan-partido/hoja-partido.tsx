@@ -26,25 +26,37 @@ import {
 
 const BORDE = "border-neutral-900";
 
-// Textarea que crece con lo que se escribe, para que al imprimir no se corte.
+// Textarea que crece con lo que se escribe, para que al imprimir no se corte. Con `llenar` ocupa
+// además todo el hueco de su contenedor (se puede escribir en cualquier parte de la casilla).
 function AreaAuto({
   valor,
   onCambio,
   className = "",
   etiqueta,
+  llenar = false,
 }: {
   valor: string;
   onCambio: (v: string) => void;
   className?: string;
   etiqueta: string;
+  llenar?: boolean;
 }) {
   const ref = useRef<HTMLTextAreaElement>(null);
   useLayoutEffect(() => {
     const el = ref.current;
     if (!el) return;
-    el.style.height = "auto";
-    el.style.height = `${el.scrollHeight}px`;
-  }, [valor]);
+    function medir() {
+      if (!el) return;
+      el.style.height = "auto";
+      let alto = el.scrollHeight;
+      if (llenar && el.parentElement) alto = Math.max(alto, el.parentElement.clientHeight);
+      el.style.height = `${alto}px`;
+    }
+    medir();
+    if (!llenar) return;
+    window.addEventListener("resize", medir);
+    return () => window.removeEventListener("resize", medir);
+  }, [valor, llenar]);
   return (
     <textarea
       ref={ref}
@@ -84,6 +96,30 @@ function Titulo({ children, className = "" }: { children: React.ReactNode; class
       className={`flex h-6 items-center justify-center border-b px-1 text-center text-[12px] font-bold uppercase ${BORDE} ${className}`}
     >
       {children}
+    </div>
+  );
+}
+
+// Título de un apartado que se puede cambiar (se imprime como texto).
+function TituloEditable({
+  valor,
+  porDefecto,
+  onCambio,
+  className = "",
+}: {
+  valor: string | undefined;
+  porDefecto: string;
+  onCambio: (v: string) => void;
+  className?: string;
+}) {
+  return (
+    <div className={`flex h-6 items-center justify-center border-b ${BORDE} ${className}`}>
+      <input
+        value={valor ?? porDefecto}
+        aria-label={`Título: ${porDefecto}`}
+        onChange={(e) => onCambio(e.target.value)}
+        className="h-full w-full min-w-0 bg-transparent px-1 text-center text-[12px] font-bold uppercase outline-none focus:bg-yellow-50 print:focus:bg-transparent"
+      />
     </div>
   );
 }
@@ -136,12 +172,15 @@ function ColumnaAlineacion({
       <Titulo>Suplentes</Titulo>
       {datos.suplentes.map((_, i) => fila("suplentes", i, inicio + i))}
       <Titulo>Observaciones</Titulo>
-      <AreaAuto
-        valor={datos.observaciones}
-        etiqueta="Observaciones de la alineación"
-        className="min-h-[5.6rem] flex-1 text-[12px]"
-        onCambio={(v) => onCambio({ ...datos, observaciones: v })}
-      />
+      <div className="flex min-h-[5.6rem] flex-1 flex-col">
+        <AreaAuto
+          llenar
+          valor={datos.observaciones}
+          etiqueta="Observaciones de la alineación"
+          className="flex-1 text-[12px]"
+          onCambio={(v) => onCambio({ ...datos, observaciones: v })}
+        />
+      </div>
     </div>
   );
 }
@@ -450,7 +489,11 @@ export function HojaPartido({
                   [b.der, b.tDer],
                 ] as const).map(([clave, titulo], k) => (
                   <div key={clave} className={k === 0 ? `border-r ${BORDE}` : ""}>
-                    <Titulo>{titulo}</Titulo>
+                    <TituloEditable
+                      valor={datos.titulos[clave]}
+                      porDefecto={titulo}
+                      onCambio={(v) => cambiar((d) => ({ ...d, titulos: { ...d.titulos, [clave]: v } }))}
+                    />
                     <AreaAuto
                       valor={datos.analisis[clave]}
                       etiqueta={titulo}
@@ -463,7 +506,11 @@ export function HojaPartido({
                 ))}
               </div>
             ))}
-            <Titulo>Observaciones</Titulo>
+            <TituloEditable
+              valor={datos.titulos.observaciones}
+              porDefecto="Observaciones"
+              onCambio={(v) => cambiar((d) => ({ ...d, titulos: { ...d.titulos, observaciones: v } }))}
+            />
             <AreaAuto
               valor={datos.analisis.observaciones}
               etiqueta="Observaciones finales"

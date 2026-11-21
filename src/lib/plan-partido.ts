@@ -151,6 +151,8 @@ export interface HojaPartidoDatos {
   nuestro_lado: LadoHoja;
   cambios: string[]; // 5 filas x 2 columnas, por filas
   analisis: AnalisisHoja;
+  /** Títulos de los apartados del análisis cambiados a mano (clave del apartado -> título). */
+  titulos: Record<string, string>;
 }
 
 export const NUM_TITULARES = 11;
@@ -192,6 +194,7 @@ export function hojaVacia(): HojaPartidoDatos {
       abp_ofensivo: "",
       observaciones: "",
     },
+    titulos: {},
   };
 }
 
@@ -218,6 +221,12 @@ export function leerHoja(json: Json | null | undefined): HojaPartidoDatos {
     nuestro_lado: d.nuestro_lado === "izquierda" ? "izquierda" : "derecha",
     cambios: ajustar(d.cambios, FILAS_CAMBIOS * 2),
     analisis: { ...v.analisis, ...d.analisis },
+    titulos:
+      d.titulos && typeof d.titulos === "object" && !Array.isArray(d.titulos)
+        ? Object.fromEntries(
+            Object.entries(d.titulos).filter(([, t]) => typeof t === "string"),
+          )
+        : {},
   };
 }
 
