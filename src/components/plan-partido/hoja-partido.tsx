@@ -286,6 +286,34 @@ export function HojaPartido({
     toast.success(`Traído de la ficha del rival: ${nuevos.length} apartado${nuevos.length === 1 ? "" : "s"}.`);
   }
 
+  // Al imprimir desde el navegador, una hoja más alta que el folio (mucho texto escrito) se reduce
+  // para que entre en una sola página.
+  useEffect(() => {
+    const hojaEl = () => contenedorRef.current?.querySelector<HTMLElement>("[data-hoja-pdf]") ?? null;
+    const MM = 96 / 25.4;
+    function ajustar() {
+      const el = hojaEl();
+      if (!el) return;
+      const antes = { width: el.style.width, zoom: el.style.zoom };
+      el.style.zoom = "1";
+      el.style.width = "198mm";
+      const alto = el.getBoundingClientRect().height / MM;
+      el.style.width = antes.width;
+      if (alto > 283) el.style.zoom = String(283 / alto);
+      else el.style.zoom = antes.zoom;
+    }
+    function restaurar() {
+      const el = hojaEl();
+      if (el) el.style.zoom = "";
+    }
+    window.addEventListener("beforeprint", ajustar);
+    window.addEventListener("afterprint", restaurar);
+    return () => {
+      window.removeEventListener("beforeprint", ajustar);
+      window.removeEventListener("afterprint", restaurar);
+    };
+  }, []);
+
   const cab = datos.cabecera;
   const nombreArchivo = `Hoja de partido ${cab.jornada ? `J${cab.jornada} ` : ""}${cab.rival}${
     cab.dia ? ` ${cab.dia.replace(/\//g, "-")}` : ""
@@ -319,7 +347,7 @@ export function HojaPartido({
       >
         <div
           data-hoja-pdf
-          className={`overflow-hidden border bg-white text-[12px] ${BORDE} print:h-[283mm]`}
+          className={`overflow-hidden border bg-white text-[12px] ${BORDE} print:min-h-[283mm] print:overflow-visible`}
         >
           {/* Cabecera del partido */}
           <div

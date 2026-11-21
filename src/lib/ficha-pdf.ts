@@ -157,10 +157,16 @@ export async function generarPdfFicha(
         fontEmbedCSS: await cssFuentes(),
       });
       const rect = contenedor.getBoundingClientRect();
-      const alto = (ANCHO_HOJA_MM * rect.height) / rect.width;
+      const altoNatural = (ANCHO_HOJA_MM * rect.height) / rect.width;
+      // Una hoja más alta que el folio (mucho texto escrito) se reduce en proporción para que
+      // entre entera en una página en vez de salirse por abajo.
+      const altoMax = 297 - 2 * MARGEN_MM;
+      const factor = altoNatural > altoMax ? altoMax / altoNatural : 1;
+      const ancho = ANCHO_HOJA_MM * factor;
+      const alto = altoNatural * factor;
 
       if (i > 0) pdf.addPage();
-      pdf.addImage(imagen, "JPEG", MARGEN_MM, MARGEN_MM, ANCHO_HOJA_MM, alto);
+      pdf.addImage(imagen, "JPEG", MARGEN_MM + (ANCHO_HOJA_MM - ancho) / 2, MARGEN_MM, ancho, alto);
     }
 
     const blob = pdf.output("blob");
