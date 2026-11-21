@@ -328,22 +328,21 @@ export function HojaPartido({
   // Al imprimir desde el navegador, una hoja más alta que el folio (mucho texto escrito) se reduce
   // para que entre en una sola página.
   useEffect(() => {
-    const hojaEl = () => contenedorRef.current?.querySelector<HTMLElement>("[data-hoja-pdf]") ?? null;
+    const hojas = () =>
+      Array.from(contenedorRef.current?.querySelectorAll<HTMLElement>("[data-hoja-pdf]") ?? []);
     const MM = 96 / 25.4;
     function ajustar() {
-      const el = hojaEl();
-      if (!el) return;
-      const antes = { width: el.style.width, zoom: el.style.zoom };
-      el.style.zoom = "1";
-      el.style.width = "198mm";
-      const alto = el.getBoundingClientRect().height / MM;
-      el.style.width = antes.width;
-      if (alto > 283) el.style.zoom = String(283 / alto);
-      else el.style.zoom = antes.zoom;
+      for (const el of hojas()) {
+        const antes = { width: el.style.width, zoom: el.style.zoom };
+        el.style.zoom = "1";
+        el.style.width = "198mm";
+        const alto = el.getBoundingClientRect().height / MM;
+        el.style.width = antes.width;
+        el.style.zoom = alto > 283 ? String(283 / alto) : antes.zoom;
+      }
     }
     function restaurar() {
-      const el = hojaEl();
-      if (el) el.style.zoom = "";
+      for (const el of hojas()) el.style.zoom = "";
     }
     window.addEventListener("beforeprint", ajustar);
     window.addEventListener("afterprint", restaurar);
@@ -506,15 +505,32 @@ export function HojaPartido({
                 ))}
               </div>
             ))}
-            <TituloEditable
-              valor={datos.titulos.observaciones}
-              porDefecto="Observaciones"
-              onCambio={(v) => cambiar((d) => ({ ...d, titulos: { ...d.titulos, observaciones: v } }))}
-            />
+          </div>
+        </div>
+
+        {/* Página 2 (el reverso de la hoja): las observaciones ocupan el folio entero. */}
+        <div
+          data-hoja-pdf
+          className={`mt-4 flex min-h-[70vh] flex-col overflow-hidden border bg-white text-[12px] ${BORDE} print:mt-0 print:min-h-[283mm] print:break-before-page print:overflow-visible`}
+        >
+          <div className={`flex h-6 items-center justify-between border-b px-2 text-[11px] ${BORDE}`}>
+            <span className="font-bold uppercase">Hoja de partido</span>
+            <span className="uppercase">
+              {[cab.rival, cab.dia, cab.jornada ? `J${cab.jornada}` : ""].filter(Boolean).join(" · ")}
+            </span>
+          </div>
+          <TituloEditable
+            valor={datos.titulos.observaciones}
+            porDefecto="Observaciones"
+            className="text-[13px]"
+            onCambio={(v) => cambiar((d) => ({ ...d, titulos: { ...d.titulos, observaciones: v } }))}
+          />
+          <div className="flex flex-1 flex-col">
             <AreaAuto
+              llenar
               valor={datos.analisis.observaciones}
               etiqueta="Observaciones finales"
-              className="min-h-[5rem] text-[12px]"
+              className="flex-1 !px-3 !py-2 text-[13px] print:!h-auto print:!min-h-[250mm]"
               onCambio={(v) =>
                 cambiar((d) => ({ ...d, analisis: { ...d.analisis, observaciones: v } }))
               }
