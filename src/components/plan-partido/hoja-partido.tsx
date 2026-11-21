@@ -139,7 +139,7 @@ function ColumnaAlineacion({
       <AreaAuto
         valor={datos.observaciones}
         etiqueta="Observaciones de la alineación"
-        className="min-h-[7.6rem] flex-1 text-[12px]"
+        className="min-h-[5.6rem] flex-1 text-[12px]"
         onCambio={(v) => onCambio({ ...datos, observaciones: v })}
       />
     </div>
