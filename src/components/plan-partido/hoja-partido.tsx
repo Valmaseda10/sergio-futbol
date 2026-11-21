@@ -159,7 +159,7 @@ function ColumnaAlineacion({
   );
 
   return (
-    <div className="flex min-w-0 flex-col">
+    <div className="flex h-full min-w-0 flex-col">
       <div className={`h-6 border-b ${BORDE}`}>
         <Celda
           valor={datos.titulo}
