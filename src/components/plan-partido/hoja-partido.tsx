@@ -6,9 +6,11 @@
 // ella y se guarda sola; al imprimir o descargar solo queda el texto.
 
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { Button } from "@/components/ui/button";
 import { PdfWatermark } from "@/components/branding/pdf-watermark";
 import { AccionesPdf } from "@/components/plan-partido/acciones-pdf";
-import { guardarHojaLocal } from "@/app/(app)/plan-partido/local-actions";
+import { toast } from "sonner";
+import { analisisDesdeRivalLocal, guardarHojaLocal } from "@/app/(app)/plan-partido/local-actions";
 import type { LocalHojaPartido } from "@/lib/db/local-db";
 import {
   FILAS_CAMBIOS,
@@ -260,6 +262,30 @@ export function HojaPartido({
     [hoja.id],
   );
 
+  // Trae a la hoja lo que hay en la ficha del rival; solo rellena los apartados vacíos.
+  async function rellenarDesdeRival() {
+    const ficha = await analisisDesdeRivalLocal(hoja.partido_id);
+    if (!ficha) {
+      toast.error("Este partido no tiene ficha del rival en Rivales.");
+      return;
+    }
+    const nuevos = (Object.keys(ficha) as (keyof AnalisisHoja)[]).filter(
+      (k) => !datos.analisis[k].trim() && ficha[k],
+    );
+    if (nuevos.length === 0) {
+      toast.info("No hay nada nuevo que traer: los apartados con datos en la ficha ya están rellenos.");
+      return;
+    }
+    cambiar((d) => ({
+      ...d,
+      analisis: {
+        ...d.analisis,
+        ...Object.fromEntries(nuevos.map((k) => [k, ficha[k]])),
+      },
+    }));
+    toast.success(`Traído de la ficha del rival: ${nuevos.length} apartado${nuevos.length === 1 ? "" : "s"}.`);
+  }
+
   const cab = datos.cabecera;
   const nombreArchivo = `Hoja de partido ${cab.jornada ? `J${cab.jornada} ` : ""}${cab.rival}${
     cab.dia ? ` ${cab.dia.replace(/\//g, "-")}` : ""
@@ -274,11 +300,16 @@ export function HojaPartido({
         <p className="text-xs text-muted-foreground">
           Escribe directamente sobre la hoja; se guarda sola.
         </p>
-        <AccionesPdf
-          contenedorRef={contenedorRef}
-          nombreArchivo={nombreArchivo}
-          clave={JSON.stringify(datos)}
-        />
+        <div className="flex flex-wrap items-center gap-2">
+          <Button type="button" size="sm" variant="outline" onClick={rellenarDesdeRival}>
+            Rellenar análisis con la ficha del rival
+          </Button>
+          <AccionesPdf
+            contenedorRef={contenedorRef}
+            nombreArchivo={nombreArchivo}
+            clave={JSON.stringify(datos)}
+          />
+        </div>
       </div>
 
       <div

@@ -26,6 +26,7 @@ import {
   NUM_SUPLENTES,
   NUM_TITULARES,
   type FaseAbp,
+  type AnalisisHoja,
   type TipoAbp,
   type HojaPartidoDatos,
   type JugadorAbp,
@@ -271,6 +272,46 @@ export async function guardarHojaLocal(
     }
   }
   return { success: true };
+}
+
+/**
+ * El análisis del rival de la hoja de partido según la ficha de scouting del rival (Rivales):
+ * fase defensiva/ofensiva, transiciones, ABP y, en observaciones, el sistema de juego y las
+ * notas. Solo devuelve los apartados que la ficha tiene escritos; quien llama decide cuáles
+ * de la hoja rellena. `null` si el partido no tiene ficha de rival.
+ */
+export async function analisisDesdeRivalLocal(
+  partidoId: string,
+): Promise<Partial<AnalisisHoja> | null> {
+  const partido = await localDb.partidos.get(partidoId);
+  if (!partido) return null;
+  let rival = partido.rival_scouting_id
+    ? ((await localDb.rivales_scouting.get(partido.rival_scouting_id)) ?? null)
+    : null;
+  if (!rival) {
+    const nombre = partido.rival.trim().toLowerCase();
+    rival =
+      (await localDb.rivales_scouting.filter((r) => r.nombre.trim().toLowerCase() === nombre).first()) ??
+      null;
+  }
+  if (!rival) return null;
+
+  const t = (s: string | null | undefined) => (s ?? "").trim();
+  const out: Partial<AnalisisHoja> = {};
+  if (t(rival.fase_defensiva)) out.fase_defensiva = t(rival.fase_defensiva);
+  if (t(rival.fase_ofensiva)) out.fase_ofensiva = t(rival.fase_ofensiva);
+  if (t(rival.transicion_defensiva)) out.transicion_defensiva = t(rival.transicion_defensiva);
+  if (t(rival.transicion_ofensiva)) out.transicion_ofensiva = t(rival.transicion_ofensiva);
+  // La ficha guarda el ABP del rival en un solo apartado: es cómo atacan a balón parado.
+  if (t(rival.abp)) out.abp_ofensivo = t(rival.abp);
+  const observaciones = [
+    t(rival.sistema_juego) ? `Sistema: ${t(rival.sistema_juego)}` : "",
+    t(rival.notas),
+  ]
+    .filter(Boolean)
+    .join(String.fromCharCode(10));
+  if (observaciones) out.observaciones = observaciones;
+  return out;
 }
 
 export interface ResultadoSincronizacion {
