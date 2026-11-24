@@ -66,7 +66,7 @@ function CeldaPartido({ estado, titulo }: { estado: EstadoPartido; titulo: strin
     return (
       <span
         title={`${titulo}: no convocado`}
-        className="mx-auto flex size-6 items-center justify-center rounded-sm bg-muted text-[10px] text-muted-foreground/50"
+        className="mx-auto flex size-5 items-center justify-center rounded-sm bg-muted text-[10px] text-muted-foreground/50"
       >
         ·
       </span>
@@ -76,7 +76,7 @@ function CeldaPartido({ estado, titulo }: { estado: EstadoPartido; titulo: strin
   return (
     <span
       title={`${titulo}: ${titular ? "titular" : "suplente"}`}
-      className={`mx-auto flex size-6 items-center justify-center rounded-sm text-xs font-bold text-white ${
+      className={`mx-auto flex size-5 items-center justify-center rounded-sm text-[11px] font-bold text-white ${
         titular ? "bg-green-600" : "bg-red-500"
       }`}
     >
@@ -160,6 +160,7 @@ export function JugadoresTable({
         key={col}
         className={
           "cursor-pointer whitespace-nowrap select-none" +
+          (col === "titRecientes" || col === "supRecientes" ? " px-1.5" : "") +
           (orden === col ? " text-primary" : "")
         }
         onClick={() => handleSort(col)}
@@ -189,8 +190,8 @@ export function JugadoresTable({
             {hayRecientes && (
               <>
                 {partidosRecientes.map((p) => (
-                  <TableHead key={p.id} className="px-1 text-center align-bottom">
-                    <span className="mx-auto block max-w-[4rem] truncate text-[11px] leading-tight">
+                  <TableHead key={p.id} className="w-6 px-0.5 text-center align-bottom">
+                    <span className="mx-auto block max-w-[3rem] truncate text-[10px] leading-tight">
                       {nombreCorto(p.rival)}
                     </span>
                     <span className="block text-[10px] font-normal text-muted-foreground">
@@ -201,8 +202,8 @@ export function JugadoresTable({
                     </span>
                   </TableHead>
                 ))}
-                {cabecera("titRecientes", `T (${partidosRecientes.length})`)}
-                {cabecera("supRecientes", `S (${partidosRecientes.length})`)}
+                {cabecera("titRecientes", "T")}
+                {cabecera("supRecientes", "S")}
               </>
             )}
             {COLUMNAS.map((col) => cabecera(col.key, col.label))}
@@ -220,17 +221,17 @@ export function JugadoresTable({
                 {hayRecientes && r && (
                   <>
                     {r.estados.map((e, i) => (
-                      <TableCell key={partidosRecientes[i].id} className="px-1">
+                      <TableCell key={partidosRecientes[i].id} className="w-6 px-0.5">
                         <CeldaPartido
                           estado={e}
                           titulo={nombreCorto(partidosRecientes[i].rival)}
                         />
                       </TableCell>
                     ))}
-                    <TableCell className="font-heading tabular-nums text-green-700">
+                    <TableCell className="px-1.5 font-heading tabular-nums text-green-700">
                       {r.titRecientes}
                     </TableCell>
-                    <TableCell className="font-heading tabular-nums text-red-600">
+                    <TableCell className="px-1.5 font-heading tabular-nums text-red-600">
                       {r.supRecientes}
                     </TableCell>
                   </>
