@@ -32,10 +32,7 @@ export interface ConvocadoReciente {
 
 type EstadoPartido = "titular" | "suplente" | "no";
 
-type Columna =
-  | Exclude<keyof JugadorStats, "id" | "nombre" | "apellidos">
-  | "titRecientes"
-  | "supRecientes";
+type Columna = Exclude<keyof JugadorStats, "id" | "nombre" | "apellidos">;
 
 const COLUMNAS: { key: Columna; label: string }[] = [
   { key: "minutosAprox", label: "Minutos" },
@@ -128,8 +125,6 @@ export function JugadoresTable({
 
   const ordenados = useMemo(() => {
     const valor = (j: JugadorStats): number => {
-      if (orden === "titRecientes") return recientes.get(j.id)?.titRecientes ?? 0;
-      if (orden === "supRecientes") return recientes.get(j.id)?.supRecientes ?? 0;
       return j[orden] ?? -1;
     };
     return [...jugadores].sort((a, b) => {
@@ -148,7 +143,6 @@ export function JugadoresTable({
         key={col}
         className={
           "cursor-pointer whitespace-nowrap select-none" +
-          (col === "titRecientes" || col === "supRecientes" ? " px-1.5" : "") +
           (orden === col ? " text-primary" : "")
         }
         onClick={() => handleSort(col)}
@@ -175,12 +169,6 @@ export function JugadoresTable({
         <TableHeader>
           <TableRow>
             <TableHead>Jugador</TableHead>
-            {hayRecientes && (
-              <>
-                {cabecera("titRecientes", "T")}
-                {cabecera("supRecientes", "S")}
-              </>
-            )}
             {COLUMNAS.map((col) => cabecera(col.key, col.label))}
           </TableRow>
         </TableHeader>
@@ -206,16 +194,6 @@ export function JugadoresTable({
                     </span>
                   )}
                 </TableCell>
-                {hayRecientes && r && (
-                  <>
-                    <TableCell className="px-1.5 font-heading tabular-nums text-green-700">
-                      {r.titRecientes}
-                    </TableCell>
-                    <TableCell className="px-1.5 font-heading tabular-nums text-red-600">
-                      {r.supRecientes}
-                    </TableCell>
-                  </>
-                )}
                 <TableCell className="tabular-nums">{j.minutosAprox}</TableCell>
                 <TableCell className="tabular-nums">{j.convocatorias}</TableCell>
                 <TableCell className="tabular-nums">{j.titularidades}</TableCell>
