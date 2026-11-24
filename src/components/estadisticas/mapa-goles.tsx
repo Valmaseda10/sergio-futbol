@@ -3,6 +3,12 @@
 import { useMemo, useState } from "react";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { PitchHalfLines } from "@/components/partidos/campo-mini-selector";
 
 interface GolUbicacion {
@@ -40,6 +46,8 @@ export function MapaGoles({
   tipos: { value: string; label: string }[];
 }) {
   const [filtroFavor, setFiltroFavor] = useState<FiltroFavor>("todos");
+  // El listado de goles se abre en una ventana al pulsar "A favor" o "En contra".
+  const [listadoAbierto, setListadoAbierto] = useState(false);
 
   const golesPorFavor = useMemo(
     () =>
@@ -104,7 +112,10 @@ export function MapaGoles({
             <button
               key={f.value}
               type="button"
-              onClick={() => setFiltroFavor(f.value)}
+              onClick={() => {
+                setFiltroFavor(f.value);
+                if (f.value !== "todos") setListadoAbierto(true);
+              }}
               className={cn(
                 "flex-1 rounded-full border px-2.5 py-1.5 text-xs font-semibold transition-colors",
                 activo
@@ -201,66 +212,70 @@ export function MapaGoles({
         )}
       </div>
 
-      {listado.length > 0 && (
-        <div>
-          <p className="mb-1 text-xs font-medium text-muted-foreground">
-            {filtroFavor === "favor"
-              ? "Goles a favor"
-              : filtroFavor === "contra"
-                ? "Goles en contra"
-                : "Goles"}{" "}
-            ({listado.length})
-          </p>
-          <ul className="divide-y rounded-md border px-2.5">
-            {listado.map((g, i) => (
-              <li key={`${g.partido_id}-${i}`}>
-                <Link
-                  href={`/partidos/${g.partido_id}`}
-                  className="flex items-center gap-2.5 py-2 text-sm hover:bg-muted/50"
-                >
-                  <span
-                    className={cn(
-                      "size-2.5 shrink-0 rounded-full",
-                      g.a_favor ? "bg-[#1b5e3a]" : "bg-destructive",
-                    )}
-                  />
-                  <span className="w-9 shrink-0 text-xs font-semibold tabular-nums">
-                    {g.jornada != null ? `J${g.jornada}` : g.amistoso ? "Amist." : "—"}
+      <Dialog open={listadoAbierto} onOpenChange={setListadoAbierto}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>
+              {filtroFavor === "contra" ? "Goles en contra" : "Goles a favor"} ({listado.length})
+            </DialogTitle>
+          </DialogHeader>
+          <div className="max-h-[65vh] overflow-y-auto">
+            {listado.length === 0 ? (
+              <p className="py-2 text-sm text-muted-foreground">Ninguno</p>
+            ) : (
+    <ul className="divide-y">
+      {listado.map((g, i) => (
+        <li key={`${g.partido_id}-${i}`}>
+          <Link
+            href={`/partidos/${g.partido_id}`}
+            onClick={() => setListadoAbierto(false)}
+            className="flex items-center gap-2.5 py-2 text-sm hover:bg-muted/50"
+          >
+            <span
+              className={cn(
+                "size-2.5 shrink-0 rounded-full",
+                g.a_favor ? "bg-[#1b5e3a]" : "bg-destructive",
+              )}
+            />
+            <span className="w-9 shrink-0 text-xs font-semibold tabular-nums">
+              {g.jornada != null ? `J${g.jornada}` : g.amistoso ? "Amist." : "—"}
+            </span>
+            <span className="min-w-0 flex-1">
+              <span className="block truncate font-medium">
+                {g.a_favor
+                  ? g.goleador
+                    ? `${g.autogol ? "p.p. " : ""}${g.goleador}`
+                    : "Gol (sin jugador)"
+                  : "Gol en contra"}
+                {g.asistente && (
+                  <span className="font-normal text-muted-foreground">
+                    {" "}
+                    · asist. {g.asistente}
                   </span>
-                  <span className="min-w-0 flex-1">
-                    <span className="block truncate font-medium">
-                      {g.a_favor
-                        ? g.goleador
-                          ? `${g.autogol ? "p.p. " : ""}${g.goleador}`
-                          : "Gol (sin jugador)"
-                        : "Gol en contra"}
-                      {g.asistente && (
-                        <span className="font-normal text-muted-foreground">
-                          {" "}
-                          · asist. {g.asistente}
-                        </span>
-                      )}
-                    </span>
-                    <span className="block truncate text-xs text-muted-foreground">
-                      vs {g.rival}
-                      {g.fecha &&
-                        ` · ${new Date(`${g.fecha}T00:00:00`).toLocaleDateString("es-ES", {
-                          day: "2-digit",
-                          month: "2-digit",
-                        })}`}
-                      {g.tipo_gol &&
-                        ` · ${tipos.find((t) => t.value === g.tipo_gol)?.label ?? g.tipo_gol}`}
-                    </span>
-                  </span>
-                  <span className="shrink-0 text-xs font-medium tabular-nums text-muted-foreground">
-                    {g.minuto != null ? `${g.minuto}'` : ""}
-                  </span>
-                </Link>
-              </li>
-            ))}
-          </ul>
-        </div>
-      )}
+                )}
+              </span>
+              <span className="block truncate text-xs text-muted-foreground">
+                vs {g.rival}
+                {g.fecha &&
+                  ` · ${new Date(`${g.fecha}T00:00:00`).toLocaleDateString("es-ES", {
+                    day: "2-digit",
+                    month: "2-digit",
+                  })}`}
+                {g.tipo_gol &&
+                  ` · ${tipos.find((t) => t.value === g.tipo_gol)?.label ?? g.tipo_gol}`}
+              </span>
+            </span>
+            <span className="shrink-0 text-xs font-medium tabular-nums text-muted-foreground">
+              {g.minuto != null ? `${g.minuto}'` : ""}
+            </span>
+          </Link>
+        </li>
+      ))}
+    </ul>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
