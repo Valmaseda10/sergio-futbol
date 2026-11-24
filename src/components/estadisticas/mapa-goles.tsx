@@ -16,6 +16,8 @@ interface GolUbicacion {
   pos_y: number | null;
   a_favor: boolean;
   tipo_gol: string | null;
+  /** Tipología concreta (córner, falta directa, penalti…), si se registró. */
+  tipologia: string | null;
   rival: string;
   partido_id: string;
   resultado: string | null;
@@ -46,8 +48,9 @@ export function MapaGoles({
   tipos: { value: string; label: string }[];
 }) {
   const [filtroFavor, setFiltroFavor] = useState<FiltroFavor>("todos");
-  // El listado de goles se abre en una ventana al pulsar "A favor" o "En contra".
-  const [listadoAbierto, setListadoAbierto] = useState(false);
+  // El listado de goles se abre en una ventana al pulsar una de las tres
+  // casillas de números (en total / a favor / en contra).
+  const [listadoModo, setListadoModo] = useState<FiltroFavor | null>(null);
 
   const golesPorFavor = useMemo(
     () =>
@@ -99,6 +102,14 @@ export function MapaGoles({
     [golesFiltrados],
   );
 
+  const listadoDialogo = useMemo(
+    () =>
+      listado.filter((g) =>
+        listadoModo === "favor" ? g.a_favor : listadoModo === "contra" ? !g.a_favor : true,
+      ),
+    [listado, listadoModo],
+  );
+
   const sinUbicacion = golesFiltrados.filter((g) => g.pos_x == null || g.pos_y == null).length;
   const aFavor = golesFiltrados.filter((g) => g.a_favor).length;
   const enContra = golesFiltrados.length - aFavor;
@@ -112,10 +123,7 @@ export function MapaGoles({
             <button
               key={f.value}
               type="button"
-              onClick={() => {
-                setFiltroFavor(f.value);
-                if (f.value !== "todos") setListadoAbierto(true);
-              }}
+              onClick={() => setFiltroFavor(f.value)}
               className={cn(
                 "flex-1 rounded-full border px-2.5 py-1.5 text-xs font-semibold transition-colors",
                 activo
@@ -157,23 +165,35 @@ export function MapaGoles({
       )}
 
       <div className="grid grid-cols-3 gap-2 text-center">
-        <div className="rounded-md border py-1.5">
+        <button
+          type="button"
+          onClick={() => setListadoModo("todos")}
+          className="rounded-md border py-1.5 transition-colors hover:bg-muted/50"
+        >
           <p className="text-2xl leading-none font-bold">{golesFiltrados.length}</p>
           <p className="mt-0.5 text-[11px] text-muted-foreground">
             {golesFiltrados.length === 1 ? "gol" : "goles"} en total
           </p>
-        </div>
-        <div className="rounded-md border border-[#1b5e3a]/40 py-1.5">
+        </button>
+        <button
+          type="button"
+          onClick={() => setListadoModo("favor")}
+          className="rounded-md border border-[#1b5e3a]/40 py-1.5 transition-colors hover:bg-[#1b5e3a]/5"
+        >
           <p className="text-2xl leading-none font-bold text-[#1b5e3a]">{aFavor}</p>
           <p className="mt-0.5 text-[11px] text-muted-foreground">a favor</p>
-        </div>
-        <div className="rounded-md border border-destructive/40 py-1.5">
+        </button>
+        <button
+          type="button"
+          onClick={() => setListadoModo("contra")}
+          className="rounded-md border border-destructive/40 py-1.5 transition-colors hover:bg-destructive/5"
+        >
           <p className="text-2xl leading-none font-bold text-destructive">{enContra}</p>
           <p className="mt-0.5 text-[11px] text-muted-foreground">en contra</p>
-        </div>
+        </button>
       </div>
       <p className="text-xs text-muted-foreground">
-        Verde oscuro = a favor · Rojo = en contra
+        Verde oscuro = a favor · Rojo = en contra · Toca una casilla para ver el listado
         {sinUbicacion > 0 &&
           ` · ${sinUbicacion} ${sinUbicacion === 1 ? "gol" : "goles"} sin ubicación en el campo (solo en el listado)`}
       </p>
@@ -212,23 +232,28 @@ export function MapaGoles({
         )}
       </div>
 
-      <Dialog open={listadoAbierto} onOpenChange={setListadoAbierto}>
+      <Dialog open={listadoModo !== null} onOpenChange={(open) => !open && setListadoModo(null)}>
         <DialogContent className="sm:max-w-xl">
           <DialogHeader>
             <DialogTitle>
-              {filtroFavor === "contra" ? "Goles en contra" : "Goles a favor"} ({listado.length})
+              {listadoModo === "contra"
+                ? "Goles en contra"
+                : listadoModo === "favor"
+                  ? "Goles a favor"
+                  : "Goles"}{" "}
+              ({listadoDialogo.length})
             </DialogTitle>
           </DialogHeader>
           <div className="max-h-[65vh] overflow-y-auto">
-            {listado.length === 0 ? (
+            {listadoDialogo.length === 0 ? (
               <p className="py-2 text-sm text-muted-foreground">Ninguno</p>
             ) : (
     <ul className="divide-y">
-      {listado.map((g, i) => (
+      {listadoDialogo.map((g, i) => (
         <li key={`${g.partido_id}-${i}`}>
           <Link
             href={`/partidos/${g.partido_id}`}
-            onClick={() => setListadoAbierto(false)}
+            onClick={() => setListadoModo(null)}
             className="flex items-center gap-2.5 py-2 text-sm hover:bg-muted/50"
           >
             <span
@@ -261,8 +286,8 @@ export function MapaGoles({
                     day: "2-digit",
                     month: "2-digit",
                   })}`}
-                {g.tipo_gol &&
-                  ` · ${tipos.find((t) => t.value === g.tipo_gol)?.label ?? g.tipo_gol}`}
+                {(g.tipologia || g.tipo_gol) &&
+                  ` · ${g.tipologia ?? tipos.find((t) => t.value === g.tipo_gol)?.label ?? g.tipo_gol}`}
               </span>
             </span>
             <span className="shrink-0 text-xs font-medium tabular-nums text-muted-foreground">

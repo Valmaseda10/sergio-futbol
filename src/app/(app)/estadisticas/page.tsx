@@ -28,7 +28,7 @@ import {
   calcularResumenEquipo,
   calcularStatsJugadores,
 } from "@/lib/estadisticas";
-import { TIPOS_GOL } from "@/lib/validations/gol";
+import { TIPOS_GOL, TIPO_ABP_LABEL, TIPO_JUEGO_ASOCIATIVO_LABEL } from "@/lib/validations/gol";
 import { temporadaDeFecha } from "@/lib/temporada";
 import { claveEquipo } from "@/lib/clasificacion";
 
@@ -335,6 +335,13 @@ export default function EstadisticasPage() {
           pos_y: e.pos_y,
           a_favor: e.a_favor,
           tipo_gol: e.tipo_gol,
+          // Subtipo concreto: córner, falta directa, penalti… (ABP) o el tipo de
+          // juego asociativo; si no se registró, se enseña la categoría.
+          tipologia: e.abp_tipo
+            ? TIPO_ABP_LABEL[e.abp_tipo]
+            : e.juego_asociativo_tipo
+              ? TIPO_JUEGO_ASOCIATIVO_LABEL[e.juego_asociativo_tipo]
+              : null,
           rival: rivalPorPartidoId.get(e.partido_id) ?? "Rival",
           partido_id: e.partido_id,
           fecha: partido?.fecha ?? "",
