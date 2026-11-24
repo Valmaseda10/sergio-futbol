@@ -247,25 +247,28 @@ export default function EstadisticasPage() {
     [partidosTemporada],
   );
 
+  // Todos los goles (también los que no tienen ubicación en el campo): el
+  // mapa dibuja solo los ubicados y el listado los recoge todos.
   const golesUbicacion = useMemo(() => {
-    const fechaPorPartidoId = new Map(partidosTemporada.map((p) => [p.id, p.fecha]));
+    const partidoPorId = new Map(partidosTemporada.map((p) => [p.id, p]));
     const jugadoresPorId = new Map(jugadoresTodos.map((j) => [j.id, j]));
     return eventosTemporada
-      .filter(
-        (e) =>
-          (e.tipo === "gol" || e.tipo === "autogol") &&
-          e.pos_x != null &&
-          e.pos_y != null,
-      )
+      .filter((e) => e.tipo === "gol" || e.tipo === "autogol")
       .map((e) => {
         const jugador = e.jugador_id ? jugadoresPorId.get(e.jugador_id) : null;
+        const partido = partidoPorId.get(e.partido_id);
         return {
-          pos_x: e.pos_x as number,
-          pos_y: e.pos_y as number,
+          pos_x: e.pos_x,
+          pos_y: e.pos_y,
           a_favor: e.a_favor,
           tipo_gol: e.tipo_gol,
           rival: rivalPorPartidoId.get(e.partido_id) ?? "Rival",
-          fecha: fechaPorPartidoId.get(e.partido_id) ?? "",
+          partido_id: e.partido_id,
+          fecha: partido?.fecha ?? "",
+          resultado:
+            partido && partido.resultado_favor != null && partido.resultado_contra != null
+              ? `${partido.resultado_favor}-${partido.resultado_contra}`
+              : null,
           minuto: e.minuto,
           autogol: e.tipo === "autogol",
           goleador: jugador

@@ -5,11 +5,13 @@ import { cn } from "@/lib/utils";
 import { PitchHalfLines } from "@/components/partidos/campo-mini-selector";
 
 interface GolUbicacion {
-  pos_x: number;
-  pos_y: number;
+  pos_x: number | null;
+  pos_y: number | null;
   a_favor: boolean;
   tipo_gol: string | null;
   rival: string;
+  partido_id: string;
+  resultado: string | null;
   fecha: string;
   minuto: number | null;
   autogol: boolean;
@@ -76,15 +78,32 @@ export function MapaGoles({
     (g) => !excluidos.has(g.tipo_gol ?? SIN_TIPO),
   );
 
-  // Para el listado: por fecha y, dentro del partido, por minuto.
-  const listado = useMemo(
-    () =>
-      [...golesFiltrados].sort(
-        (a, b) => a.fecha.localeCompare(b.fecha) || (a.minuto ?? 999) - (b.minuto ?? 999),
-      ),
-    [golesFiltrados],
-  );
+  // Para el listado: un bloque por partido (por fecha) y los goles por minuto.
+  const listado = useMemo(() => {
+    const porPartido = new Map<
+      string,
+      { partido_id: string; fecha: string; rival: string; resultado: string | null; goles: GolUbicacion[] }
+    >();
+    for (const g of golesFiltrados) {
+      const grupo = porPartido.get(g.partido_id) ?? {
+        partido_id: g.partido_id,
+        fecha: g.fecha,
+        rival: g.rival,
+        resultado: g.resultado,
+        goles: [],
+      };
+      grupo.goles.push(g);
+      porPartido.set(g.partido_id, grupo);
+    }
+    return [...porPartido.values()]
+      .map((grupo) => ({
+        ...grupo,
+        goles: [...grupo.goles].sort((a, b) => (a.minuto ?? 999) - (b.minuto ?? 999)),
+      }))
+      .sort((a, b) => a.fecha.localeCompare(b.fecha));
+  }, [golesFiltrados]);
 
+  const sinUbicacion = golesFiltrados.filter((g) => g.pos_x == null || g.pos_y == null).length;
   const aFavor = golesFiltrados.filter((g) => g.a_favor).length;
   const enContra = golesFiltrados.length - aFavor;
 
@@ -156,6 +175,8 @@ export function MapaGoles({
       </div>
       <p className="text-xs text-muted-foreground">
         Verde oscuro = a favor · Rojo = en contra
+        {sinUbicacion > 0 &&
+          ` · ${sinUbicacion} ${sinUbicacion === 1 ? "gol" : "goles"} sin ubicación en el campo (solo en el listado)`}
       </p>
       <div className="relative aspect-[4/3] w-full overflow-hidden rounded-md bg-pitch">
         <PitchHalfLines />
@@ -170,7 +191,9 @@ export function MapaGoles({
             Ningún gol de los seleccionados.
           </p>
         ) : (
-          golesFiltrados.map((g, i) => (
+          golesFiltrados
+            .filter((g) => g.pos_x != null && g.pos_y != null)
+            .map((g, i) => (
             <div
               key={i}
               className="absolute flex -translate-x-1/2 -translate-y-1/2 flex-col items-center gap-0.5"
@@ -190,48 +213,65 @@ export function MapaGoles({
         )}
       </div>
 
-      {filtroFavor !== "todos" && golesFiltrados.length > 0 && (
-        <div>
-          <p className="mb-1.5 text-sm font-semibold">
-            {filtroFavor === "favor" ? "Goles a favor" : "Goles en contra"} (
-            {golesFiltrados.length})
+      {golesFiltrados.length > 0 && (
+        <div className="space-y-2">
+          <p className="text-sm font-semibold">
+            {filtroFavor === "favor"
+              ? "Goles a favor"
+              : filtroFavor === "contra"
+                ? "Goles en contra"
+                : "Todos los goles"}{" "}
+            por partido ({golesFiltrados.length})
           </p>
-          <ul className="divide-y rounded-md border text-sm">
-            {listado.map((g, i) => (
-              <li key={i} className="flex items-center gap-2 px-2.5 py-1.5">
-                <span
-                  className={cn(
-                    "size-2.5 shrink-0 rounded-full",
-                    g.a_favor ? "bg-[#1b5e3a]" : "bg-destructive",
-                  )}
-                />
-                <span className="w-11 shrink-0 text-xs tabular-nums text-muted-foreground">
-                  {g.fecha
-                    ? new Date(`${g.fecha}T00:00:00`).toLocaleDateString("es-ES", {
-                        day: "2-digit",
-                        month: "2-digit",
-                      })
-                    : ""}
+          {listado.map((grupo) => (
+            <div key={grupo.partido_id} className="overflow-hidden rounded-md border text-sm">
+              <div className="flex items-center justify-between gap-2 bg-muted/60 px-2.5 py-1.5">
+                <span className="min-w-0 truncate font-medium">
+                  <span className="mr-2 text-xs tabular-nums text-muted-foreground">
+                    {grupo.fecha
+                      ? new Date(`${grupo.fecha}T00:00:00`).toLocaleDateString("es-ES", {
+                          day: "2-digit",
+                          month: "2-digit",
+                        })
+                      : ""}
+                  </span>
+                  {grupo.rival}
                 </span>
-                <span className="min-w-0 flex-1 truncate">
-                  <span className="font-medium">{g.rival}</span>
-                  {g.goleador && (
-                    <span className="text-muted-foreground">
-                      {" · "}
-                      {g.autogol ? "p.p. " : ""}
-                      {g.goleador}
+                {grupo.resultado && (
+                  <span className="shrink-0 text-xs font-semibold tabular-nums">
+                    {grupo.resultado}
+                  </span>
+                )}
+              </div>
+              <ul className="divide-y">
+                {grupo.goles.map((g, i) => (
+                  <li key={i} className="flex items-center gap-2 px-2.5 py-1.5">
+                    <span
+                      className={cn(
+                        "size-2.5 shrink-0 rounded-full",
+                        g.a_favor ? "bg-[#1b5e3a]" : "bg-destructive",
+                      )}
+                    />
+                    <span className="w-9 shrink-0 text-xs font-medium tabular-nums">
+                      {g.minuto != null ? `${g.minuto}'` : "—"}
                     </span>
-                  )}
-                </span>
-                <span className="shrink-0 text-right text-xs text-muted-foreground">
-                  {g.tipo_gol ? (tipos.find((t) => t.value === g.tipo_gol)?.label ?? g.tipo_gol) : ""}
-                </span>
-                <span className="w-9 shrink-0 text-right text-xs font-medium tabular-nums">
-                  {g.minuto != null ? `${g.minuto}'` : ""}
-                </span>
-              </li>
-            ))}
-          </ul>
+                    <span className="min-w-0 flex-1 truncate">
+                      {g.a_favor
+                        ? g.goleador
+                          ? `${g.autogol ? "p.p. " : ""}${g.goleador}`
+                          : "Gol a favor"
+                        : "Gol en contra"}
+                    </span>
+                    <span className="shrink-0 text-right text-xs text-muted-foreground">
+                      {g.tipo_gol
+                        ? (tipos.find((t) => t.value === g.tipo_gol)?.label ?? g.tipo_gol)
+                        : ""}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ))}
         </div>
       )}
     </div>
