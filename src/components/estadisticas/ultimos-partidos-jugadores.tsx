@@ -112,7 +112,7 @@ export function UltimosPartidosJugadores({
               </th>
               {partidos.map((p) => (
                 <th key={p.id} className="px-1 py-2 text-center align-bottom">
-                  <span className="block max-w-[4.5rem] truncate text-[11px] font-medium leading-tight">
+                  <span className="mx-auto block max-w-[4.5rem] truncate text-[11px] font-medium leading-tight">
                     {nombreCorto(p.rival)}
                   </span>
                   <span className="block text-[10px] font-normal text-muted-foreground">
