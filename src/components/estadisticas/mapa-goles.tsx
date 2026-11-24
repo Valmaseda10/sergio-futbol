@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import Link from "next/link";
 import { cn } from "@/lib/utils";
 import { PitchHalfLines } from "@/components/partidos/campo-mini-selector";
 
@@ -100,7 +101,7 @@ export function MapaGoles({
         ...grupo,
         goles: [...grupo.goles].sort((a, b) => (a.minuto ?? 999) - (b.minuto ?? 999)),
       }))
-      .sort((a, b) => a.fecha.localeCompare(b.fecha));
+      .sort((a, b) => b.fecha.localeCompare(a.fecha));
   }, [golesFiltrados]);
 
   const sinUbicacion = golesFiltrados.filter((g) => g.pos_x == null || g.pos_y == null).length;
@@ -213,65 +214,56 @@ export function MapaGoles({
         )}
       </div>
 
-      {golesFiltrados.length > 0 && (
-        <div className="space-y-2">
-          <p className="text-sm font-semibold">
+      {listado.length > 0 && (
+        <div>
+          <p className="mb-1 text-xs font-medium text-muted-foreground">
             {filtroFavor === "favor"
-              ? "Goles a favor"
+              ? "Partidos con gol a favor"
               : filtroFavor === "contra"
-                ? "Goles en contra"
-                : "Todos los goles"}{" "}
-            por partido ({golesFiltrados.length})
+                ? "Partidos con gol en contra"
+                : "Partidos con goles"}{" "}
+            ({listado.length})
           </p>
-          {listado.map((grupo) => (
-            <div key={grupo.partido_id} className="overflow-hidden rounded-md border text-sm">
-              <div className="flex items-center justify-between gap-2 bg-muted/60 px-2.5 py-1.5">
-                <span className="min-w-0 truncate font-medium">
-                  <span className="mr-2 text-xs tabular-nums text-muted-foreground">
-                    {grupo.fecha
-                      ? new Date(`${grupo.fecha}T00:00:00`).toLocaleDateString("es-ES", {
-                          day: "2-digit",
-                          month: "2-digit",
-                        })
-                      : ""}
-                  </span>
-                  {grupo.rival}
-                </span>
-                {grupo.resultado && (
-                  <span className="shrink-0 text-xs font-semibold tabular-nums">
-                    {grupo.resultado}
-                  </span>
-                )}
-              </div>
-              <ul className="divide-y">
-                {grupo.goles.map((g, i) => (
-                  <li key={i} className="flex items-center gap-2 px-2.5 py-1.5">
-                    <span
-                      className={cn(
-                        "size-2.5 shrink-0 rounded-full",
-                        g.a_favor ? "bg-[#1b5e3a]" : "bg-destructive",
-                      )}
-                    />
-                    <span className="w-9 shrink-0 text-xs font-medium tabular-nums">
-                      {g.minuto != null ? `${g.minuto}'` : "—"}
+          <ul className="divide-y rounded-md border px-2.5">
+            {listado.map((grupo) => (
+              <li key={grupo.partido_id}>
+                <Link
+                  href={`/partidos/${grupo.partido_id}`}
+                  className="block py-2 text-sm hover:bg-muted/50"
+                >
+                  <span className="flex items-center gap-3">
+                    <span className="min-w-0 flex-1 truncate font-medium">
+                      vs {grupo.rival}
                     </span>
-                    <span className="min-w-0 flex-1 truncate">
-                      {g.a_favor
-                        ? g.goleador
-                          ? `${g.autogol ? "p.p. " : ""}${g.goleador}`
-                          : "Gol a favor"
-                        : "Gol en contra"}
-                    </span>
-                    <span className="shrink-0 text-right text-xs text-muted-foreground">
-                      {g.tipo_gol
-                        ? (tipos.find((t) => t.value === g.tipo_gol)?.label ?? g.tipo_gol)
+                    {grupo.goles.length > 1 && (
+                      <span className="shrink-0 rounded-full bg-muted px-1.5 py-0.5 text-xs font-semibold tabular-nums">
+                        ×{grupo.goles.length}
+                      </span>
+                    )}
+                    <span className="shrink-0 text-xs text-muted-foreground">
+                      {grupo.fecha
+                        ? new Date(`${grupo.fecha}T00:00:00`).toLocaleDateString("es-ES", {
+                            day: "2-digit",
+                            month: "short",
+                            year: "numeric",
+                          })
                         : ""}
                     </span>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          ))}
+                  </span>
+                  <span className="mt-0.5 block text-xs text-muted-foreground">
+                    {grupo.goles
+                      .map((g) => {
+                        const quien = g.a_favor
+                          ? `${g.autogol ? "p.p. " : ""}${g.goleador ?? "Gol"}`
+                          : "En contra";
+                        return `${quien}${g.minuto != null ? ` ${g.minuto}'` : ""}`;
+                      })
+                      .join(" · ")}
+                  </span>
+                </Link>
+              </li>
+            ))}
+          </ul>
         </div>
       )}
     </div>
