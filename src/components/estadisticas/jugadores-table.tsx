@@ -61,28 +61,16 @@ function nombreCorto(rival: string) {
     .trim();
 }
 
-function CeldaPartido({ estado, titulo }: { estado: EstadoPartido; titulo: string }) {
-  if (estado === "no") {
-    return (
-      <span
-        title={`${titulo}: no convocado`}
-        className="mx-auto flex size-5 items-center justify-center rounded-sm bg-muted text-[10px] text-muted-foreground/50"
-      >
-        ·
-      </span>
-    );
-  }
-  const titular = estado === "titular";
-  return (
-    <span
-      title={`${titulo}: ${titular ? "titular" : "suplente"}`}
-      className={`mx-auto flex size-5 items-center justify-center rounded-sm text-[11px] font-bold text-white ${
-        titular ? "bg-green-600" : "bg-red-500"
-      }`}
-    >
-      {titular ? "T" : "S"}
-    </span>
-  );
+function BloquePartido({ estado, titulo }: { estado: EstadoPartido; titulo: string }) {
+  const color =
+    estado === "titular"
+      ? "bg-green-600"
+      : estado === "suplente"
+        ? "bg-red-500"
+        : "bg-muted";
+  const texto =
+    estado === "titular" ? "titular" : estado === "suplente" ? "suplente" : "no convocado";
+  return <span title={`${titulo}: ${texto}`} className={`h-2.5 w-5 rounded-[2px] ${color}`} />;
 }
 
 export function JugadoresTable({
@@ -189,19 +177,6 @@ export function JugadoresTable({
             <TableHead>Jugador</TableHead>
             {hayRecientes && (
               <>
-                {partidosRecientes.map((p) => (
-                  <TableHead key={p.id} className="w-6 px-0.5 text-center align-bottom">
-                    <span className="mx-auto block max-w-[3rem] truncate text-[10px] leading-tight">
-                      {nombreCorto(p.rival)}
-                    </span>
-                    <span className="block text-[10px] font-normal text-muted-foreground">
-                      {new Date(`${p.fecha}T00:00:00`).toLocaleDateString("es-ES", {
-                        day: "2-digit",
-                        month: "2-digit",
-                      })}
-                    </span>
-                  </TableHead>
-                ))}
                 {cabecera("titRecientes", "T")}
                 {cabecera("supRecientes", "S")}
               </>
@@ -217,17 +192,22 @@ export function JugadoresTable({
                 <TableCell className="whitespace-nowrap font-medium uppercase">
                   {j.dorsal != null ? `${j.dorsal} · ` : ""}
                   {j.nombre} {j.apellidos}
+                  {r && hayRecientes && (
+                    <span className="mt-0.5 flex gap-0.5">
+                      {r.estados.map((e, i) => (
+                        <BloquePartido
+                          key={partidosRecientes[i].id}
+                          estado={e}
+                          titulo={`${nombreCorto(partidosRecientes[i].rival)} (${new Date(
+                            `${partidosRecientes[i].fecha}T00:00:00`,
+                          ).toLocaleDateString("es-ES", { day: "2-digit", month: "2-digit" })})`}
+                        />
+                      ))}
+                    </span>
+                  )}
                 </TableCell>
                 {hayRecientes && r && (
                   <>
-                    {r.estados.map((e, i) => (
-                      <TableCell key={partidosRecientes[i].id} className="w-6 px-0.5">
-                        <CeldaPartido
-                          estado={e}
-                          titulo={nombreCorto(partidosRecientes[i].rival)}
-                        />
-                      </TableCell>
-                    ))}
                     <TableCell className="px-1.5 font-heading tabular-nums text-green-700">
                       {r.titRecientes}
                     </TableCell>
