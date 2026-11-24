@@ -36,6 +36,7 @@ import {
 } from "@/lib/estadisticas";
 import { TIPOS_GOL } from "@/lib/validations/gol";
 import { temporadaDeFecha } from "@/lib/temporada";
+import { claveEquipo } from "@/lib/clasificacion";
 
 function hoyISO() {
   const now = new Date();
@@ -56,6 +57,7 @@ export default function EstadisticasPage() {
     [],
   );
   const partidos = useLiveQuery(() => localDb.partidos.toArray(), [], []);
+  const ligaPartidos = useLiveQuery(() => localDb.liga_partidos.toArray(), [], []);
   const eventos = useLiveQuery(
     () => localDb.eventos_partido.toArray(),
     [],
@@ -252,11 +254,52 @@ export default function EstadisticasPage() {
   const golesUbicacion = useMemo(() => {
     const partidoPorId = new Map(partidosTemporada.map((p) => [p.id, p]));
     const jugadoresPorId = new Map(jugadoresTodos.map((j) => [j.id, j]));
-    return eventosTemporada
+    const nombreJugador = (id: string | null, libre: string | null) => {
+      const j = id ? jugadoresPorId.get(id) : null;
+      return j ? j.alias || `${j.nombre} ${j.apellidos}` : libre;
+    };
+
+    // Jornada de liga de cada partido: el de la liga que se juega ese día y
+    // en el que aparece el rival.
+    const jornadaDe = (p: (typeof partidosTemporada)[number]) => {
+      const k = claveEquipo(p.rival);
+      const delDia = ligaPartidos.filter((l) => l.fecha === p.fecha);
+      const l =
+        delDia.find((x) => claveEquipo(x.local) === k || claveEquipo(x.visitante) === k) ??
+        delDia.find(
+          (x) =>
+            claveEquipo(x.local).includes(k) ||
+            claveEquipo(x.visitante).includes(k) ||
+            k.includes(claveEquipo(x.local)) ||
+            k.includes(claveEquipo(x.visitante)),
+        );
+      return l ? l.jornada : null;
+    };
+    const jornadaPorPartido = new Map(partidosTemporada.map((p) => [p.id, jornadaDe(p)]));
+
+    // Asistencias, para ponerlas junto al gol del mismo minuto.
+    const asistencias = new Map<string, string[]>();
+    for (const e of eventosTemporada) {
+      if (e.tipo !== "asistencia" || e.minuto == null) continue;
+      const nombre = nombreJugador(e.jugador_id, e.nombre_libre);
+      if (!nombre) continue;
+      const k = `${e.partido_id}|${e.minuto}`;
+      asistencias.set(k, [...(asistencias.get(k) ?? []), nombre]);
+    }
+    const usadas = new Map<string, number>();
+
+    return [...eventosTemporada]
       .filter((e) => e.tipo === "gol" || e.tipo === "autogol")
+      .sort((a, b) => (a.minuto ?? 999) - (b.minuto ?? 999))
       .map((e) => {
-        const jugador = e.jugador_id ? jugadoresPorId.get(e.jugador_id) : null;
         const partido = partidoPorId.get(e.partido_id);
+        let asistente: string | null = null;
+        if (e.a_favor && e.tipo === "gol" && e.minuto != null) {
+          const k = `${e.partido_id}|${e.minuto}`;
+          const n = usadas.get(k) ?? 0;
+          asistente = asistencias.get(k)?.[n] ?? null;
+          usadas.set(k, n + 1);
+        }
         return {
           pos_x: e.pos_x,
           pos_y: e.pos_y,
@@ -265,18 +308,19 @@ export default function EstadisticasPage() {
           rival: rivalPorPartidoId.get(e.partido_id) ?? "Rival",
           partido_id: e.partido_id,
           fecha: partido?.fecha ?? "",
+          jornada: jornadaPorPartido.get(e.partido_id) ?? null,
+          amistoso: partido?.fase === "pretemporada",
           resultado:
             partido && partido.resultado_favor != null && partido.resultado_contra != null
               ? `${partido.resultado_favor}-${partido.resultado_contra}`
               : null,
           minuto: e.minuto,
           autogol: e.tipo === "autogol",
-          goleador: jugador
-            ? jugador.alias || `${jugador.nombre} ${jugador.apellidos}`
-            : e.nombre_libre,
+          goleador: nombreJugador(e.jugador_id, e.nombre_libre),
+          asistente,
         };
       });
-  }, [eventosTemporada, rivalPorPartidoId, partidosTemporada, jugadoresTodos]);
+  }, [eventosTemporada, rivalPorPartidoId, partidosTemporada, jugadoresTodos, ligaPartidos]);
 
   const golesPorMinuto = useMemo(
     () =>

@@ -13,6 +13,9 @@ interface GolUbicacion {
   rival: string;
   partido_id: string;
   resultado: string | null;
+  jornada: number | null;
+  amistoso: boolean;
+  asistente: string | null;
   fecha: string;
   minuto: number | null;
   autogol: boolean;
@@ -79,30 +82,14 @@ export function MapaGoles({
     (g) => !excluidos.has(g.tipo_gol ?? SIN_TIPO),
   );
 
-  // Para el listado: un bloque por partido (por fecha) y los goles por minuto.
-  const listado = useMemo(() => {
-    const porPartido = new Map<
-      string,
-      { partido_id: string; fecha: string; rival: string; resultado: string | null; goles: GolUbicacion[] }
-    >();
-    for (const g of golesFiltrados) {
-      const grupo = porPartido.get(g.partido_id) ?? {
-        partido_id: g.partido_id,
-        fecha: g.fecha,
-        rival: g.rival,
-        resultado: g.resultado,
-        goles: [],
-      };
-      grupo.goles.push(g);
-      porPartido.set(g.partido_id, grupo);
-    }
-    return [...porPartido.values()]
-      .map((grupo) => ({
-        ...grupo,
-        goles: [...grupo.goles].sort((a, b) => (a.minuto ?? 999) - (b.minuto ?? 999)),
-      }))
-      .sort((a, b) => b.fecha.localeCompare(a.fecha));
-  }, [golesFiltrados]);
+  // Para el listado: uno por gol, del partido más reciente al más antiguo y por minuto.
+  const listado = useMemo(
+    () =>
+      [...golesFiltrados].sort(
+        (a, b) => b.fecha.localeCompare(a.fecha) || (a.minuto ?? 999) - (b.minuto ?? 999),
+      ),
+    [golesFiltrados],
+  );
 
   const sinUbicacion = golesFiltrados.filter((g) => g.pos_x == null || g.pos_y == null).length;
   const aFavor = golesFiltrados.filter((g) => g.a_favor).length;
@@ -218,47 +205,55 @@ export function MapaGoles({
         <div>
           <p className="mb-1 text-xs font-medium text-muted-foreground">
             {filtroFavor === "favor"
-              ? "Partidos con gol a favor"
+              ? "Goles a favor"
               : filtroFavor === "contra"
-                ? "Partidos con gol en contra"
-                : "Partidos con goles"}{" "}
+                ? "Goles en contra"
+                : "Goles"}{" "}
             ({listado.length})
           </p>
           <ul className="divide-y rounded-md border px-2.5">
-            {listado.map((grupo) => (
-              <li key={grupo.partido_id}>
+            {listado.map((g, i) => (
+              <li key={`${g.partido_id}-${i}`}>
                 <Link
-                  href={`/partidos/${grupo.partido_id}`}
-                  className="block py-2 text-sm hover:bg-muted/50"
+                  href={`/partidos/${g.partido_id}`}
+                  className="flex items-center gap-2.5 py-2 text-sm hover:bg-muted/50"
                 >
-                  <span className="flex items-center gap-3">
-                    <span className="min-w-0 flex-1 truncate font-medium">
-                      vs {grupo.rival}
-                    </span>
-                    {grupo.goles.length > 1 && (
-                      <span className="shrink-0 rounded-full bg-muted px-1.5 py-0.5 text-xs font-semibold tabular-nums">
-                        ×{grupo.goles.length}
-                      </span>
+                  <span
+                    className={cn(
+                      "size-2.5 shrink-0 rounded-full",
+                      g.a_favor ? "bg-[#1b5e3a]" : "bg-destructive",
                     )}
-                    <span className="shrink-0 text-xs text-muted-foreground">
-                      {grupo.fecha
-                        ? new Date(`${grupo.fecha}T00:00:00`).toLocaleDateString("es-ES", {
-                            day: "2-digit",
-                            month: "short",
-                            year: "numeric",
-                          })
-                        : ""}
+                  />
+                  <span className="w-9 shrink-0 text-xs font-semibold tabular-nums">
+                    {g.jornada != null ? `J${g.jornada}` : g.amistoso ? "Amist." : "—"}
+                  </span>
+                  <span className="min-w-0 flex-1">
+                    <span className="block truncate font-medium">
+                      {g.a_favor
+                        ? g.goleador
+                          ? `${g.autogol ? "p.p. " : ""}${g.goleador}`
+                          : "Gol (sin jugador)"
+                        : "Gol en contra"}
+                      {g.asistente && (
+                        <span className="font-normal text-muted-foreground">
+                          {" "}
+                          · asist. {g.asistente}
+                        </span>
+                      )}
+                    </span>
+                    <span className="block truncate text-xs text-muted-foreground">
+                      vs {g.rival}
+                      {g.fecha &&
+                        ` · ${new Date(`${g.fecha}T00:00:00`).toLocaleDateString("es-ES", {
+                          day: "2-digit",
+                          month: "2-digit",
+                        })}`}
+                      {g.tipo_gol &&
+                        ` · ${tipos.find((t) => t.value === g.tipo_gol)?.label ?? g.tipo_gol}`}
                     </span>
                   </span>
-                  <span className="mt-0.5 block text-xs text-muted-foreground">
-                    {grupo.goles
-                      .map((g) => {
-                        const quien = g.a_favor
-                          ? `${g.autogol ? "p.p. " : ""}${g.goleador ?? "Gol"}`
-                          : "En contra";
-                        return `${quien}${g.minuto != null ? ` ${g.minuto}'` : ""}`;
-                      })
-                      .join(" · ")}
+                  <span className="shrink-0 text-xs font-medium tabular-nums text-muted-foreground">
+                    {g.minuto != null ? `${g.minuto}'` : ""}
                   </span>
                 </Link>
               </li>
