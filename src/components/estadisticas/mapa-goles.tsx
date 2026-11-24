@@ -10,6 +10,10 @@ interface GolUbicacion {
   a_favor: boolean;
   tipo_gol: string | null;
   rival: string;
+  fecha: string;
+  minuto: number | null;
+  autogol: boolean;
+  goleador: string | null;
 }
 
 const SIN_TIPO = "__sin_tipo__";
@@ -70,6 +74,15 @@ export function MapaGoles({
 
   const golesFiltrados = golesPorFavor.filter(
     (g) => !excluidos.has(g.tipo_gol ?? SIN_TIPO),
+  );
+
+  // Para el listado: por fecha y, dentro del partido, por minuto.
+  const listado = useMemo(
+    () =>
+      [...golesFiltrados].sort(
+        (a, b) => a.fecha.localeCompare(b.fecha) || (a.minuto ?? 999) - (b.minuto ?? 999),
+      ),
+    [golesFiltrados],
   );
 
   const aFavor = golesFiltrados.filter((g) => g.a_favor).length;
@@ -176,6 +189,51 @@ export function MapaGoles({
           ))
         )}
       </div>
+
+      {filtroFavor !== "todos" && golesFiltrados.length > 0 && (
+        <div>
+          <p className="mb-1.5 text-sm font-semibold">
+            {filtroFavor === "favor" ? "Goles a favor" : "Goles en contra"} (
+            {golesFiltrados.length})
+          </p>
+          <ul className="divide-y rounded-md border text-sm">
+            {listado.map((g, i) => (
+              <li key={i} className="flex items-center gap-2 px-2.5 py-1.5">
+                <span
+                  className={cn(
+                    "size-2.5 shrink-0 rounded-full",
+                    g.a_favor ? "bg-[#1b5e3a]" : "bg-destructive",
+                  )}
+                />
+                <span className="w-11 shrink-0 text-xs tabular-nums text-muted-foreground">
+                  {g.fecha
+                    ? new Date(`${g.fecha}T00:00:00`).toLocaleDateString("es-ES", {
+                        day: "2-digit",
+                        month: "2-digit",
+                      })
+                    : ""}
+                </span>
+                <span className="min-w-0 flex-1 truncate">
+                  <span className="font-medium">{g.rival}</span>
+                  {g.goleador && (
+                    <span className="text-muted-foreground">
+                      {" · "}
+                      {g.autogol ? "p.p. " : ""}
+                      {g.goleador}
+                    </span>
+                  )}
+                </span>
+                <span className="shrink-0 text-right text-xs text-muted-foreground">
+                  {g.tipo_gol ? (tipos.find((t) => t.value === g.tipo_gol)?.label ?? g.tipo_gol) : ""}
+                </span>
+                <span className="w-9 shrink-0 text-right text-xs font-medium tabular-nums">
+                  {g.minuto != null ? `${g.minuto}'` : ""}
+                </span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
     </div>
   );
 }

@@ -247,24 +247,33 @@ export default function EstadisticasPage() {
     [partidosTemporada],
   );
 
-  const golesUbicacion = useMemo(
-    () =>
-      eventosTemporada
-        .filter(
-          (e) =>
-            (e.tipo === "gol" || e.tipo === "autogol") &&
-            e.pos_x != null &&
-            e.pos_y != null,
-        )
-        .map((e) => ({
+  const golesUbicacion = useMemo(() => {
+    const fechaPorPartidoId = new Map(partidosTemporada.map((p) => [p.id, p.fecha]));
+    const jugadoresPorId = new Map(jugadoresTodos.map((j) => [j.id, j]));
+    return eventosTemporada
+      .filter(
+        (e) =>
+          (e.tipo === "gol" || e.tipo === "autogol") &&
+          e.pos_x != null &&
+          e.pos_y != null,
+      )
+      .map((e) => {
+        const jugador = e.jugador_id ? jugadoresPorId.get(e.jugador_id) : null;
+        return {
           pos_x: e.pos_x as number,
           pos_y: e.pos_y as number,
           a_favor: e.a_favor,
           tipo_gol: e.tipo_gol,
           rival: rivalPorPartidoId.get(e.partido_id) ?? "Rival",
-        })),
-    [eventosTemporada, rivalPorPartidoId],
-  );
+          fecha: fechaPorPartidoId.get(e.partido_id) ?? "",
+          minuto: e.minuto,
+          autogol: e.tipo === "autogol",
+          goleador: jugador
+            ? jugador.alias || `${jugador.nombre} ${jugador.apellidos}`
+            : e.nombre_libre,
+        };
+      });
+  }, [eventosTemporada, rivalPorPartidoId, partidosTemporada, jugadoresTodos]);
 
   const golesPorMinuto = useMemo(
     () =>
