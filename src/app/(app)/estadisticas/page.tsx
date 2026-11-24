@@ -17,13 +17,7 @@ import { JugadoresTable } from "@/components/estadisticas/jugadores-table";
 import { BalanceTemporada } from "@/components/estadisticas/balance-temporada";
 import { EtiquetasResumen } from "@/components/estadisticas/etiquetas-resumen";
 import { Button } from "@/components/ui/button";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { cn } from "@/lib/utils";
 import { Printer } from "lucide-react";
 import { PdfWatermark } from "@/components/branding/pdf-watermark";
 import {
@@ -38,6 +32,44 @@ import { TIPOS_GOL } from "@/lib/validations/gol";
 import { temporadaDeFecha } from "@/lib/temporada";
 import { claveEquipo } from "@/lib/clasificacion";
 
+type FaseSel = "todas" | "pretemporada" | "liga";
+
+const FASES: { value: FaseSel; label: string }[] = [
+  { value: "todas", label: "Total" },
+  { value: "pretemporada", label: "Pretemporada" },
+  { value: "liga", label: "Liga" },
+];
+
+function FaseBotones({
+  value,
+  onChange,
+  className,
+}: {
+  value: FaseSel;
+  onChange: (v: FaseSel) => void;
+  className?: string;
+}) {
+  return (
+    <div className={cn("flex gap-1.5 print:hidden", className)}>
+      {FASES.map((f) => (
+        <button
+          key={f.value}
+          type="button"
+          onClick={() => onChange(f.value)}
+          className={cn(
+            "rounded-full border px-3 py-1.5 text-xs font-semibold transition-colors",
+            value === f.value
+              ? "border-primary bg-primary text-primary-foreground"
+              : "border-input text-muted-foreground hover:bg-muted",
+          )}
+        >
+          {f.label}
+        </button>
+      ))}
+    </div>
+  );
+}
+
 function hoyISO() {
   const now = new Date();
   return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
@@ -47,9 +79,7 @@ export default function EstadisticasPage() {
   const hoy = hoyISO();
   const haSincronizado = useSincronizacionInicialCompleta();
   const online = useOnlineStatus();
-  const [faseSel, setFaseSel] = useState<"todas" | "pretemporada" | "liga">(
-    "todas",
-  );
+  const [faseSel, setFaseSel] = useState<FaseSel>("todas");
 
   const jugadores = useLiveQuery(
     () => localDb.jugadores.filter((j) => j.activo).toArray(),
@@ -392,22 +422,10 @@ export default function EstadisticasPage() {
   return (
     <div className="space-y-4">
       <PdfWatermark />
-      <div className="flex items-center justify-between gap-3">
+      <div className="flex flex-wrap items-center justify-between gap-3">
         <h1 className="text-2xl font-semibold">Estadísticas</h1>
-        <div className="flex items-center gap-2">
-          <Select
-            value={faseSel}
-            onValueChange={(v) => setFaseSel(v as typeof faseSel)}
-          >
-            <SelectTrigger className="w-[10.5rem] print:hidden">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="todas">Total</SelectItem>
-              <SelectItem value="pretemporada">Pretemporada (amistosos)</SelectItem>
-              <SelectItem value="liga">Liga</SelectItem>
-            </SelectContent>
-          </Select>
+        <div className="flex flex-wrap items-center gap-2">
+          <FaseBotones value={faseSel} onChange={setFaseSel} />
           <TemporadaSelector className="print:hidden" />
           <Button
             variant="outline"
@@ -557,21 +575,7 @@ export default function EstadisticasPage() {
       <Card>
         <CardHeader className="flex flex-row items-center justify-between">
           <CardTitle className="text-base">Por jugador</CardTitle>
-          <Select
-            value={faseSel}
-            onValueChange={(v) => setFaseSel(v as typeof faseSel)}
-          >
-            <SelectTrigger className="w-[10.5rem] print:hidden">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="todas">Total</SelectItem>
-              <SelectItem value="pretemporada">
-                Pretemporada (amistosos)
-              </SelectItem>
-              <SelectItem value="liga">Liga</SelectItem>
-            </SelectContent>
-          </Select>
+          <FaseBotones value={faseSel} onChange={setFaseSel} />
         </CardHeader>
         <CardContent>
           {statsJugadores.length === 0 ? (
