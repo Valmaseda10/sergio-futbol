@@ -14,6 +14,7 @@ import { TiposGolChart } from "@/components/estadisticas/tipos-gol-chart";
 import { MapaGoles } from "@/components/estadisticas/mapa-goles";
 import { GolesIntervaloChart } from "@/components/estadisticas/goles-intervalo-chart";
 import { JugadoresTable } from "@/components/estadisticas/jugadores-table";
+import { UltimosPartidosJugadores } from "@/components/estadisticas/ultimos-partidos-jugadores";
 import { BalanceTemporada } from "@/components/estadisticas/balance-temporada";
 import { EtiquetasResumen } from "@/components/estadisticas/etiquetas-resumen";
 import { Button } from "@/components/ui/button";
@@ -146,6 +147,11 @@ export default function EstadisticasPage() {
           resultado_contra: p.resultado_contra as number,
         })),
     [partidosTemporada],
+  );
+
+  const ultimosPartidos = useMemo(
+    () => partidosJugados.slice(-5),
+    [partidosJugados],
   );
 
   const entrenamientosPasados = useMemo(
@@ -489,6 +495,28 @@ export default function EstadisticasPage() {
             </p>
           ) : (
             <MapaGoles goles={golesUbicacion} tipos={TIPOS_GOL} />
+          )}
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">
+            Titulares y suplentes · últimos {ultimosPartidos.length || 5} partidos
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          {ultimosPartidos.length === 0 || jugadores.length === 0 ? (
+            <p className="py-8 text-center text-sm text-muted-foreground">
+              Todavía no hay partidos jugados.
+            </p>
+          ) : (
+            <UltimosPartidosJugadores
+              partidos={ultimosPartidos}
+              jugadores={jugadores}
+              alineaciones={alineacionesTemporada}
+              convocados={convocatoriasTemporada}
+            />
           )}
         </CardContent>
       </Card>
