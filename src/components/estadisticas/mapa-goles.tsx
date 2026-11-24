@@ -213,7 +213,7 @@ export function MapaGoles({
       </div>
 
       <Dialog open={listadoAbierto} onOpenChange={setListadoAbierto}>
-        <DialogContent>
+        <DialogContent className="sm:max-w-xl">
           <DialogHeader>
             <DialogTitle>
               {filtroFavor === "contra" ? "Goles en contra" : "Goles a favor"} ({listado.length})
@@ -254,7 +254,7 @@ export function MapaGoles({
                   </span>
                 )}
               </span>
-              <span className="block truncate text-xs text-muted-foreground">
+              <span className="block text-xs text-muted-foreground">
                 vs {g.rival}
                 {g.fecha &&
                   ` · ${new Date(`${g.fecha}T00:00:00`).toLocaleDateString("es-ES", {
