@@ -271,6 +271,11 @@ export function AlineacionRival({ rivalId }: { rivalId: string }) {
               >
                 {f.numero ?? "?"}
               </span>
+              {f.nombre && (
+                <span className="pointer-events-none absolute top-full left-1/2 mt-px -translate-x-1/2 whitespace-nowrap rounded bg-black/55 px-1 text-[8px] leading-tight font-medium text-white">
+                  {f.nombre}
+                </span>
+              )}
             </button>
           ))}
         </div>
