@@ -82,12 +82,15 @@ export function CampogramaRivalHoja({
   function colocar() {
     const f = FORMACIONES.find((x) => x.value === formacion);
     if (!f) return;
+    const titularesPrevios = fichas.filter((x) => !x.alternativa);
+    const alternativas = fichas.filter((x) => x.alternativa);
     onCambio({
       ...datos,
       sistema: datos.sistema.trim() ? datos.sistema : f.label,
-      fichas: f.huecos.map((h, i) => {
+      fichas: [
+        ...f.huecos.map((h, i) => {
         // Se conserva lo ya escrito (por orden) y, si no hay nada, se usa la lista de la hoja.
-        const previa = fichas[i];
+        const previa = titularesPrevios[i];
         const hoja = separarNumero(titularesRival[i] ?? "", i);
         return {
           id: previa?.id ?? nuevoId(),
@@ -95,10 +98,27 @@ export function CampogramaRivalHoja({
           nombre: previa?.nombre || hoja.nombre,
           left: h.left,
           top: h.top,
+          alternativa: false,
         };
       }),
+        ...alternativas,
+      ],
     });
     setSeleccionada(null);
+  }
+
+  function añadirFicha(alternativa: boolean) {
+    const id = nuevoId();
+    // Cae en un hueco libre del centro, desplazada por cada ficha que ya hay, para no taparlas.
+    const n = fichas.length;
+    onCambio({
+      ...datos,
+      fichas: [
+        ...fichas,
+        { id, numero: "", nombre: "", left: 22 + ((n * 17) % 56), top: 44 + ((n * 11) % 20), alternativa },
+      ],
+    });
+    setSeleccionada(id);
   }
 
   async function traerDeLaFicha() {
@@ -110,7 +130,7 @@ export function CampogramaRivalHoja({
     onCambio({
       ...datos,
       sistema: datos.sistema.trim() ? datos.sistema : ficha.sistema,
-      fichas: ficha.fichas.map((f) => ({ id: nuevoId(), ...f })),
+      fichas: ficha.fichas.map((f) => ({ id: nuevoId(), ...f, alternativa: false })),
     });
     setSeleccionada(null);
     toast.success(`Traídas ${ficha.fichas.length} fichas de la ficha del rival.`);
@@ -166,6 +186,12 @@ export function CampogramaRivalHoja({
         <Button type="button" size="sm" variant="outline" onClick={traerDeLaFicha}>
           Traer de la ficha del rival
         </Button>
+        <Button type="button" size="sm" variant="outline" onClick={() => añadirFicha(false)}>
+          Añadir jugador
+        </Button>
+        <Button type="button" size="sm" variant="outline" onClick={() => añadirFicha(true)}>
+          Añadir alternativa
+        </Button>
         {fichas.length > 0 && (
           <Button
             type="button"
@@ -180,7 +206,7 @@ export function CampogramaRivalHoja({
           </Button>
         )}
         <span className="text-[11px] text-muted-foreground">
-          Arrastra las fichas; toca una para quitarla de en medio o cambiar su nombre en la lista.
+          Arrastra las fichas y escribe los nombres en la lista. Si no aciertas el once, cambia el nombre o añade una alternativa (sale en naranja).
         </span>
       </div>
 
@@ -212,9 +238,9 @@ export function CampogramaRivalHoja({
                 style={{ left: `${f.left}%`, top: `${f.top}%` }}
               >
                 <span
-                  className={`flex size-7 items-center justify-center rounded-full border-2 bg-red-600 text-[12px] font-bold tabular-nums text-white shadow ${
-                    seleccionada === f.id ? "border-yellow-300" : "border-white"
-                  }`}
+                  className={`flex size-7 items-center justify-center rounded-full border-2 text-[12px] font-bold tabular-nums text-white shadow ${
+                    f.alternativa ? "bg-orange-500" : "bg-red-600"
+                  } ${seleccionada === f.id ? "border-yellow-300" : "border-white"}`}
                 >
                   {f.numero || "?"}
                 </span>
@@ -242,12 +268,25 @@ export function CampogramaRivalHoja({
             />
           </div>
 
+          {fichas.some((f) => f.alternativa) && (
+            <div className={`flex h-6 items-center gap-3 border-b px-1.5 text-[11px] ${BORDE}`}>
+              <span className="flex items-center gap-1">
+                <span className="size-2.5 rounded-full bg-red-600" />
+                Once probable
+              </span>
+              <span className="flex items-center gap-1">
+                <span className="size-2.5 rounded-full bg-orange-500" />
+                Alternativa
+              </span>
+            </div>
+          )}
+
           {fichas.length > 0 && (
             <div className={`border-b print:hidden ${BORDE}`}>
               {fichas.map((f) => (
                 <div
                   key={f.id}
-                  className={`grid h-6 grid-cols-[2rem_1fr_1.4rem] border-b last:border-b-0 ${BORDE} ${
+                  className={`grid h-6 grid-cols-[2rem_1fr_2.4rem_1.4rem] border-b last:border-b-0 ${BORDE} ${
                     seleccionada === f.id ? "bg-yellow-50" : ""
                   }`}
                 >
@@ -266,6 +305,15 @@ export function CampogramaRivalHoja({
                     onFocus={() => setSeleccionada(f.id)}
                     className="h-full w-full min-w-0 bg-transparent px-1.5 text-[12px] font-semibold uppercase outline-none"
                   />
+                  <button
+                    type="button"
+                    aria-label="Alternativa"
+                    title="Marcar como alternativa (naranja)"
+                    onClick={() => actualizar(f.id, { alternativa: !f.alternativa })}
+                    className={`text-[10px] font-semibold ${f.alternativa ? "bg-orange-500 text-white" : "text-muted-foreground hover:bg-muted"}`}
+                  >
+                    alt.
+                  </button>
                   <button
                     type="button"
                     aria-label="Quitar ficha"

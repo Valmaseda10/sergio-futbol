@@ -147,6 +147,8 @@ export interface FichaCampogramaRival {
   nombre: string;
   left: number;
   top: number;
+  /** Jugador que podría salir en lugar de otro (se pinta en naranja). */
+  alternativa: boolean;
 }
 
 export interface CampogramaRival {
@@ -268,6 +270,7 @@ function leerCampogramaRival(x: unknown): CampogramaRival {
             nombre: String(f.nombre ?? ""),
             left: pct(f.left),
             top: pct(f.top),
+            alternativa: f.alternativa === true,
           }))
       : [],
   };
