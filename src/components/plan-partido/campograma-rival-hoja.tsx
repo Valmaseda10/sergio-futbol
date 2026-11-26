@@ -210,12 +210,12 @@ export function CampogramaRivalHoja({
         </span>
       </div>
 
-      <div className="grid grid-cols-[1.15fr_1fr]">
+      <div className="grid grid-cols-[2fr_1fr]">
         {/* Campo */}
         <div className={`border-r p-1.5 ${BORDE}`}>
           <div
             ref={campoRef}
-            className="relative mx-auto aspect-[3/4] w-full max-w-[26rem] touch-none select-none bg-[#4fcf50] print:max-w-none"
+            className="relative mx-auto aspect-[3/4] w-full max-w-[32rem] touch-none select-none bg-[#4fcf50] print:max-w-none"
           >
             <Campo />
             {fichas.length === 0 && (
@@ -238,14 +238,14 @@ export function CampogramaRivalHoja({
                 style={{ left: `${f.left}%`, top: `${f.top}%` }}
               >
                 <span
-                  className={`flex size-7 items-center justify-center rounded-full border-2 text-[12px] font-bold tabular-nums text-white shadow ${
+                  className={`flex size-8 items-center justify-center rounded-full border-2 text-[14px] font-bold tabular-nums text-white shadow ${
                     f.alternativa ? "bg-orange-500" : "bg-red-600"
                   } ${seleccionada === f.id ? "border-yellow-300" : "border-white"}`}
                 >
                   {f.numero || "?"}
                 </span>
                 {f.nombre && (
-                  <span className="max-w-[5.5rem] truncate rounded bg-black/65 px-1 text-[9px] leading-tight font-bold uppercase text-white">
+                  <span className="max-w-[7rem] truncate rounded bg-black/65 px-1.5 py-px text-[10.5px] leading-tight font-bold uppercase text-white">
                     {f.nombre}
                   </span>
                 )}
