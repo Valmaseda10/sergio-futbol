@@ -5,11 +5,13 @@
 // observaciones finales. La propia hoja es el formulario: se escribe sobre
 // ella y se guarda sola; al imprimir o descargar solo queda el texto.
 
-import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { ajustarHojaParaPagina } from "@/lib/ajustar-hoja";
 import { PdfWatermark } from "@/components/branding/pdf-watermark";
 import { AccionesPdf } from "@/components/plan-partido/acciones-pdf";
+import { AreaAuto } from "@/components/plan-partido/hoja-campos";
+import { CampogramaRivalHoja } from "@/components/plan-partido/campograma-rival-hoja";
 import { toast } from "sonner";
 import { analisisDesdeRivalLocal, guardarHojaLocal } from "@/app/(app)/plan-partido/local-actions";
 import type { LocalHojaPartido } from "@/lib/db/local-db";
@@ -26,54 +28,6 @@ import {
 } from "@/lib/plan-partido";
 
 const BORDE = "border-neutral-900";
-
-// Textarea que crece con lo que se escribe, para que al imprimir no se corte. Con `llenar` ocupa
-// además todo el hueco de su contenedor (se puede escribir en cualquier parte de la casilla).
-function AreaAuto({
-  valor,
-  onCambio,
-  className = "",
-  etiqueta,
-  llenar = false,
-  ajuste = false,
-}: {
-  valor: string;
-  onCambio: (v: string) => void;
-  className?: string;
-  etiqueta: string;
-  llenar?: boolean;
-  /** Caja del análisis: al imprimir se reajusta para que todo entre en la página. */
-  ajuste?: boolean;
-}) {
-  const ref = useRef<HTMLTextAreaElement>(null);
-  useLayoutEffect(() => {
-    const el = ref.current;
-    if (!el) return;
-    function medir() {
-      if (!el) return;
-      el.style.height = "auto";
-      let alto = el.scrollHeight;
-      if (llenar && el.parentElement) alto = Math.max(alto, el.parentElement.clientHeight);
-      el.style.height = `${alto}px`;
-    }
-    medir();
-    if (!llenar) return;
-    window.addEventListener("resize", medir);
-    return () => window.removeEventListener("resize", medir);
-  }, [valor, llenar]);
-  return (
-    <textarea
-      ref={ref}
-      value={valor}
-      rows={1}
-      aria-label={etiqueta}
-      data-llenar={llenar ? "" : undefined}
-      data-ajuste={ajuste ? "" : undefined}
-      onChange={(e) => onCambio(e.target.value)}
-      className={`block w-full resize-none overflow-hidden bg-transparent px-1.5 py-1 leading-snug outline-none focus:bg-yellow-50 print:focus:bg-transparent ${className}`}
-    />
-  );
-}
 
 function Celda({
   valor,
@@ -269,6 +223,8 @@ export function HojaPartido({
   ladoPropio: LadoHoja;
 }) {
   const contenedorRef = useRef<HTMLDivElement>(null);
+  const pagina1Ref = useRef<HTMLDivElement>(null);
+  const pagina2Ref = useRef<HTMLDivElement>(null);
   // Si el partido es de local nuestro equipo va a la izquierda y si es de
   // visitante, a la derecha: el lado se calcula al pintar (y se guarda con la
   // siguiente edición), así que también se recoloca si cambia el partido.
@@ -376,6 +332,22 @@ export function HojaPartido({
           Escribe directamente sobre la hoja; se guarda sola.
         </p>
         <div className="flex flex-wrap items-center gap-2">
+          <Button
+            type="button"
+            size="sm"
+            variant="outline"
+            onClick={() => pagina1Ref.current?.scrollIntoView({ behavior: "smooth", block: "start" })}
+          >
+            Página 1
+          </Button>
+          <Button
+            type="button"
+            size="sm"
+            variant="outline"
+            onClick={() => pagina2Ref.current?.scrollIntoView({ behavior: "smooth", block: "start" })}
+          >
+            Página 2
+          </Button>
           <Button type="button" size="sm" variant="outline" onClick={rellenarDesdeRival}>
             Rellenar análisis con la ficha del rival
           </Button>
@@ -393,8 +365,9 @@ export function HojaPartido({
         className="text-neutral-900"
       >
         <div
+          ref={pagina1Ref}
           data-hoja-pdf
-          className={`overflow-hidden border bg-white text-[12px] ${BORDE} print:min-h-[283mm] print:overflow-visible`}
+          className={`scroll-mt-16 overflow-hidden border bg-white text-[12px] ${BORDE} print:min-h-[283mm] print:overflow-visible`}
         >
           {/* Cabecera del partido */}
           <div
@@ -518,16 +491,25 @@ export function HojaPartido({
           </div>
         </div>
 
-        {/* Página 2 (el reverso de la hoja): las observaciones ocupan el folio entero. */}
+        {/* Página 2 (el reverso de la hoja): el rival (campograma) y las observaciones. */}
         <div
+          ref={pagina2Ref}
           data-hoja-pdf
-          className={`mt-4 flex min-h-[70vh] flex-col overflow-hidden border bg-white text-[12px] ${BORDE} print:mt-0 print:min-h-[283mm] print:break-before-page print:overflow-visible`}
+          className={`mt-4 flex min-h-[70vh] scroll-mt-16 flex-col overflow-hidden border bg-white text-[12px] ${BORDE} print:mt-0 print:min-h-[283mm] print:break-before-page print:overflow-visible`}
         >
           <div className={`flex h-6 items-center justify-between border-b px-2 text-[11px] ${BORDE}`}>
             <span className="font-bold uppercase">Hoja de partido</span>
             <span className="uppercase">
               {[cab.rival, cab.dia, cab.jornada ? `J${cab.jornada}` : ""].filter(Boolean).join(" · ")}
             </span>
+          </div>
+          <div className={`border-b ${BORDE}`}>
+            <CampogramaRivalHoja
+              datos={datos.campograma_rival}
+              partidoId={hoja.partido_id}
+              titularesRival={(datos.nuestro_lado === "izquierda" ? datos.derecha : datos.izquierda).titulares}
+              onCambio={(c) => cambiar((d) => ({ ...d, campograma_rival: c }))}
+            />
           </div>
           <TituloEditable
             valor={datos.titulos.observaciones}
@@ -540,7 +522,7 @@ export function HojaPartido({
               llenar
               valor={datos.analisis.observaciones}
               etiqueta="Observaciones finales"
-              className="flex-1 !px-3 !py-2 text-[13px] print:!h-auto print:!min-h-[250mm]"
+              className="flex-1 !px-3 !py-2 text-[13px] print:!h-auto print:!min-h-[60mm]"
               onCambio={(v) =>
                 cambiar((d) => ({ ...d, analisis: { ...d.analisis, observaciones: v } }))
               }

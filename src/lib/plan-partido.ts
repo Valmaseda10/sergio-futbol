@@ -140,6 +140,22 @@ export interface AnalisisHoja {
   observaciones: string;
 }
 
+/** Una ficha del campograma del rival (posición en % del campo). */
+export interface FichaCampogramaRival {
+  id: string;
+  numero: string;
+  nombre: string;
+  left: number;
+  top: number;
+}
+
+export interface CampogramaRival {
+  /** Sistema del rival (1-4-4-2, 1-3-5-2…), tal como se quiere ver en la hoja. */
+  sistema: string;
+  notas: string;
+  fichas: FichaCampogramaRival[];
+}
+
 export type LadoHoja = "izquierda" | "derecha";
 
 export interface HojaPartidoDatos {
@@ -153,6 +169,8 @@ export interface HojaPartidoDatos {
   analisis: AnalisisHoja;
   /** Títulos de los apartados del análisis cambiados a mano (clave del apartado -> título). */
   titulos: Record<string, string>;
+  /** Campograma del rival de la página 2. */
+  campograma_rival: CampogramaRival;
 }
 
 export const NUM_TITULARES = 11;
@@ -195,6 +213,7 @@ export function hojaVacia(): HojaPartidoDatos {
       observaciones: "",
     },
     titulos: {},
+    campograma_rival: { sistema: "", notas: "", fichas: [] },
   };
 }
 
@@ -227,6 +246,30 @@ export function leerHoja(json: Json | null | undefined): HojaPartidoDatos {
             Object.entries(d.titulos).filter(([, t]) => typeof t === "string"),
           )
         : {},
+    campograma_rival: leerCampogramaRival(d.campograma_rival),
+  };
+}
+
+function leerCampogramaRival(x: unknown): CampogramaRival {
+  const vacio: CampogramaRival = { sistema: "", notas: "", fichas: [] };
+  if (!x || typeof x !== "object" || Array.isArray(x)) return vacio;
+  const c = x as Partial<CampogramaRival>;
+  const pct = (n: unknown) => (typeof n === "number" && Number.isFinite(n) ? Math.min(100, Math.max(0, n)) : 50);
+  return {
+    sistema: typeof c.sistema === "string" ? c.sistema : "",
+    notas: typeof c.notas === "string" ? c.notas : "",
+    fichas: Array.isArray(c.fichas)
+      ? c.fichas
+          .filter((f): f is FichaCampogramaRival => !!f && typeof f === "object")
+          .slice(0, 30)
+          .map((f, i) => ({
+            id: typeof f.id === "string" && f.id ? f.id : `f${i}`,
+            numero: String(f.numero ?? ""),
+            nombre: String(f.nombre ?? ""),
+            left: pct(f.left),
+            top: pct(f.top),
+          }))
+      : [],
   };
 }
 

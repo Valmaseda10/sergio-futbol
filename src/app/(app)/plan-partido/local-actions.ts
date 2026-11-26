@@ -314,6 +314,45 @@ export async function analisisDesdeRivalLocal(
   return out;
 }
 
+export interface AlineacionRivalFicha {
+  sistema: string;
+  fichas: { numero: string; nombre: string; left: number; top: number }[];
+}
+
+/**
+ * La alineación que el rival puso contra nosotros, dibujada en su ficha de Rivales
+ * ("Alineación contra nosotros"), para llevarla al campograma de la hoja de partido.
+ */
+export async function alineacionRivalDesdeFichaLocal(
+  partidoId: string,
+): Promise<AlineacionRivalFicha | null> {
+  const partido = await localDb.partidos.get(partidoId);
+  if (!partido) return null;
+  let rival = partido.rival_scouting_id
+    ? ((await localDb.rivales_scouting.get(partido.rival_scouting_id)) ?? null)
+    : null;
+  if (!rival) {
+    const nombre = partido.rival.trim().toLowerCase();
+    rival =
+      (await localDb.rivales_scouting.filter((r) => r.nombre.trim().toLowerCase() === nombre).first()) ??
+      null;
+  }
+  if (!rival) return null;
+  const filas = await localDb.rivales_alineacion.where("rival_id").equals(rival.id).sortBy("orden");
+  return {
+    sistema: (rival.sistema_juego ?? "").trim(),
+    fichas: filas
+      .filter((f) => !f.suplente)
+      .slice(0, 11)
+      .map((f) => ({
+        numero: f.dorsal != null ? String(f.dorsal) : "",
+        nombre: (f.nombre ?? "").trim(),
+        left: f.pos_x,
+        top: f.pos_y,
+      })),
+  };
+}
+
 export interface ResultadoSincronizacion {
   /** La hoja no existe o no tiene todavía a nadie de nuestro equipo. */
   sinDatos: boolean;
