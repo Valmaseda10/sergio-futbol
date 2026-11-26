@@ -189,7 +189,7 @@ export function CampogramaRivalHoja({
         <div className={`border-r p-1.5 ${BORDE}`}>
           <div
             ref={campoRef}
-            className="relative mx-auto aspect-[3/4] w-full max-w-[26rem] touch-none select-none overflow-hidden bg-[#4fcf50] print:max-w-none"
+            className="relative mx-auto aspect-[3/4] w-full max-w-[26rem] touch-none select-none bg-[#4fcf50] print:max-w-none"
           >
             <Campo />
             {fichas.length === 0 && (
